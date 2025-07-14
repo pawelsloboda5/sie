@@ -1,0 +1,395 @@
+"use client"
+
+import React, { useState, useMemo } from "react"
+import { ProviderCard } from "./ProviderCard"
+import { ServiceBadgeList } from "./ServiceBadge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { 
+  Search, 
+  MapPin, 
+  Clock, 
+  Star, 
+  Filter, 
+  SortAsc, 
+  SortDesc,
+  Users,
+  Building,
+  Heart,
+  AlertCircle,
+  CheckCircle,
+  RefreshCw,
+  ExternalLink
+} from "lucide-react"
+
+interface Provider {
+  _id: string
+  name: string
+  category: string
+  address: string
+  phone?: string
+  website?: string
+  email?: string
+  rating: number
+  accepts_uninsured: boolean
+  medicaid: boolean
+  medicare: boolean
+  ssn_required: boolean
+  telehealth_available: boolean
+  insurance_providers: string[]
+  distance?: number
+  searchScore?: number
+}
+
+interface Service {
+  _id: string
+  provider_id: string
+  name: string
+  category: string
+  description: string
+  is_free: boolean
+  is_discounted: boolean
+  price_info: string
+  provider?: Provider
+  searchScore?: number
+}
+
+interface SearchResults {
+  providers: Provider[]
+  services: Service[]
+  query: string
+  totalResults: number
+}
+
+interface ResultsListProps {
+  results: SearchResults | null
+  isLoading: boolean
+  onRetry?: () => void
+  onProviderAction?: (action: string, provider: Provider) => void
+  showDistance?: boolean
+  compact?: boolean
+}
+
+type SortOption = 'relevance' | 'distance' | 'rating' | 'name'
+
+export function ResultsList({ 
+  results, 
+  isLoading, 
+  onRetry, 
+  onProviderAction,
+  showDistance = true,
+  compact = false 
+}: ResultsListProps) {
+  const [sortBy, setSortBy] = useState<SortOption>('relevance')
+  const [activeTab, setActiveTab] = useState<'providers' | 'services'>('providers')
+
+  const sortedProviders = useMemo(() => {
+    if (!results?.providers) return []
+    
+    const providers = [...results.providers]
+    
+    switch (sortBy) {
+      case 'distance':
+        return providers.sort((a, b) => {
+          if (!a.distance && !b.distance) return 0
+          if (!a.distance) return 1
+          if (!b.distance) return -1
+          return a.distance - b.distance
+        })
+      case 'rating':
+        return providers.sort((a, b) => b.rating - a.rating)
+      case 'name':
+        return providers.sort((a, b) => a.name.localeCompare(b.name))
+      case 'relevance':
+      default:
+        return providers.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))
+    }
+  }, [results?.providers, sortBy])
+
+  const sortedServices = useMemo(() => {
+    if (!results?.services) return []
+    
+    const services = [...results.services]
+    
+    switch (sortBy) {
+      case 'name':
+        return services.sort((a, b) => a.name.localeCompare(b.name))
+      case 'relevance':
+      default:
+        return services.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))
+    }
+  }, [results?.services, sortBy])
+
+  const handleProviderAction = (action: string, provider: Provider) => {
+    switch (action) {
+      case 'call':
+        if (provider.phone) {
+          window.open(`tel:${provider.phone}`, '_self')
+        }
+        break
+      case 'directions':
+        const address = encodeURIComponent(provider.address)
+        window.open(`https://maps.google.com/maps?q=${address}`, '_blank')
+        break
+      case 'website':
+        if (provider.website) {
+          window.open(provider.website, '_blank')
+        }
+        break
+      case 'details':
+        // Handle details modal or navigation
+        break
+    }
+    
+    onProviderAction?.(action, provider)
+  }
+
+  // Loading State
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="p-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-6 w-64" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+                <Skeleton className="h-4 w-48" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-6 w-24" />
+                  <Skeleton className="h-6 w-16" />
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-8 w-24" />
+                  <Skeleton className="h-8 w-32" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // Empty State
+  if (!results || (results.providers.length === 0 && results.services.length === 0)) {
+    return (
+      <Card className="p-8 text-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Search className="h-12 w-12 text-gray-400" />
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {!results ? 'Start your search' : 'No results found'}
+            </h3>
+            <p className="text-gray-600 max-w-md">
+              {!results 
+                ? 'Enter a service, condition, or location to find healthcare providers near you.'
+                : `We couldn't find any providers matching "${results.query}". Try adjusting your search terms or filters.`
+              }
+            </p>
+          </div>
+          {onRetry && results && (
+            <Button onClick={onRetry} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          )}
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Results Header */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Found {results.totalResults} results for "{results.query}"
+          </h2>
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <span className="flex items-center gap-1">
+              <Building className="h-4 w-4" />
+              {results.providers.length} Providers
+            </span>
+            <span className="flex items-center gap-1">
+              <Heart className="h-4 w-4" />
+              {results.services.length} Services
+            </span>
+          </div>
+        </div>
+        
+        {/* Sort Controls */}
+        <div className="flex items-center gap-2">
+          <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="relevance">
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  Relevance
+                </div>
+              </SelectItem>
+              {showDistance && (
+                <SelectItem value="distance">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Distance
+                  </div>
+                </SelectItem>
+              )}
+              <SelectItem value="rating">
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  Rating
+                </div>
+              </SelectItem>
+              <SelectItem value="name">
+                <div className="flex items-center gap-2">
+                  <SortAsc className="h-4 w-4" />
+                  Name
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Results Tabs */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'providers' | 'services')}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="providers" className="flex items-center gap-2">
+            <Building className="h-4 w-4" />
+            Providers ({results.providers.length})
+          </TabsTrigger>
+          <TabsTrigger value="services" className="flex items-center gap-2">
+            <Heart className="h-4 w-4" />
+            Services ({results.services.length})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Providers Tab */}
+        <TabsContent value="providers" className="space-y-4">
+          {sortedProviders.length === 0 ? (
+            <Card className="p-6 text-center">
+              <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">No providers found matching your criteria.</p>
+            </Card>
+          ) : (
+            <ScrollArea className="h-[600px] pr-4">
+              <div className="space-y-4">
+                {sortedProviders.map((provider) => (
+                  <ProviderCard
+                    key={provider._id}
+                    provider={provider}
+                    services={results.services.filter(s => s.provider_id === provider._id)}
+                    onGetDirections={(p) => handleProviderAction('directions', p)}
+                    onCallProvider={(p) => handleProviderAction('call', p)}
+                    onVisitWebsite={(p) => handleProviderAction('website', p)}
+                    onViewDetails={(p) => handleProviderAction('details', p)}
+                    showDistance={showDistance}
+                    compact={compact}
+                  />
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </TabsContent>
+
+        {/* Services Tab */}
+        <TabsContent value="services" className="space-y-4">
+          {sortedServices.length === 0 ? (
+            <Card className="p-6 text-center">
+              <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">No services found matching your criteria.</p>
+            </Card>
+          ) : (
+            <ScrollArea className="h-[600px] pr-4">
+              <div className="space-y-4">
+                {sortedServices.map((service) => (
+                  <Card key={service._id} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg text-gray-900">{service.name}</h3>
+                          <p className="text-sm text-gray-600">{service.category}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {service.is_free && (
+                            <Badge className="bg-green-100 text-green-800">
+                              FREE
+                            </Badge>
+                          )}
+                          {service.is_discounted && !service.is_free && (
+                            <Badge className="bg-orange-100 text-orange-800">
+                              DISCOUNTED
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {service.description && (
+                        <p className="text-sm text-gray-700">{service.description}</p>
+                      )}
+                      
+                      {service.price_info && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium">Pricing:</span>
+                          <span className="text-gray-600">{service.price_info}</span>
+                        </div>
+                      )}
+                      
+                      {service.provider && (
+                        <div className="pt-2 border-t">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-sm">Available at:</p>
+                              <p className="text-sm text-gray-600">{service.provider.name}</p>
+                              <p className="text-xs text-gray-500">{service.provider.address}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              {service.provider.phone && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleProviderAction('call', service.provider!)}
+                                >
+                                  Call
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleProviderAction('directions', service.provider!)}
+                              >
+                                Directions
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+} 
