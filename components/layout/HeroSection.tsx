@@ -183,6 +183,38 @@ export function HeroSection({ onSearch, isSearching = false }: HeroSectionProps 
         }
 
         const results: SearchResults = await response.json()
+        
+        // Sort providers to prioritize those with free services
+        if (results.providers && results.services) {
+          results.providers.sort((a: any, b: any) => {
+            // Check if providers have free services
+            const aHasFree = results.services.some((service: any) => 
+              service.provider_id === a._id && service.is_free
+            )
+            const bHasFree = results.services.some((service: any) => 
+              service.provider_id === b._id && service.is_free
+            )
+            
+            // Prioritize providers with free services
+            if (aHasFree && !bHasFree) return -1
+            if (!aHasFree && bHasFree) return 1
+            
+            // If both have free services, count them
+            if (aHasFree && bHasFree) {
+              const aFreeCount = results.services.filter((service: any) => 
+                service.provider_id === a._id && service.is_free
+              ).length
+              const bFreeCount = results.services.filter((service: any) => 
+                service.provider_id === b._id && service.is_free
+              ).length
+              if (aFreeCount !== bFreeCount) return bFreeCount - aFreeCount
+            }
+            
+            // Then sort by search relevance score
+            return (b.searchScore || 0) - (a.searchScore || 0)
+          })
+        }
+        
         setSearchResults(results)
         
       } catch (error) {
