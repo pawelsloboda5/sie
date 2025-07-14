@@ -62,8 +62,8 @@ interface Service {
 // Azure OpenAI embedding generation
 async function generateEmbedding(text: string): Promise<number[]> {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT
-  const apiKey = process.env.AZURE_OPENAI_KEY
-  const model = process.env.AZURE_OPENAI_MODEL || 'text-embedding-3-large'
+  const apiKey = process.env.AZURE_OPENAI_API_KEY
+  const model = process.env.AZURE_OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small'
 
   if (!endpoint || !apiKey) {
     throw new Error('Azure OpenAI credentials not configured')
@@ -109,26 +109,11 @@ async function searchProviders(
   limit: number = 10
 ) {
   const client = await getMongoClient()
-  const db = client.db()
+  const db = client.db('sie-db')
   const collection = db.collection<Provider>('providers')
 
   try {
-    // Build the aggregation pipeline
-    const pipeline: any[] = [
-      {
-        $search: {
-          cosmosSearch: {
-            vector: queryVector,
-            path: "summary_vector",
-            k: Math.min(limit * 2, 100), // Get more results for filtering
-            nProbes: 2
-          },
-          returnStoredSource: true
-        }
-      }
-    ]
-
-    // Add filters
+    // Build match conditions for filtering
     const matchConditions: any = {}
     
     if (filters.acceptsUninsured) {
@@ -155,42 +140,109 @@ async function searchProviders(
       matchConditions.insurance_providers = { $in: filters.insuranceProviders }
     }
 
-    if (Object.keys(matchConditions).length > 0) {
-      pipeline.push({ $match: matchConditions })
-    }
+    // Note: Location filtering with $geoWithin is not supported in Cosmos DB vector search filter
+    // We'll handle distance filtering in JavaScript after getting results
+    
+    // Build cosmosSearch object safely
+    const cosmosSearch = buildCosmosSearch(
+      queryVector,
+      "summary_vector",
+      Math.min(limit * 2, 100),
+      matchConditions,
+      2 // nProbes = 2 is safe for providers (numLists = 2)
+    )
 
-    // Add location-based filtering if coordinates provided
-    if (location && filters.maxDistance) {
-      pipeline.push({
-        $geoNear: {
-          near: {
-            type: "Point",
-            coordinates: [location.longitude, location.latitude]
-          },
-          distanceField: "distance",
-          maxDistance: filters.maxDistance * 1609.34, // Convert miles to meters
-          spherical: true
+    // Build the aggregation pipeline with $search FIRST
+    const pipeline: any[] = [
+      {
+        $search: {
+          cosmosSearch,
+          returnStoredSource: true
         }
-      })
-    }
-
-    // Project the results with search score
-    pipeline.push({
-      $project: {
-        score: { $meta: "searchScore" },
-        doc: "$$ROOT",
-        distance: { $ifNull: ["$distance", null] }
-      }
-    })
-
-    // Limit results
-    pipeline.push({ $limit: limit })
+      },
+      {
+        $project: {
+          score: { $meta: "searchScore" },
+          doc: "$$ROOT"
+        }
+      },
+      { $limit: limit }
+    ]
 
     const results = await collection.aggregate(pipeline).toArray()
+    
+    // Calculate distances and apply location filtering in JavaScript if location is provided
+    if (location) {
+      let resultsWithDistance = results.map((result: any) => {
+        // Check if location data exists
+        if (!result.doc.location || !result.doc.location.coordinates) {
+          return {
+            ...result,
+            distance: 999999 // Set very high distance for providers without location
+          }
+        }
+        
+        const distance = calculateDistance(
+          location.latitude,
+          location.longitude,
+          result.doc.location.coordinates[1], // latitude
+          result.doc.location.coordinates[0]  // longitude
+        )
+        return {
+          ...result,
+          distance: distance
+        }
+      })
+      
+      // Filter by maximum distance if specified
+      if (filters.maxDistance) {
+        resultsWithDistance = resultsWithDistance.filter((result: any) => 
+          result.distance <= filters.maxDistance!
+        )
+      }
+      
+      // Sort by distance first, then by search score
+      resultsWithDistance.sort((a: any, b: any) => {
+        if (a.distance !== b.distance) {
+          return a.distance - b.distance
+        }
+        return b.score - a.score
+      })
+      
+      return resultsWithDistance
+    }
+    
     return results
   } finally {
     await client.close()
   }
+}
+
+// Helper function to build cosmosSearch object safely
+function buildCosmosSearch(
+  vector: number[],
+  path: "summary_vector" | "service_vector",
+  k: number,
+  matchConditions: Record<string, any>,
+  nProbes?: number
+) {
+  const cs: any = { vector, path, k }
+  if (nProbes && nProbes > 0) cs.nProbes = nProbes
+  if (Object.keys(matchConditions).length) cs.filter = matchConditions
+  return cs
+}
+
+// Helper function to calculate distance between two points using Haversine formula
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3959 // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  return R * c // Distance in miles
 }
 
 // Vector search for services
@@ -200,24 +252,10 @@ async function searchServices(
   limit: number = 20
 ) {
   const client = await getMongoClient()
-  const db = client.db()
+  const db = client.db('sie-db')
   const collection = db.collection<Service>('services')
 
   try {
-    const pipeline: any[] = [
-      {
-        $search: {
-          cosmosSearch: {
-            vector: queryVector,
-            path: "service_vector",
-            k: Math.min(limit * 2, 100),
-            nProbes: 3
-          },
-          returnStoredSource: true
-        }
-      }
-    ]
-
     // Add service-specific filters
     const matchConditions: any = {}
     
@@ -229,18 +267,28 @@ async function searchServices(
       matchConditions.category = { $in: filters.serviceCategories }
     }
 
-    if (Object.keys(matchConditions).length > 0) {
-      pipeline.push({ $match: matchConditions })
+    // Minimal cosmosSearch object - no filters, no nProbes
+    const cosmosSearch = {
+      vector: queryVector,
+      path: "service_vector",
+      k: Math.min(limit * 2, 100)
     }
 
-    pipeline.push({
-      $project: {
-        score: { $meta: "searchScore" },
-        doc: "$$ROOT"
-      }
-    })
-
-    pipeline.push({ $limit: limit })
+    const pipeline: any[] = [
+      {
+        $search: {
+          cosmosSearch,
+          returnStoredSource: true
+        }
+      },
+      {
+        $project: {
+          score: { $meta: "searchScore" },
+          doc: "$$ROOT"
+        }
+      },
+      { $limit: limit }
+    ]
 
     const results = await collection.aggregate(pipeline).toArray()
     return results
@@ -264,11 +312,23 @@ export async function POST(request: NextRequest) {
     // Generate embedding for the search query
     const queryVector = await generateEmbedding(query)
 
-    // Search both providers and services
-    const [providerResults, serviceResults] = await Promise.all([
-      searchProviders(queryVector, filters, location, limit),
-      searchServices(queryVector, filters, Math.ceil(limit / 2))
-    ])
+    // Search both providers and services with error handling
+    let providerResults: any[] = []
+    let serviceResults: any[] = []
+    
+    try {
+      providerResults = await searchProviders(queryVector, filters, location, limit)
+    } catch (error) {
+      console.error('Provider search failed:', error)
+      // Continue with empty results
+    }
+    
+    try {
+      serviceResults = await searchServices(queryVector, filters, Math.ceil(limit / 2))
+    } catch (error) {
+      console.error('Service search failed:', error)
+      serviceResults = []
+    }
 
     // For services, we need to get the provider information
     const serviceProviderIds = serviceResults.map(result => result.doc.provider_id)
@@ -276,7 +336,7 @@ export async function POST(request: NextRequest) {
     
     if (serviceProviderIds.length > 0) {
       const client = await getMongoClient()
-      const db = client.db()
+      const db = client.db('sie-db')
       const providersCollection = db.collection('providers')
       
       try {
@@ -290,12 +350,12 @@ export async function POST(request: NextRequest) {
 
     // Combine and format results
     const results = {
-      providers: providerResults.map(result => ({
+      providers: providerResults.map((result: any) => ({
         ...result.doc,
         searchScore: result.score,
-        distance: result.distance
+        distance: result.distance || null
       })),
-      services: serviceResults.map(result => {
+      services: serviceResults.map((result: any) => {
         const provider = serviceProviders.find(p => p._id.toString() === result.doc.provider_id)
         return {
           ...result.doc,

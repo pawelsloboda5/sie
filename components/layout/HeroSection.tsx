@@ -1,26 +1,50 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Search, MapPin, Clock, DollarSign, Shield, Phone, Stethoscope } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Search, MapPin, Clock, DollarSign, Shield, Phone, Stethoscope, Loader2 } from "lucide-react"
+
+// Types for our search functionality
+interface SearchFilters {
+  freeOnly?: boolean
+  acceptsUninsured?: boolean
+  acceptsMedicaid?: boolean
+  acceptsMedicare?: boolean
+  ssnRequired?: boolean
+  telehealthAvailable?: boolean
+  insuranceProviders?: string[]
+  maxDistance?: number
+  serviceCategories?: string[]
+}
+
+interface SearchResults {
+  providers: any[]
+  services: any[]
+  query: string
+  totalResults: number
+}
 
 export function HeroSection() {
   const [searchQuery, setSearchQuery] = useState("")
   const [location, setLocation] = useState("")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isGettingLocation, setIsGettingLocation] = useState(false)
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   // Quick filter options
   const quickFilters = [
-    { id: "free", label: "Free Services", icon: DollarSign, color: "bg-green-100 text-green-800 hover:bg-green-200" },
-    { id: "uninsured", label: "Accepts Uninsured", icon: Shield, color: "bg-blue-100 text-blue-800 hover:bg-blue-200" },
-    { id: "urgent", label: "Urgent Care", icon: Clock, color: "bg-orange-100 text-orange-800 hover:bg-orange-200" },
-    { id: "telehealth", label: "Telehealth", icon: Phone, color: "bg-purple-100 text-purple-800 hover:bg-purple-200" },
-    { id: "clinic", label: "Community Health", icon: Stethoscope, color: "bg-teal-100 text-teal-800 hover:bg-teal-200" },
+    { id: "free", label: "Free Services", icon: DollarSign, color: "bg-green-100 text-green-800 hover:bg-green-200", filter: "freeOnly" },
+    { id: "uninsured", label: "Accepts Uninsured", icon: Shield, color: "bg-blue-100 text-blue-800 hover:bg-blue-200", filter: "acceptsUninsured" },
+    { id: "urgent", label: "Urgent Care", icon: Clock, color: "bg-orange-100 text-orange-800 hover:bg-orange-200", filter: "serviceCategories", value: ["Urgent Care"] },
+    { id: "telehealth", label: "Telehealth", icon: Phone, color: "bg-purple-100 text-purple-800 hover:bg-purple-200", filter: "telehealthAvailable" },
+    { id: "medicaid", label: "Accepts Medicaid", icon: Stethoscope, color: "bg-teal-100 text-teal-800 hover:bg-teal-200", filter: "acceptsMedicaid" },
   ]
 
   const [selectedFilters, setSelectedFilters] = useState<string[]>([])
@@ -49,12 +73,17 @@ export function HeroSection() {
           (error) => {
             console.error("Error getting location:", error)
             setIsGettingLocation(false)
+            setSearchError("Unable to get your location. Please enter it manually.")
           }
         )
+      } else {
+        setIsGettingLocation(false)
+        setSearchError("Geolocation is not supported by this browser.")
       }
     } catch (error) {
       console.error("Geolocation error:", error)
       setIsGettingLocation(false)
+      setSearchError("Error accessing location services.")
     }
   }
 
@@ -64,6 +93,94 @@ export function HeroSection() {
         ? prev.filter(id => id !== filterId)
         : [...prev, filterId]
     )
+  }
+
+  const buildFiltersFromSelection = (): SearchFilters => {
+    const filters: SearchFilters = {}
+    
+    selectedFilters.forEach(filterId => {
+      const filter = quickFilters.find(f => f.id === filterId)
+      if (filter) {
+        switch (filter.filter) {
+          case "freeOnly":
+            filters.freeOnly = true
+            break
+          case "acceptsUninsured":
+            filters.acceptsUninsured = true
+            break
+          case "acceptsMedicaid":
+            filters.acceptsMedicaid = true
+            break
+          case "telehealthAvailable":
+            filters.telehealthAvailable = true
+            break
+          case "serviceCategories":
+            filters.serviceCategories = filter.value as string[]
+            break
+        }
+      }
+    })
+
+    return filters
+  }
+
+  const parseLocation = (locationString: string) => {
+    // Check if it's coordinates (latitude, longitude)
+    const coordMatch = locationString.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
+    if (coordMatch) {
+      return {
+        latitude: parseFloat(coordMatch[1]),
+        longitude: parseFloat(coordMatch[2])
+      }
+    }
+    
+    // For now, return null for text addresses - we'd need geocoding API
+    return null
+  }
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchError("Please enter a search query")
+      return
+    }
+
+    setSearchError(null)
+    
+    startTransition(async () => {
+      try {
+        const filters = buildFiltersFromSelection()
+        const locationCoords = location ? parseLocation(location) : undefined
+
+        const searchRequest = {
+          query: searchQuery,
+          location: locationCoords,
+          filters,
+          limit: 20
+        }
+
+        const response = await fetch('/api/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(searchRequest),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Search failed: ${response.statusText}`)
+        }
+
+        const results: SearchResults = await response.json()
+        setSearchResults(results)
+        
+        // TODO: Navigate to results view or update the page to show results
+        console.log('Search results:', results)
+        
+      } catch (error) {
+        console.error('Search error:', error)
+        setSearchError(error instanceof Error ? error.message : 'Search failed. Please try again.')
+      }
+    })
   }
 
   return (
@@ -79,6 +196,13 @@ export function HeroSection() {
           </p>
         </div>
 
+        {/* Search Error Alert */}
+        {searchError && (
+          <Alert className="mb-6 border-destructive">
+            <AlertDescription>{searchError}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Search Input */}
         <div className="mb-6">
           <div className="relative">
@@ -92,6 +216,7 @@ export function HeroSection() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-12 pr-4 py-4 text-lg h-14 bg-background border-2 border-border focus:border-primary"
                     onFocus={() => setIsSearchOpen(true)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   />
                 </div>
               </PopoverTrigger>
@@ -139,7 +264,7 @@ export function HeroSection() {
               className="px-4 h-12 border-2"
             >
               {isGettingLocation ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <MapPin className="h-4 w-4" />
               )}
@@ -181,13 +306,20 @@ export function HeroSection() {
           <Button 
             size="lg" 
             className="px-8 py-4 text-lg h-14 bg-primary hover:bg-primary/90"
-            onClick={() => {
-              // TODO: Implement search functionality
-              console.log("Search:", { searchQuery, location, selectedFilters })
-            }}
+            onClick={handleSearch}
+            disabled={isPending || !searchQuery.trim()}
           >
-            <Search className="mr-2 h-5 w-5" />
-            Find Healthcare Services
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Searching...
+              </>
+            ) : (
+              <>
+                <Search className="mr-2 h-5 w-5" />
+                Find Healthcare Services
+              </>
+            )}
           </Button>
         </div>
 
@@ -211,6 +343,43 @@ export function HeroSection() {
                   </Badge>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Search Results Preview */}
+        {searchResults && (
+          <div className="mt-8 p-6 bg-muted/30 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">
+              Found {searchResults.totalResults} results for "{searchResults.query}"
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-medium mb-2">Providers ({searchResults.providers.length})</h4>
+                <div className="space-y-2">
+                  {searchResults.providers.slice(0, 3).map((provider, index) => (
+                    <div key={index} className="p-3 bg-background rounded border">
+                      <p className="font-medium">{provider.name}</p>
+                      <p className="text-sm text-muted-foreground">{provider.category}</p>
+                      <p className="text-sm text-muted-foreground">{provider.address}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium mb-2">Services ({searchResults.services.length})</h4>
+                <div className="space-y-2">
+                  {searchResults.services.slice(0, 3).map((service, index) => (
+                    <div key={index} className="p-3 bg-background rounded border">
+                      <p className="font-medium">{service.name}</p>
+                      <p className="text-sm text-muted-foreground">{service.category}</p>
+                      {service.is_free && (
+                        <Badge className="mt-1 bg-green-100 text-green-800">Free</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
