@@ -55,6 +55,19 @@ export default function FindPage() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list')
 
   const handleSearch = async (query: string, location?: {latitude: number, longitude: number}) => {
+    handleSearchWithFilters(query, location)
+  }
+
+  const handleFiltersChange = (newFilters: FilterOptions) => {
+    setFilters(newFilters)
+    // Immediately re-search with new filters
+    if (currentQuery) {
+      handleSearchWithFilters(currentQuery, currentLocation, newFilters)
+    }
+  }
+
+  const handleSearchWithFilters = async (query: string, location?: {latitude: number, longitude: number}, filterOverrides?: FilterOptions) => {
+    const filtersToUse = filterOverrides || filters
     setIsLoading(true)
     setCurrentQuery(query)
     setCurrentLocation(location)
@@ -69,15 +82,15 @@ export default function FindPage() {
           query,
           location,
           filters: {
-            freeOnly: filters.freeOnly,
-            acceptsUninsured: filters.acceptsUninsured,
-            acceptsMedicaid: filters.acceptsMedicaid,
-            acceptsMedicare: filters.acceptsMedicare,
-            ssnRequired: filters.ssnRequired,
-            telehealthAvailable: filters.telehealthAvailable,
-            maxDistance: filters.maxDistance,
-            insuranceProviders: filters.insuranceProviders,
-            serviceCategories: filters.serviceCategories,
+            freeOnly: filtersToUse.freeOnly,
+            acceptsUninsured: filtersToUse.acceptsUninsured,
+            acceptsMedicaid: filtersToUse.acceptsMedicaid,
+            acceptsMedicare: filtersToUse.acceptsMedicare,
+            ssnRequired: filtersToUse.ssnRequired,
+            telehealthAvailable: filtersToUse.telehealthAvailable,
+            maxDistance: filtersToUse.maxDistance,
+            insuranceProviders: filtersToUse.insuranceProviders,
+            serviceCategories: filtersToUse.serviceCategories,
           },
           limit: 20
         }),
@@ -97,14 +110,7 @@ export default function FindPage() {
     }
   }
 
-  const handleFiltersChange = (newFilters: FilterOptions) => {
-    setFilters(newFilters)
-  }
-
   const handleApplyFilters = () => {
-    if (currentQuery) {
-      handleSearch(currentQuery, currentLocation)
-    }
     setShowMobileFilters(false)
   }
 
@@ -128,7 +134,7 @@ export default function FindPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <HeroSection />
+      <HeroSection onSearch={handleSearch} isSearching={isLoading} />
       
       {/* Main Content Area */}
       <main className="container mx-auto px-4 py-8">
@@ -139,7 +145,6 @@ export default function FindPage() {
               <FilterPanel
                 filters={filters}
                 onFiltersChange={handleFiltersChange}
-                onApplyFilters={handleApplyFilters}
                 onClearFilters={handleClearFilters}
                 resultsCount={searchResults?.totalResults || 0}
                 isLoading={isLoading}
@@ -170,7 +175,6 @@ export default function FindPage() {
                     <FilterPanel
                       filters={filters}
                       onFiltersChange={handleFiltersChange}
-                      onApplyFilters={handleApplyFilters}
                       onClearFilters={handleClearFilters}
                       resultsCount={searchResults?.totalResults || 0}
                       isLoading={isLoading}

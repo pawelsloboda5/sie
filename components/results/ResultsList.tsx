@@ -2,14 +2,13 @@
 
 import React, { useState, useMemo } from "react"
 import { ProviderCard } from "./ProviderCard"
-import { ServiceBadgeList } from "./ServiceBadge"
+import { ProviderDetailsModal } from "../provider/ProviderDetailsModal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { 
   Search, 
@@ -87,7 +86,8 @@ export function ResultsList({
   compact = false 
 }: ResultsListProps) {
   const [sortBy, setSortBy] = useState<SortOption>('relevance')
-  const [activeTab, setActiveTab] = useState<'providers' | 'services'>('providers')
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
 
   const sortedProviders = useMemo(() => {
     if (!results?.providers) return []
@@ -112,19 +112,25 @@ export function ResultsList({
     }
   }, [results?.providers, sortBy])
 
-  const sortedServices = useMemo(() => {
-    if (!results?.services) return []
+  // Get the most relevant service for each provider
+  const getProviderTopService = (providerId: string) => {
+    if (!results?.services) return null
+    const providerServices = results.services.filter(s => s.provider_id === providerId)
+    if (providerServices.length === 0) return null
     
-    const services = [...results.services]
-    
-    switch (sortBy) {
-      case 'name':
-        return services.sort((a, b) => a.name.localeCompare(b.name))
-      case 'relevance':
-      default:
-        return services.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))
+    // Prioritize free services, then discounted, then by search score
+    const freeServices = providerServices.filter(s => s.is_free)
+    if (freeServices.length > 0) {
+      return freeServices.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))[0]
     }
-  }, [results?.services, sortBy])
+    
+    const discountedServices = providerServices.filter(s => s.is_discounted)
+    if (discountedServices.length > 0) {
+      return discountedServices.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))[0]
+    }
+    
+    return providerServices.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))[0]
+  }
 
   const handleProviderAction = (action: string, provider: Provider) => {
     switch (action) {
@@ -143,7 +149,8 @@ export function ResultsList({
         }
         break
       case 'details':
-        // Handle details modal or navigation
+        setSelectedProvider(provider)
+        setIsDetailsModalOpen(true)
         break
     }
     
@@ -227,7 +234,7 @@ export function ResultsList({
             </span>
             <span className="flex items-center gap-1">
               <Heart className="h-4 w-4" />
-              {results.services.length} Services
+              {results.services.length} Services Available
             </span>
           </div>
         </div>
@@ -270,126 +277,52 @@ export function ResultsList({
         </div>
       </div>
 
-      {/* Results Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'providers' | 'services')}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="providers" className="flex items-center gap-2">
-            <Building className="h-4 w-4" />
-            Providers ({results.providers.length})
-          </TabsTrigger>
-          <TabsTrigger value="services" className="flex items-center gap-2">
-            <Heart className="h-4 w-4" />
-            Services ({results.services.length})
-          </TabsTrigger>
-        </TabsList>
+      {/* Provider Results */}
+      {sortedProviders.length === 0 ? (
+        <Card className="p-6 text-center">
+          <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-gray-600">No providers found matching your criteria.</p>
+        </Card>
+      ) : (
+        <ScrollArea className="h-[600px] pr-4">
+          <div className="space-y-4">
+            {sortedProviders.map((provider) => {
+              const topService = getProviderTopService(provider._id)
+              const allServices = results.services.filter(s => s.provider_id === provider._id)
+              
+              return (
+                <ProviderCard
+                  key={provider._id}
+                  provider={provider}
+                  services={allServices}
+                  topService={topService}
+                  onGetDirections={(p) => handleProviderAction('directions', p)}
+                  onCallProvider={(p) => handleProviderAction('call', p)}
+                  onVisitWebsite={(p) => handleProviderAction('website', p)}
+                  onViewDetails={(p) => handleProviderAction('details', p)}
+                  showDistance={showDistance}
+                  compact={compact}
+                />
+              )
+            })}
+          </div>
+        </ScrollArea>
+      )}
 
-        {/* Providers Tab */}
-        <TabsContent value="providers" className="space-y-4">
-          {sortedProviders.length === 0 ? (
-            <Card className="p-6 text-center">
-              <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">No providers found matching your criteria.</p>
-            </Card>
-          ) : (
-            <ScrollArea className="h-[600px] pr-4">
-              <div className="space-y-4">
-                {sortedProviders.map((provider) => (
-                  <ProviderCard
-                    key={provider._id}
-                    provider={provider}
-                    services={results.services.filter(s => s.provider_id === provider._id)}
-                    onGetDirections={(p) => handleProviderAction('directions', p)}
-                    onCallProvider={(p) => handleProviderAction('call', p)}
-                    onVisitWebsite={(p) => handleProviderAction('website', p)}
-                    onViewDetails={(p) => handleProviderAction('details', p)}
-                    showDistance={showDistance}
-                    compact={compact}
-                  />
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-        </TabsContent>
-
-        {/* Services Tab */}
-        <TabsContent value="services" className="space-y-4">
-          {sortedServices.length === 0 ? (
-            <Card className="p-6 text-center">
-              <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">No services found matching your criteria.</p>
-            </Card>
-          ) : (
-            <ScrollArea className="h-[600px] pr-4">
-              <div className="space-y-4">
-                {sortedServices.map((service) => (
-                  <Card key={service._id} className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg text-gray-900">{service.name}</h3>
-                          <p className="text-sm text-gray-600">{service.category}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {service.is_free && (
-                            <Badge className="bg-green-100 text-green-800">
-                              FREE
-                            </Badge>
-                          )}
-                          {service.is_discounted && !service.is_free && (
-                            <Badge className="bg-orange-100 text-orange-800">
-                              DISCOUNTED
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {service.description && (
-                        <p className="text-sm text-gray-700">{service.description}</p>
-                      )}
-                      
-                      {service.price_info && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium">Pricing:</span>
-                          <span className="text-gray-600">{service.price_info}</span>
-                        </div>
-                      )}
-                      
-                      {service.provider && (
-                        <div className="pt-2 border-t">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium text-sm">Available at:</p>
-                              <p className="text-sm text-gray-600">{service.provider.name}</p>
-                              <p className="text-xs text-gray-500">{service.provider.address}</p>
-                            </div>
-                            <div className="flex gap-2">
-                              {service.provider.phone && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleProviderAction('call', service.provider!)}
-                                >
-                                  Call
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleProviderAction('directions', service.provider!)}
-                              >
-                                Directions
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-        </TabsContent>
-      </Tabs>
+      {/* Provider Details Modal */}
+      <ProviderDetailsModal
+        provider={selectedProvider}
+        services={selectedProvider ? results?.services.filter(s => s.provider_id === selectedProvider._id) || [] : []}
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false)
+          setSelectedProvider(null)
+        }}
+        onGetDirections={(p) => handleProviderAction('directions', p)}
+        onCallProvider={(p) => handleProviderAction('call', p)}
+        onVisitWebsite={(p) => handleProviderAction('website', p)}
+        showDistance={showDistance}
+      />
     </div>
   )
 } 

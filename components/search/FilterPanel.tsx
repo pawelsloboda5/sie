@@ -58,7 +58,6 @@ interface FilterOptions {
 interface FilterPanelProps {
   filters: FilterOptions
   onFiltersChange: (filters: FilterOptions) => void
-  onApplyFilters: () => void
   onClearFilters: () => void
   resultsCount?: number
   isLoading?: boolean
@@ -108,7 +107,6 @@ const providerTypes = [
 export function FilterPanel({ 
   filters, 
   onFiltersChange, 
-  onApplyFilters, 
   onClearFilters, 
   resultsCount = 0,
   isLoading = false 
@@ -442,14 +440,13 @@ export function FilterPanel({
           </Select>
         </div>
 
-        {/* Apply Filters Button */}
-        <Button 
-          onClick={onApplyFilters} 
-          className="w-full" 
-          disabled={isLoading}
-        >
-          {isLoading ? 'Searching...' : 'Apply Filters'}
-        </Button>
+        {/* Real-time filtering indicator */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+            Updating results...
+          </div>
+        )}
       </CardContent>
     </Card>
   )

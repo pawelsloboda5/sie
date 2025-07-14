@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Search, MapPin, Clock, DollarSign, Shield, Phone, Stethoscope, Loader2 } from "lucide-react"
+import { Search, MapPin, Clock, DollarSign, Shield, Phone, Stethoscope, Loader2, Star } from "lucide-react"
 
 // Types for our search functionality
 interface SearchFilters {
@@ -29,7 +29,12 @@ interface SearchResults {
   totalResults: number
 }
 
-export function HeroSection() {
+interface HeroSectionProps {
+  onSearch?: (query: string, location?: {latitude: number, longitude: number}) => void
+  isSearching?: boolean
+}
+
+export function HeroSection({ onSearch, isSearching = false }: HeroSectionProps = {}) {
   const [searchQuery, setSearchQuery] = useState("")
   const [location, setLocation] = useState("")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -145,11 +150,18 @@ export function HeroSection() {
     }
 
     setSearchError(null)
+    const locationCoords = location ? parseLocation(location) : undefined
     
+    // If parent component provides onSearch handler, use it
+    if (onSearch) {
+      onSearch(searchQuery, locationCoords || undefined)
+      return
+    }
+    
+    // Otherwise, handle search locally for preview
     startTransition(async () => {
       try {
         const filters = buildFiltersFromSelection()
-        const locationCoords = location ? parseLocation(location) : undefined
 
         const searchRequest = {
           query: searchQuery,
@@ -172,9 +184,6 @@ export function HeroSection() {
 
         const results: SearchResults = await response.json()
         setSearchResults(results)
-        
-        // TODO: Navigate to results view or update the page to show results
-        console.log('Search results:', results)
         
       } catch (error) {
         console.error('Search error:', error)
@@ -307,9 +316,9 @@ export function HeroSection() {
             size="lg" 
             className="px-8 py-4 text-lg h-14 bg-primary hover:bg-primary/90"
             onClick={handleSearch}
-            disabled={isPending || !searchQuery.trim()}
+            disabled={(isPending || isSearching) || !searchQuery.trim()}
           >
-            {isPending ? (
+            {(isPending || isSearching) ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Searching...
@@ -349,38 +358,224 @@ export function HeroSection() {
 
         {/* Search Results Preview */}
         {searchResults && (
-          <div className="mt-8 p-6 bg-muted/30 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">
-              Found {searchResults.totalResults} results for "{searchResults.query}"
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-medium mb-2">Providers ({searchResults.providers.length})</h4>
-                <div className="space-y-2">
-                  {searchResults.providers.slice(0, 3).map((provider, index) => (
-                    <div key={index} className="p-3 bg-background rounded border">
-                      <p className="font-medium">{provider.name}</p>
-                      <p className="text-sm text-muted-foreground">{provider.category}</p>
-                      <p className="text-sm text-muted-foreground">{provider.address}</p>
-                    </div>
-                  ))}
+          <div className="mt-8 space-y-6">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">
+                Found {searchResults.totalResults} results for "{searchResults.query}"
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {searchResults.providers.length} providers • {searchResults.services.length} services
+              </p>
+            </div>
+
+            {/* Featured Provider & Service */}
+            {(searchResults.providers.length > 0 || searchResults.services.length > 0) && (
+              <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg p-6 border border-primary/20">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-2 w-2 bg-primary rounded-full animate-pulse"></div>
+                  <h4 className="font-semibold text-primary">Top Match</h4>
                 </div>
-              </div>
-              <div>
-                <h4 className="font-medium mb-2">Services ({searchResults.services.length})</h4>
-                <div className="space-y-2">
-                  {searchResults.services.slice(0, 3).map((service, index) => (
-                    <div key={index} className="p-3 bg-background rounded border">
-                      <p className="font-medium">{service.name}</p>
-                      <p className="text-sm text-muted-foreground">{service.category}</p>
-                      {service.is_free && (
-                        <Badge className="mt-1 bg-green-100 text-green-800">Free</Badge>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Featured Provider */}
+                  {searchResults.providers.length > 0 && (
+                    <div className="bg-background rounded-lg p-4 border shadow-sm">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-lg text-gray-900">
+                            {searchResults.providers[0].name}
+                          </h5>
+                          <p className="text-sm text-gray-600 mb-2">
+                            {searchResults.providers[0].category}
+                          </p>
+                          <div className="flex items-center gap-1 mb-2">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star 
+                                key={i} 
+                                className={`h-4 w-4 ${
+                                  i < Math.floor(searchResults.providers[0].rating) 
+                                    ? 'fill-yellow-400 text-yellow-400' 
+                                    : 'text-gray-300'
+                                }`} 
+                              />
+                            ))}
+                            <span className="text-sm text-gray-600 ml-1">
+                              ({searchResults.providers[0].rating.toFixed(1)})
+                            </span>
+                          </div>
+                        </div>
+                        {searchResults.providers[0].distance && (
+                          <Badge variant="outline" className="text-xs">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {searchResults.providers[0].distance < 1 
+                              ? `${(searchResults.providers[0].distance * 5280).toFixed(0)} ft`
+                              : `${searchResults.providers[0].distance.toFixed(1)} mi`
+                            }
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-start gap-2 text-sm text-gray-600 mb-3">
+                        <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <span>{searchResults.providers[0].address}</span>
+                      </div>
+                      
+                      {/* Accessibility badges */}
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {searchResults.providers[0].accepts_uninsured && (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                            <Shield className="h-3 w-3 mr-1" />
+                            Uninsured OK
+                          </Badge>
+                        )}
+                        {searchResults.providers[0].medicaid && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                            Medicaid
+                          </Badge>
+                        )}
+                        {searchResults.providers[0].medicare && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                            Medicare
+                          </Badge>
+                        )}
+                        {!searchResults.providers[0].ssn_required && (
+                          <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs">
+                            No SSN Required
+                          </Badge>
+                        )}
+                        {searchResults.providers[0].telehealth_available && (
+                          <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 text-xs">
+                            <Phone className="h-3 w-3 mr-1" />
+                            Telehealth
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {/* Quick actions */}
+                      <div className="flex gap-2">
+                        {searchResults.providers[0].phone && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => window.open(`tel:${searchResults.providers[0].phone}`, '_self')}
+                            className="flex-1"
+                          >
+                            <Phone className="h-4 w-4 mr-1" />
+                            Call
+                          </Button>
+                        )}
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            const address = encodeURIComponent(searchResults.providers[0].address)
+                            window.open(`https://maps.google.com/maps?q=${address}`, '_blank')
+                          }}
+                          className="flex-1"
+                        >
+                          <MapPin className="h-4 w-4 mr-1" />
+                          Directions
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Featured Service */}
+                  {searchResults.services.length > 0 && (
+                    <div className="bg-background rounded-lg p-4 border shadow-sm">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-lg text-gray-900">
+                            {searchResults.services[0].name}
+                          </h5>
+                          <p className="text-sm text-gray-600 mb-2">
+                            {searchResults.services[0].category}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {searchResults.services[0].is_free && (
+                            <Badge className="bg-green-100 text-green-800">
+                              <DollarSign className="h-3 w-3 mr-1" />
+                              FREE
+                            </Badge>
+                          )}
+                          {searchResults.services[0].is_discounted && !searchResults.services[0].is_free && (
+                            <Badge className="bg-orange-100 text-orange-800">
+                              <DollarSign className="h-3 w-3 mr-1" />
+                              DISCOUNTED
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {searchResults.services[0].description && (
+                        <p className="text-sm text-gray-700 mb-3">
+                          {searchResults.services[0].description}
+                        </p>
+                      )}
+                      
+                      {searchResults.services[0].price_info && (
+                        <div className="flex items-center gap-2 text-sm mb-3">
+                          <span className="font-medium">Pricing:</span>
+                          <span className="text-gray-600">{searchResults.services[0].price_info}</span>
+                        </div>
+                      )}
+                      
+                      {searchResults.services[0].provider && (
+                        <div className="pt-3 border-t">
+                          <p className="text-sm font-medium mb-1">Available at:</p>
+                          <p className="text-sm text-gray-600">{searchResults.services[0].provider.name}</p>
+                          <p className="text-xs text-gray-500 mb-2">{searchResults.services[0].provider.address}</p>
+                          
+                          <div className="flex gap-2">
+                            {searchResults.services[0].provider.phone && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => window.open(`tel:${searchResults.services[0].provider.phone}`, '_self')}
+                                className="flex-1"
+                              >
+                                <Phone className="h-4 w-4 mr-1" />
+                                Call
+                              </Button>
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                const address = encodeURIComponent(searchResults.services[0].provider.address)
+                                window.open(`https://maps.google.com/maps?q=${address}`, '_blank')
+                              }}
+                              className="flex-1"
+                            >
+                              <MapPin className="h-4 w-4 mr-1" />
+                              Directions
+                            </Button>
+                          </div>
+                        </div>
                       )}
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Additional Results Summary */}
+            {searchResults.totalResults > 1 && (
+              <div className="bg-muted/30 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">
+                      {searchResults.totalResults - 1} more results available
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      View all providers and services in the main search
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    View All Results
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

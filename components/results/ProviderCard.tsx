@@ -55,6 +55,7 @@ interface Service {
 interface ProviderCardProps {
   provider: Provider
   services?: Service[]
+  topService?: Service | null
   onGetDirections?: (provider: Provider) => void
   onCallProvider?: (provider: Provider) => void
   onVisitWebsite?: (provider: Provider) => void
@@ -66,6 +67,7 @@ interface ProviderCardProps {
 export function ProviderCard({
   provider,
   services = [],
+  topService = null,
   onGetDirections,
   onCallProvider,
   onVisitWebsite,
@@ -221,53 +223,62 @@ export function ProviderCard({
           </div>
         )}
 
-        {/* Free Services */}
-        {getFreeServices().length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium text-green-700">
-                Free Services ({getFreeServices().length})
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {getFreeServices().slice(0, compact ? 2 : 4).map((service) => (
-                <Badge key={service._id} variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                  {service.name}
-                </Badge>
-              ))}
-              {getFreeServices().length > (compact ? 2 : 4) && (
-                <Badge variant="outline" className="text-xs">
-                  +{getFreeServices().length - (compact ? 2 : 4)} more
-                </Badge>
-              )}
-            </div>
+              {/* Top Service Highlight */}
+      {topService && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Heart className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-primary">
+              Featured Service
+            </span>
           </div>
-        )}
+          <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <h6 className="font-medium text-sm text-gray-900">{topService.name}</h6>
+                <p className="text-xs text-gray-600">{topService.category}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                {topService.is_free && (
+                  <Badge className="bg-green-100 text-green-800 text-xs">
+                    FREE
+                  </Badge>
+                )}
+                {topService.is_discounted && !topService.is_free && (
+                  <Badge className="bg-orange-100 text-orange-800 text-xs">
+                    DISCOUNTED
+                  </Badge>
+                )}
+              </div>
+            </div>
+            {topService.description && (
+              <p className="text-xs text-gray-700 line-clamp-2">{topService.description}</p>
+            )}
+          </div>
+        </div>
+      )}
 
-        {/* Discounted Services */}
-        {getDiscountedServices().length > 0 && !compact && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-orange-600" />
-              <span className="text-sm font-medium text-orange-700">
-                Discounted Services ({getDiscountedServices().length})
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {getDiscountedServices().slice(0, 3).map((service) => (
-                <Badge key={service._id} variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
-                  {service.name}
-                </Badge>
-              ))}
-              {getDiscountedServices().length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{getDiscountedServices().length - 3} more
-                </Badge>
-              )}
-            </div>
+      {/* Additional Services Summary */}
+      {services.length > 1 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-green-600" />
+            <span className="text-sm font-medium text-gray-700">
+              {services.length} Total Services
+            </span>
+            {getFreeServices().length > 0 && (
+              <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                {getFreeServices().length} Free
+              </Badge>
+            )}
+            {getDiscountedServices().length > 0 && (
+              <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
+                {getDiscountedServices().length} Discounted
+              </Badge>
+            )}
           </div>
-        )}
+        </div>
+      )}
 
         {/* Insurance Information */}
         {provider.insurance_providers.length > 0 && !compact && (
