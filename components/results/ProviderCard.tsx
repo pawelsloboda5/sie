@@ -20,7 +20,8 @@ import {
   Users,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  ExternalLink
 } from "lucide-react"
 
 interface Provider {
@@ -81,16 +82,16 @@ export function ProviderCard({
     const hasHalfStar = rating % 1 !== 0
 
     for (let i = 0; i < fullStars; i++) {
-      stars.push(<Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />)
+      stars.push(<Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />)
     }
 
     if (hasHalfStar) {
-      stars.push(<Star key="half" className="h-4 w-4 fill-yellow-400/50 text-yellow-400" />)
+      stars.push(<Star key="half" className="h-5 w-5 fill-yellow-400/50 text-yellow-400" />)
     }
 
     const remainingStars = 5 - Math.ceil(rating)
     for (let i = 0; i < remainingStars; i++) {
-      stars.push(<Star key={`empty-${i}`} className="h-4 w-4 text-gray-300" />)
+      stars.push(<Star key={`empty-${i}`} className="h-5 w-5 text-gray-300" />)
     }
 
     return stars
@@ -101,8 +102,8 @@ export function ProviderCard({
     
     if (provider.accepts_uninsured) {
       badges.push(
-        <Badge key="uninsured" variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-          <Shield className="h-3 w-3 mr-1" />
+        <Badge key="uninsured" className="bg-blue-600 text-white hover:bg-blue-700 border-0 font-medium px-3 py-1">
+          <Shield className="h-4 w-4 mr-2" />
           Accepts Uninsured
         </Badge>
       )
@@ -110,8 +111,8 @@ export function ProviderCard({
     
     if (provider.medicaid) {
       badges.push(
-        <Badge key="medicaid" variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">
-          <CreditCard className="h-3 w-3 mr-1" />
+        <Badge key="medicaid" className="bg-green-600 text-white hover:bg-green-700 border-0 font-medium px-3 py-1">
+          <CreditCard className="h-4 w-4 mr-2" />
           Medicaid
         </Badge>
       )
@@ -119,8 +120,8 @@ export function ProviderCard({
     
     if (provider.medicare) {
       badges.push(
-        <Badge key="medicare" variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">
-          <CreditCard className="h-3 w-3 mr-1" />
+        <Badge key="medicare" className="bg-green-600 text-white hover:bg-green-700 border-0 font-medium px-3 py-1">
+          <CreditCard className="h-4 w-4 mr-2" />
           Medicare
         </Badge>
       )
@@ -128,8 +129,8 @@ export function ProviderCard({
     
     if (!provider.ssn_required) {
       badges.push(
-        <Badge key="no-ssn" variant="secondary" className="bg-purple-100 text-purple-800 hover:bg-purple-200">
-          <CheckCircle className="h-3 w-3 mr-1" />
+        <Badge key="no-ssn" className="bg-purple-600 text-white hover:bg-purple-700 border-0 font-medium px-3 py-1">
+          <CheckCircle className="h-4 w-4 mr-2" />
           No SSN Required
         </Badge>
       )
@@ -137,8 +138,8 @@ export function ProviderCard({
     
     if (provider.telehealth_available) {
       badges.push(
-        <Badge key="telehealth" variant="secondary" className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">
-          <Phone className="h-3 w-3 mr-1" />
+        <Badge key="telehealth" className="bg-indigo-600 text-white hover:bg-indigo-700 border-0 font-medium px-3 py-1">
+          <Phone className="h-4 w-4 mr-2" />
           Telehealth
         </Badge>
       )
@@ -163,193 +164,259 @@ export function ProviderCard({
   }
 
   return (
-    <Card className={`w-full hover:shadow-lg transition-shadow duration-200 ${compact ? 'p-2' : ''}`}>
-      <CardHeader className={compact ? 'pb-2' : 'pb-3'}>
+    <Card className={`w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group ${compact ? 'p-3' : 'p-6'}`}>
+      <CardHeader className={compact ? 'pb-3' : 'pb-6'}>
         <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <CardTitle className={`${compact ? 'text-lg' : 'text-xl'} font-semibold text-gray-900`}>
-                {provider.name}
-              </CardTitle>
-              {showDistance && provider.distance && (
-                <Badge variant="outline" className="text-xs">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  {formatDistance(provider.distance)}
+          <div className="flex-1 space-y-3">
+            {/* Provider Name and Category */}
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <CardTitle className={`${compact ? 'text-xl' : 'text-2xl'} font-bold text-foreground leading-tight`}>
+                  {provider.name}
+                </CardTitle>
+                {showDistance && provider.distance && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 px-3 py-1 text-sm font-medium">
+                    <MapPin className="h-4 w-4 mr-1" />
+                    {formatDistance(provider.distance)}
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-4 mb-3">
+                <Badge variant="outline" className="text-sm px-3 py-1 font-medium">
+                  {provider.category}
                 </Badge>
-              )}
-            </div>
-            
-            <CardDescription className="text-sm text-gray-600 mb-2">
-              {provider.category}
-            </CardDescription>
-            
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex items-center gap-1">
-                {renderStars(provider.rating)}
-                <span className="text-sm text-gray-600 ml-1">
-                  ({provider.rating.toFixed(1)})
-                </span>
+                
+                {/* Rating with larger stars */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    {renderStars(provider.rating)}
+                  </div>
+                  <span className="text-lg font-semibold text-foreground">
+                    {provider.rating.toFixed(1)}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    rating
+                  </span>
+                </div>
               </div>
             </div>
           </div>
           
           {!compact && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onViewDetails?.(provider)}
-                className="text-xs"
+                className="text-sm hover:bg-primary hover:text-primary-foreground transition-colors"
               >
-                <Info className="h-3 w-3 mr-1" />
-                Details
+                <Info className="h-4 w-4 mr-2" />
+                View Details
               </Button>
             </div>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className={compact ? 'pt-0' : 'pt-0 space-y-4'}>
+      <CardContent className={`${compact ? 'pt-0 space-y-4' : 'pt-0 space-y-6'}`}>
         {/* Address */}
-        <div className="flex items-start gap-2 text-sm text-gray-600">
-          <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>{provider.address}</span>
+        <div className="flex items-start gap-3">
+          <MapPin className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
+          <span className="text-base text-foreground leading-relaxed">{provider.address}</span>
         </div>
 
-        {/* Accessibility Badges */}
+        {/* Prominent Accessibility Badges */}
         {!compact && (
-          <div className="flex flex-wrap gap-1">
-            {getAccessibilityBadges()}
-          </div>
-        )}
-
-              {/* Top Service Highlight */}
-      {topService && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-            <Heart className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">
-              Featured Service
-              </span>
-            </div>
-          <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex-1">
-                <h6 className="font-medium text-sm text-gray-900">{topService.name}</h6>
-                <p className="text-xs text-gray-600">{topService.category}</p>
-              </div>
-              <div className="flex items-center gap-1">
-                {topService.is_free && (
-                  <Badge className="bg-green-100 text-green-800 text-xs">
-                    FREE
-                </Badge>
-                )}
-                {topService.is_discounted && !topService.is_free && (
-                  <Badge className="bg-orange-100 text-orange-800 text-xs">
-                    DISCOUNTED
-                </Badge>
-              )}
-              </div>
-            </div>
-            {topService.description && (
-              <p className="text-xs text-gray-700 line-clamp-2">{topService.description}</p>
-            )}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+              Accessibility & Coverage
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {getAccessibilityBadges()}
             </div>
           </div>
         )}
 
-      {/* Additional Services Summary */}
-      {services.length > 1 && (
-          <div className="space-y-2">
+        {/* Featured Service Highlight */}
+        {topService && (
+          <div className="space-y-3">
             <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-green-600" />
-            <span className="text-sm font-medium text-gray-700">
-              {services.length} Total Services
+              <Heart className="h-5 w-5 text-primary" />
+              <span className="text-sm font-semibold text-primary uppercase tracking-wide">
+                Featured Service
               </span>
-            {getFreeServices().length > 0 && (
-              <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                {getFreeServices().length} Free
-                </Badge>
-            )}
-            {getDiscountedServices().length > 0 && (
-              <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
-                {getDiscountedServices().length} Discounted
-                </Badge>
+            </div>
+            <div className={`p-4 rounded-lg border-2 transition-all ${
+              topService.is_free 
+                ? 'bg-green-50 border-green-200' 
+                : topService.is_discounted 
+                ? 'bg-orange-50 border-orange-200' 
+                : 'bg-primary/5 border-primary/20'
+            }`}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h5 className="text-lg font-semibold text-foreground mb-1">
+                    {topService.name}
+                  </h5>
+                  <p className="text-sm text-muted-foreground">{topService.category}</p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {topService.is_free && (
+                    <Badge className="bg-green-600 text-white hover:bg-green-700 border-0 text-sm font-bold px-3 py-1">
+                      <DollarSign className="h-4 w-4 mr-1" />
+                      FREE
+                    </Badge>
+                  )}
+                  {topService.is_discounted && !topService.is_free && (
+                    <Badge className="bg-orange-600 text-white hover:bg-orange-700 border-0 text-sm font-bold px-3 py-1">
+                      <DollarSign className="h-4 w-4 mr-1" />
+                      DISCOUNTED
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              
+              {topService.description && (
+                <p className="text-sm text-foreground/80 mb-3 leading-relaxed">
+                  {topService.description}
+                </p>
               )}
+              
+              {topService.price_info && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-foreground">Pricing:</span>
+                  <span className="text-muted-foreground">{topService.price_info}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Service Summary */}
+        {services.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+              Services Available
+            </h4>
+            <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary mb-1">
+                  {services.length}
+                </div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Total Services
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600 mb-1">
+                  {getFreeServices().length}
+                </div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Free Services
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600 mb-1">
+                  {getDiscountedServices().length}
+                </div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Discounted
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Insurance Information */}
         {provider.insurance_providers.length > 0 && !compact && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">
-                Insurance Accepted
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {provider.insurance_providers.slice(0, 3).map((insurance) => (
-                <Badge key={insurance} variant="outline" className="text-xs">
+              Insurance Accepted
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {provider.insurance_providers.slice(0, 4).map((insurance) => (
+                <Badge key={insurance} variant="outline" className="text-sm px-3 py-1">
                   {insurance}
                 </Badge>
               ))}
-              {provider.insurance_providers.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{provider.insurance_providers.length - 3} more
+              {provider.insurance_providers.length > 4 && (
+                <Badge variant="outline" className="text-sm px-3 py-1">
+                  +{provider.insurance_providers.length - 4} more
                 </Badge>
               )}
             </div>
           </div>
         )}
 
-        {!compact && <Separator />}
+        <Separator className="my-6" />
 
         {/* Action Buttons */}
-        <div className={`flex gap-2 ${compact ? 'flex-col' : 'flex-row'}`}>
-          {provider.phone && (
+        <div className="space-y-4">
+          {/* Primary Actions */}
+          <div className={`grid gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {provider.phone && (
+              <Button
+                size="lg"
+                onClick={() => onCallProvider?.(provider)}
+                className="h-12 text-base font-semibold bg-primary hover:bg-primary/90 transition-colors"
+              >
+                <Phone className="h-5 w-5 mr-2" />
+                Call Now
+              </Button>
+            )}
+            
             <Button
-              variant="default"
-              size="sm"
-              onClick={() => onCallProvider?.(provider)}
-              className="flex-1"
-            >
-              <Phone className="h-4 w-4 mr-2" />
-              Call
-            </Button>
-          )}
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onGetDirections?.(provider)}
-            className="flex-1"
-          >
-            <Navigation className="h-4 w-4 mr-2" />
-            Directions
-          </Button>
-          
-          {provider.website && !compact && (
-            <Button
+              size="lg"
               variant="outline"
-              size="sm"
-              onClick={() => onVisitWebsite?.(provider)}
-              className="flex-1"
+              onClick={() => onGetDirections?.(provider)}
+              className="h-12 text-base font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
             >
-              <Globe className="h-4 w-4 mr-2" />
-              Website
+              <Navigation className="h-5 w-5 mr-2" />
+              Get Directions
             </Button>
+          </div>
+          
+          {/* Secondary Actions */}
+          {!compact && (
+            <div className="flex gap-3">
+              {provider.website && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onVisitWebsite?.(provider)}
+                  className="flex-1 text-sm hover:bg-muted"
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  Visit Website
+                  <ExternalLink className="h-3 w-3 ml-2" />
+                </Button>
+              )}
+              
+              {provider.email && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.open(`mailto:${provider.email}`, '_self')}
+                  className="flex-1 text-sm hover:bg-muted"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Email
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
         {/* Compact mode additional info */}
         {compact && (
-          <div className="flex flex-wrap gap-1 mt-2">
+          <div className="flex flex-wrap gap-2 mt-4">
             {getAccessibilityBadges().slice(0, 2)}
             {getAccessibilityBadges().length > 2 && (
-              <Badge variant="outline" className="text-xs">
-                +{getAccessibilityBadges().length - 2} more
+              <Badge variant="outline" className="text-xs px-2 py-1">
+                +{getAccessibilityBadges().length - 2} more benefits
               </Badge>
             )}
           </div>
