@@ -1,4 +1,4 @@
-import Link from "next/link"
+
 
 export default function Landing() {
   return (
@@ -39,12 +39,12 @@ export default function Landing() {
           
           {/* CTA Button */}
           <div className="mb-12">
-            <Link 
+            <a 
               href="/app"
               className="inline-flex items-center justify-center px-8 py-4 text-lg font-medium text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors shadow-lg"
             >
               Start Finding Healthcare
-            </Link>
+            </a>
           </div>
 
           {/* Features Grid */}
@@ -95,9 +95,9 @@ export default function Landing() {
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
             Built with ❤️ to help everyone access healthcare. 
-            <Link href="/app" className="text-primary hover:underline ml-1">
+            <a href="/app" className="text-primary hover:underline ml-1">
               Start your search →
-            </Link>
+            </a>
           </p>
         </div>
       </footer>
