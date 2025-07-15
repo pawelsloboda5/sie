@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Search, MapPin, Clock, DollarSign, Shield, Phone, Stethoscope, Loader2, Star } from "lucide-react"
+import { Search, MapPin, Clock, DollarSign, Shield, Phone, Stethoscope, Loader2, Star, ChevronDown } from "lucide-react"
 
 // Types for our search functionality
 interface SearchFilters {
@@ -38,6 +38,7 @@ export function HeroSection({ onSearch, isSearching = false }: HeroSectionProps 
   const [searchQuery, setSearchQuery] = useState("")
   const [location, setLocation] = useState("")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [isGettingLocation, setIsGettingLocation] = useState(false)
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
@@ -63,7 +64,15 @@ export function HeroSection({ onSearch, isSearching = false }: HeroSectionProps 
     "Pregnancy testing",
     "Diabetes management",
     "Blood pressure check",
-    "Vaccination clinic"
+    "Vaccination clinic",
+    "Free mammogram",
+    "Women's health services",
+    "Free birth control",
+    "Pediatric care",
+    "Eye exam",
+    "Free prescription assistance",
+    "HIV testing",
+    "Substance abuse treatment"
   ]
 
   const handleGetLocation = async () => {
@@ -247,19 +256,28 @@ export function HeroSection({ onSearch, isSearching = false }: HeroSectionProps 
         {/* Search Input */}
         <div className="mb-6">
           <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
+            <Input
+              placeholder="Search for services (e.g., 'free STI testing', 'urgent care', 'dental clinic')"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setShowSuggestions(e.target.value.length > 0)
+              }}
+              onFocus={() => setShowSuggestions(searchQuery.length > 0)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              className="pl-12 pr-12 py-4 text-lg h-14 bg-background border-2 border-border focus:border-primary"
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
             <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
               <PopoverTrigger asChild>
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    placeholder="Search for services (e.g., 'free STI testing', 'urgent care', 'dental clinic')"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 pr-4 py-4 text-lg h-14 bg-background border-2 border-border focus:border-primary"
-                    onFocus={() => setIsSearchOpen(true)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  />
-                </div>
+                <button
+                  type="button"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded hover:bg-muted transition-colors"
+                  onClick={() => setIsSearchOpen(!isSearchOpen)}
+                >
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isSearchOpen ? 'rotate-180' : ''}`} />
+                </button>
               </PopoverTrigger>
               <PopoverContent className="w-[600px] p-0" align="start">
                 <Command>
@@ -272,6 +290,7 @@ export function HeroSection({ onSearch, isSearching = false }: HeroSectionProps 
                           onSelect={() => {
                             setSearchQuery(suggestion)
                             setIsSearchOpen(false)
+                            setShowSuggestions(false)
                           }}
                         >
                           <Search className="mr-2 h-4 w-4" />
@@ -283,6 +302,37 @@ export function HeroSection({ onSearch, isSearching = false }: HeroSectionProps 
                 </Command>
               </PopoverContent>
             </Popover>
+            
+            {/* Typing Suggestions */}
+            {showSuggestions && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border-2 border-border rounded-md shadow-lg z-20">
+                <Command>
+                  <CommandList>
+                    <CommandEmpty>No suggestions found.</CommandEmpty>
+                    <CommandGroup heading="Suggested Searches">
+                      {searchSuggestions
+                        .filter(suggestion => 
+                          suggestion.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .slice(0, 5)
+                        .map((suggestion, index) => (
+                          <CommandItem
+                            key={index}
+                            onSelect={() => {
+                              setSearchQuery(suggestion)
+                              setShowSuggestions(false)
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Search className="mr-2 h-4 w-4" />
+                            {suggestion}
+                          </CommandItem>
+                        ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </div>
+            )}
           </div>
         </div>
 
@@ -393,8 +443,8 @@ export function HeroSection({ onSearch, isSearching = false }: HeroSectionProps 
           <div className="mt-8 space-y-6">
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2">
-                Found {searchResults.totalResults} results for "{searchResults.query}"
-              </h3>
+              Found {searchResults.totalResults} results for "{searchResults.query}"
+            </h3>
               <p className="text-sm text-muted-foreground">
                 {searchResults.providers.length} providers • {searchResults.services.length} services
               </p>
@@ -581,8 +631,8 @@ export function HeroSection({ onSearch, isSearching = false }: HeroSectionProps 
                               <MapPin className="h-4 w-4 mr-1" />
                               Directions
                             </Button>
-                          </div>
-                        </div>
+                </div>
+              </div>
                       )}
                     </div>
                   )}
@@ -605,8 +655,8 @@ export function HeroSection({ onSearch, isSearching = false }: HeroSectionProps 
                   <Button variant="outline" size="sm">
                     View All Results
                   </Button>
-                </div>
               </div>
+            </div>
             )}
           </div>
         )}

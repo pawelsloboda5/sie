@@ -360,36 +360,36 @@ export function ResultsList({
       </div>
 
       {/* Provider Results */}
-      {sortedProviders.length === 0 ? (
-        <Card className="p-6 text-center">
-          <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-          <p className="text-gray-600">No providers found matching your criteria.</p>
-        </Card>
-      ) : (
-        <ScrollArea className="h-[600px] pr-4">
-          <div className="space-y-4">
+          {sortedProviders.length === 0 ? (
+            <Card className="p-6 text-center">
+              <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">No providers found matching your criteria.</p>
+            </Card>
+          ) : (
+            <ScrollArea className="h-[600px] pr-4">
+              <div className="space-y-4">
             {sortedProviders.map((provider) => {
               const topService = getProviderTopService(provider._id)
               const allServices = results.services.filter(s => s.provider_id === provider._id)
               
               return (
-                <ProviderCard
-                  key={provider._id}
-                  provider={provider}
+                  <ProviderCard
+                    key={provider._id}
+                    provider={provider}
                   services={allServices}
                   topService={topService}
-                  onGetDirections={(p) => handleProviderAction('directions', p)}
-                  onCallProvider={(p) => handleProviderAction('call', p)}
-                  onVisitWebsite={(p) => handleProviderAction('website', p)}
-                  onViewDetails={(p) => handleProviderAction('details', p)}
-                  showDistance={showDistance}
-                  compact={compact}
-                />
+                    onGetDirections={(p) => handleProviderAction('directions', p)}
+                    onCallProvider={(p) => handleProviderAction('call', p)}
+                    onVisitWebsite={(p) => handleProviderAction('website', p)}
+                    onViewDetails={(p) => handleProviderAction('details', p)}
+                    showDistance={showDistance}
+                    compact={compact}
+                  />
               )
             })}
-          </div>
-        </ScrollArea>
-      )}
+              </div>
+            </ScrollArea>
+          )}
 
       {/* Provider Details Modal */}
       <ProviderDetailsModal

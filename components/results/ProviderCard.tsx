@@ -225,13 +225,13 @@ export function ProviderCard({
 
               {/* Top Service Highlight */}
       {topService && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
             <Heart className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-primary">
               Featured Service
-            </span>
-          </div>
+              </span>
+            </div>
           <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
@@ -242,43 +242,43 @@ export function ProviderCard({
                 {topService.is_free && (
                   <Badge className="bg-green-100 text-green-800 text-xs">
                     FREE
-                  </Badge>
+                </Badge>
                 )}
                 {topService.is_discounted && !topService.is_free && (
                   <Badge className="bg-orange-100 text-orange-800 text-xs">
                     DISCOUNTED
-                  </Badge>
-                )}
+                </Badge>
+              )}
               </div>
             </div>
             {topService.description && (
               <p className="text-xs text-gray-700 line-clamp-2">{topService.description}</p>
             )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Additional Services Summary */}
       {services.length > 1 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-green-600" />
             <span className="text-sm font-medium text-gray-700">
               {services.length} Total Services
-            </span>
+              </span>
             {getFreeServices().length > 0 && (
               <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
                 {getFreeServices().length} Free
-              </Badge>
+                </Badge>
             )}
             {getDiscountedServices().length > 0 && (
               <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
                 {getDiscountedServices().length} Discounted
-              </Badge>
-            )}
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* Insurance Information */}
         {provider.insurance_providers.length > 0 && !compact && (
