@@ -7,7 +7,7 @@ import { ResultsList } from "@/components/results/ResultsList"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Filter, MapPin, List } from "lucide-react"
- 
+  
 interface FilterOptions {
   freeOnly: boolean
   acceptsUninsured: boolean
