@@ -20,7 +20,7 @@ export function Header() {
               <Heart className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">CareFind</h1>
+              <h1 className="text-lg font-semibold tracking-tight">SieWell</h1>
               <p className="text-xs text-muted-foreground">Free & Low-Cost Healthcare</p>
             </div>
           </div>
@@ -107,7 +107,7 @@ export function Header() {
                   <Heart className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">CareFind</h2>
+                  <h2 className="text-lg font-semibold">SieWell</h2>
                   <p className="text-sm text-muted-foreground">Free & Low-Cost Healthcare</p>
                 </div>
               </div>

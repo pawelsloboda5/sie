@@ -72,6 +72,8 @@ const queryCache = new Map<string, any>()
 const QUERY_CACHE_SIZE_LIMIT = 50
 const QUERY_CACHE_TTL = 30000 // 30 seconds
 
+const DEFAULT_NPROBES = parseInt(process.env.COSMOS_NPROBES ?? "10") // Higher nProbes for better recall
+
 // MongoDB connection with optimized settings
 async function getMongoClient() {
   if (cachedClient && cachedDb) {
@@ -339,7 +341,7 @@ async function performOptimizedSearch(
                 "service_vector", 
                 Math.min(limit * 3, 50), // Reduced for better performance
                 serviceFilters,
-                5 // Lower nProbes for faster queries
+                DEFAULT_NPROBES // Configurable nProbes for balanced recall/perf
               ),
               returnStoredSource: true
             }
