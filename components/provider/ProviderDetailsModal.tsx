@@ -191,7 +191,14 @@ export function ProviderDetailsModal({
                       <Globe className="h-5 w-5 mt-0.5 text-gray-500" />
                       <div>
                         <p className="font-medium">Website</p>
-                        <p className="text-gray-600 break-all">{provider.website}</p>
+                        <a 
+                          href={provider.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline break-all transition-colors"
+                        >
+                          {provider.website}
+                        </a>
                       </div>
                     </div>
                   )}

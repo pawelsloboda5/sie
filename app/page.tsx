@@ -1,5 +1,4 @@
 'use client'
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, HeartHandshake, MapPin, Stethoscope, Users, Search, Bot, Shield, Zap, Clock, Globe, FileText, CreditCard, Building, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
+import { SimpleHeroSection } from "@/components/home-page/SimpleHeroSection";
 
 export default function Landing() {
   return (
@@ -62,28 +62,7 @@ export default function Landing() {
           
           {/* Search CTA */}
           <div className="max-w-2xl mx-auto mb-8">
-            <div className="flex flex-col sm:flex-row gap-3 p-3 bg-background/80 backdrop-blur border rounded-xl shadow-lg">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search for care: 'free dental', 'mental health', 'urgent care'..."
-                  className="pl-10 border-0 bg-transparent text-base"
-                />
-              </div>
-              <div className="flex-1 relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Location: ZIP code, city, or address"
-                  className="pl-10 border-0 bg-transparent"
-                />
-              </div>
-              <Button size="lg" className="px-8 shrink-0" asChild>
-                <Link href="/app">Find Care</Link>
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              🔒 Completely private • 🆓 Always free • 🌍 No account required
-            </p>
+            <SimpleHeroSection />
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -247,7 +226,7 @@ export default function Landing() {
             Real Impact, Real Stories
           </h3>
           <p className="max-w-3xl mx-auto text-muted-foreground text-lg">
-            See how SieWell transforms healthcare access for individuals and organizations across the country.
+            See how CareFind transforms healthcare access for individuals and organizations across the country.
           </p>
         </div>
         <div className="container max-w-screen-xl px-4 md:px-6 mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -269,7 +248,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ---------- Why Choose SieWell ---------- */}
+      {/* ---------- Why Choose CareFind ---------- */}
       <section className="py-24">
         <div className="container max-w-screen-xl px-4 md:px-6 mx-auto grid md:grid-cols-2 gap-16 items-center">
           <div>
@@ -278,7 +257,7 @@ export default function Landing() {
               Trusted by Communities
             </Badge>
             <h3 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">
-              Why Organizations Choose SieWell
+              Why Organizations Choose CareFind
             </h3>
             <div className="space-y-6">
               <Feature 
@@ -303,18 +282,18 @@ export default function Landing() {
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-2xl"></div>
             <Card className="relative border-0 shadow-2xl">
               <CardContent className="p-8">
-                <h4 className="text-xl font-semibold mb-4">Start Using SieWell Today</h4>
+                <h4 className="text-xl font-semibold mb-4">Start Using CareFind Today</h4>
                 <p className="text-muted-foreground mb-6">
-                  Join thousands of social workers, healthcare navigators, and community organizations already using SieWell to transform healthcare access.
+                  Join thousands of social workers, healthcare navigators, and community organizations already using CareFind to transform healthcare access.
                 </p>
                 <div className="space-y-3">
                   <Button className="w-full" size="lg" asChild>
                     <Link href="/app">
-                      Launch SieWell App
+                      Launch CareFind App
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full" size="lg" asChild>
-                    <Link href="mailto:hello@SieWell.org">
+                    <Link href="mailto:hello@carefind.org">
                       Schedule a Demo
                     </Link>
                   </Button>
@@ -334,7 +313,7 @@ export default function Landing() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                   <span className="text-primary-foreground text-sm font-semibold">♥</span>
                 </div>
-                <span className="text-lg font-bold">SieWell</span>
+                <span className="text-lg font-bold">CareFind</span>
               </Link>
               <p className="text-sm text-muted-foreground">
                 AI-powered healthcare discovery for everyone.
@@ -367,13 +346,13 @@ export default function Landing() {
           </div>
           <Separator className="mb-8" />
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} SieWell. Built with ♥ for communities in need.</p>
+            <p>© {new Date().getFullYear()} CareFind. Built with ♥ for communities in need.</p>
             <div className="flex items-center gap-4">
               <Link href="/privacy" className="hover:underline">Privacy</Link>
               <Separator orientation="vertical" className="h-4" />
               <Link href="/terms" className="hover:underline">Terms</Link>
               <Separator orientation="vertical" className="h-4" />
-              <Link href="mailto:hello@SieWell.org" className="hover:underline">Contact</Link>
+              <Link href="mailto:hello@carefind.org" className="hover:underline">Contact</Link>
             </div>
           </div>
         </div>

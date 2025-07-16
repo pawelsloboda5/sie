@@ -383,16 +383,17 @@ export function ProviderCard({
           {!compact && (
             <div className="flex gap-3">
               {provider.website && (
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <a
+                  href={provider.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center px-3 py-2 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50"
                   onClick={() => onVisitWebsite?.(provider)}
-                  className="flex-1 text-sm hover:bg-muted"
                 >
                   <Globe className="h-4 w-4 mr-2" />
                   Visit Website
                   <ExternalLink className="h-3 w-3 ml-2" />
-                </Button>
+                </a>
               )}
               
               {provider.email && (

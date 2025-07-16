@@ -53,6 +53,10 @@ export default function FindPage() {
   const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | undefined>(undefined)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list')
+  
+  // State for initial values from URL parameters
+  const [initialQuery, setInitialQuery] = useState("")
+  const [initialLocation, setInitialLocation] = useState("")
 
   const handleSearch = async (query: string, location?: {latitude: number, longitude: number}, searchFilters?: any) => {
     const filtersToUse = searchFilters || filters
@@ -170,6 +174,56 @@ export default function FindPage() {
     console.log(`Action: ${action}`, provider)
   }
 
+  // Utility function to parse location string (coordinates or text)
+  const parseLocationString = (locationString: string): {latitude: number, longitude: number} | undefined => {
+    // Check if it's coordinates (latitude, longitude)
+    const coordMatch = locationString.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
+    if (coordMatch) {
+      return {
+        latitude: parseFloat(coordMatch[1]),
+        longitude: parseFloat(coordMatch[2])
+      }
+    }
+    
+    // For text addresses, we don't have geocoding yet, so return undefined
+    // TODO: Implement geocoding for text addresses
+    return undefined
+  }
+
+  // Handle URL parameters on mount to auto-execute search from homepage
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const query = urlParams.get('q')
+    const location = urlParams.get('location')
+    
+    // Set initial values for HeroSection pre-population
+    setInitialQuery(query || "")
+    setInitialLocation(location || "")
+    
+    if (query && query.trim()) {
+      console.log('Auto-executing search from URL params:', { query, location })
+      
+      try {
+        // Parse location if provided
+        let locationCoords: {latitude: number, longitude: number} | undefined = undefined
+        if (location) {
+          locationCoords = parseLocationString(location)
+        }
+        
+        // Auto-execute search with URL parameters
+        handleSearch(query, locationCoords).catch((error) => {
+          console.error('Auto-search failed:', error)
+          // Search will fail gracefully in handleSearch, so no additional action needed
+          // The user can still manually search using the pre-populated fields
+        })
+      } catch (error) {
+        console.error('Error processing URL parameters:', error)
+        // Even if parsing fails, the search fields will still be pre-populated
+        // so the user can manually trigger the search
+      }
+    }
+  }, []) // Run only on mount
+
   return (
     <div className="min-h-screen bg-background">
       {/* Streamlined Hero Section - Max 50vh */}
@@ -180,6 +234,8 @@ export default function FindPage() {
         onFiltersChange={handleFiltersChange}
         onClearFilters={handleClearFilters}
         resultsCount={searchResults?.totalResults || 0}
+        initialQuery={initialQuery}
+        initialLocation={initialLocation}
       />
       
       {/* Main Results Area - Min 50vh */}

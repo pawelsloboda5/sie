@@ -115,19 +115,8 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
   }
 
   return (
-    <section className="bg-gradient-to-br from-primary/5 via-background to-primary/10 py-16 px-4">
-      <div className="container mx-auto max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-            Find Free & Low-Cost Healthcare Near You
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mb-8">
-            Discover accessible healthcare services in your area, regardless of insurance status. 
-            Search by service, condition, or location to find the care you need.
-          </p>
-        </div>
-
+    <section className="py-8 px-4">
+      <div className="container mx-auto max-w-4xl">
         {/* Search Error Alert */}
         {searchError && (
           <Alert className="mb-6 border-destructive/50 bg-destructive/5 max-w-2xl mx-auto">
@@ -136,17 +125,17 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
         )}
 
         {/* Main Search Interface */}
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-2xl mx-auto">
           {/* Search Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 p-4 bg-background/80 backdrop-blur border rounded-xl shadow-lg">
             {/* Search Input */}
-            <div className="lg:col-span-6 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
               <Input
-                placeholder="Search for services (e.g., 'free STI testing', 'urgent care')"
+                placeholder="Search for care: 'free dental', 'mental health', 'urgent care'..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-12 py-4 text-lg h-14 bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="pl-10 pr-8 py-3 h-12 border-0 bg-transparent text-base"
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
               
@@ -155,7 +144,7 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded hover:bg-muted transition-colors"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded hover:bg-muted/50 transition-colors"
                     onClick={() => setIsSearchOpen(!isSearchOpen)}
                   >
                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isSearchOpen ? 'rotate-180' : ''}`} />
@@ -213,20 +202,20 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
             </div>
 
             {/* Location Input */}
-            <div className="lg:col-span-4 relative">
-              <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <div className="flex-1 relative">
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Enter your location"
+                placeholder="Location: ZIP code, city, or address"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="pl-12 pr-16 py-4 text-lg h-14 bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="pl-10 pr-12 py-3 h-12 border-0 bg-transparent"
               />
               <Button
                 onClick={handleGetLocation}
                 disabled={isGettingLocation}
                 variant="ghost"
                 size="sm"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-10 px-3 hover:bg-muted"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/50"
               >
                 {isGettingLocation ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -240,27 +229,30 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
             </div>
 
             {/* Search Button */}
-            <div className="lg:col-span-2">
-              <Button 
-                size="lg" 
-                className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 focus:ring-2 focus:ring-primary/20 transition-all"
-                onClick={handleSearch}
-                disabled={isSearching || !searchQuery.trim()}
-              >
-                {isSearching ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Searching...
-                  </>
-                ) : (
-                  <>
-                    <Search className="mr-2 h-5 w-5" />
-                    Search
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button 
+              size="lg" 
+              className="px-8 py-3 h-12 font-semibold shrink-0 bg-primary hover:bg-primary/90 transition-all"
+              onClick={handleSearch}
+              disabled={isSearching || !searchQuery.trim()}
+            >
+              {isSearching ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <Search className="mr-2 h-4 w-4" />
+                  Find Care
+                </>
+              )}
+            </Button>
           </div>
+          
+          {/* Privacy Note */}
+          <p className="text-sm text-muted-foreground mt-2 text-center">
+            🔒 Completely private • 🆓 Always free • 🌍 No account required
+          </p>
         </div>
       </div>
     </section>
