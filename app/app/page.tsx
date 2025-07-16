@@ -185,38 +185,8 @@ export default function FindPage() {
       {/* Main Results Area - Min 50vh */}
       <main className="min-h-[50vh] bg-background">
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            {/* Desktop Filter Panel - Hidden for now since filters are in Hero */}
-            <div className="hidden lg:block lg:col-span-1">
-              <div className="sticky top-4">
-                <div className="bg-muted/20 rounded-lg p-6 border border-border">
-                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                    <Filter className="h-5 w-5" />
-                    Advanced Filters
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Use the filter panel above in the search area for advanced filtering options.
-                  </p>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Total Results:</span>
-                      <span className="font-medium">{searchResults?.totalResults || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Providers:</span>
-                      <span className="font-medium">{searchResults?.providers.length || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Services:</span>
-                      <span className="font-medium">{searchResults?.services.length || 0}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Enhanced Results Area */}
-            <div className="lg:col-span-4">
+          {/* Enhanced Results Area - Now Full Width */}
+          <div className="w-full">
               {/* Mobile Controls */}
               <div className="lg:hidden mb-6 flex items-center justify-between">
                 <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
@@ -296,7 +266,6 @@ export default function FindPage() {
                 </div>
               )}
             </div>
-          </div>
         </div>
       </main>
     </div>

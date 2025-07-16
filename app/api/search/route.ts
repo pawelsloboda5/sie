@@ -67,6 +67,11 @@ let cachedDb: any = null
 const embeddingCache = new Map<string, number[]>()
 const CACHE_SIZE_LIMIT = 100
 
+// Query result cache to avoid repeated database hits
+const queryCache = new Map<string, any>()
+const QUERY_CACHE_SIZE_LIMIT = 50
+const QUERY_CACHE_TTL = 30000 // 30 seconds
+
 // MongoDB connection with optimized settings
 async function getMongoClient() {
   if (cachedClient && cachedDb) {
@@ -81,9 +86,9 @@ async function getMongoClient() {
   // Optimized MongoDB client options
   const client = new MongoClient(uri, {
     maxPoolSize: 10, // Maintain up to 10 socket connections
-    serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-    socketTimeoutMS: 5000, // Close sockets after 5 seconds of inactivity
-    connectTimeoutMS: 5000, // Give up initial connection after 5 seconds
+    serverSelectionTimeoutMS: 10000, // Increased from 5000
+    socketTimeoutMS: 10000, // Increased from 5000
+    connectTimeoutMS: 10000, // Increased from 5000
     maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
     retryWrites: true, // Automatically retry write operations
   })
@@ -179,6 +184,79 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c // Distance in miles
 }
 
+// Helper function to calculate cosine similarity between two vectors
+function calculateCosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 0
+  
+  let dotProduct = 0
+  let normA = 0
+  let normB = 0
+  
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
+  }
+  
+  if (normA === 0 || normB === 0) return 0
+  
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
+}
+
+// SIMPLIFIED: Service relevance first, simple scoring
+function calculateRelevanceScore(
+  baseScore: number, 
+  services: any[], 
+  queryVector: number[],
+  minRelevanceThreshold: number = 0.3, // Much lower threshold
+  distance?: number
+): number {
+  // If provider has no services, return very low score
+  if (!services || services.length === 0) {
+    return 0.01
+  }
+  
+  // Find the most relevant service - this should drive the score
+  let maxServiceRelevance = 0
+  let bestServiceIsFree = false
+  let bestServiceIsDiscounted = false
+  
+  for (const service of services) {
+    if (service.service_vector && service.service_vector.length > 0) {
+      const serviceRelevance = calculateCosineSimilarity(queryVector, service.service_vector)
+      
+      if (serviceRelevance > maxServiceRelevance && serviceRelevance >= minRelevanceThreshold) {
+        maxServiceRelevance = serviceRelevance
+        bestServiceIsFree = service.is_free
+        bestServiceIsDiscounted = service.is_discounted
+      }
+    }
+  }
+  
+  // If no relevant services, return low score
+  if (maxServiceRelevance === 0) {
+    return 0.05
+  }
+  
+  // SIMPLIFIED SCORING: Start with the best service relevance
+  let finalScore = maxServiceRelevance
+  
+  // Small bonus for free/discounted services (but relevance is still king)
+  if (bestServiceIsFree) {
+    finalScore += 0.1 // Small bonus for free
+  } else if (bestServiceIsDiscounted) {
+    finalScore += 0.05 // Smaller bonus for discounted
+  }
+  
+  // Light distance penalty
+  if (distance !== undefined && distance > 0) {
+    const distancePenalty = Math.exp(-distance / 20) // Lighter penalty
+    finalScore *= distancePenalty
+  }
+  
+  return finalScore
+}
+
 // Helper function to determine if service-level filters are active
 function hasServiceFilters(filters: SearchFilters): boolean {
   return !!(filters.freeOnly || (filters.serviceCategories && filters.serviceCategories.length > 0))
@@ -230,7 +308,7 @@ function buildServiceFilters(filters: SearchFilters): Record<string, any> {
   return matchConditions
 }
 
-// OPTIMIZED UNIFIED SEARCH: Single database connection, combined queries
+// SIMPLIFIED SEARCH with fallback strategies
 async function performOptimizedSearch(
   queryVector: number[],
   filters: SearchFilters,
@@ -240,144 +318,155 @@ async function performOptimizedSearch(
   const { client, db } = await getMongoClient()
   
   try {
-    console.log('Using optimized unified search strategy')
-    
     const providersCollection = db.collection('providers')
     const servicesCollection = db.collection('services')
     
     // Build filter conditions
     const providerFilters = buildProviderFilters(filters)
     const serviceFilters = buildServiceFilters(filters)
-    const hasServiceLevelFilters = hasServiceFilters(filters)
     
     let providers: any[] = []
     let services: any[] = []
     
-    if (hasServiceLevelFilters) {
-      // Service-first approach with optimized pipeline
-      console.log('Using service-first strategy')
-      
-      const serviceResults = await servicesCollection.aggregate([
-        {
-          $search: {
-            cosmosSearch: buildCosmosSearch(
-              queryVector,
-              "service_vector", 
-              Math.min(limit * 2, 100), 
-              serviceFilters,
-              10 
-            ),
-            returnStoredSource: true
-          }
-        },
-        {
-          $lookup: {
-            from: 'providers',
-            localField: 'provider_id',
-            foreignField: '_id',
-            as: 'provider'
-          }
-        },
-        {
-          $unwind: '$provider'
-        },
-        {
-          $match: Object.keys(providerFilters).length > 0 ? { 
-            $and: Object.entries(providerFilters).map(([key, value]) => ({
-              [`provider.${key}`]: value
-            }))
-          } : {}
-        },
-        {
-          $group: {
-            _id: '$provider._id',
-            provider: { $first: '$provider' },
-            services: { $push: '$$ROOT' },
-            maxScore: { $max: { $meta: 'searchScore' } },
-            freeServiceCount: { 
-              $sum: { $cond: [{ $eq: ['$is_free', true] }, 1, 0] }
+    // Try service-first approach with timeout
+    try {
+      const serviceResults = await Promise.race([
+        servicesCollection.aggregate([
+          {
+            $search: {
+              cosmosSearch: buildCosmosSearch(
+                queryVector,
+                "service_vector", 
+                Math.min(limit * 3, 50), // Reduced for better performance
+                serviceFilters,
+                5 // Lower nProbes for faster queries
+              ),
+              returnStoredSource: true
+            }
+          },
+          {
+            $lookup: {
+              from: 'providers',
+              localField: 'provider_id',
+              foreignField: '_id',
+              as: 'provider'
+            }
+          },
+          {
+            $unwind: '$provider'
+          },
+          {
+            $match: Object.keys(providerFilters).length > 0 ? { 
+              $and: Object.entries(providerFilters).map(([key, value]) => ({
+                [`provider.${key}`]: value
+              }))
+            } : {}
+          },
+          {
+            $group: {
+              _id: '$provider._id',
+              provider: { $first: '$provider' },
+              services: { $push: '$$ROOT' },
+              maxScore: { $max: { $meta: 'searchScore' } }
+            }
+          },
+          {
+            $project: {
+              provider: 1,
+              services: 1,
+              baseScore: '$maxScore'
             }
           }
-        },
-        {
-          $project: {
-            provider: 1,
-            services: 1,
-            score: '$maxScore',
-            freeServiceCount: 1,
-            enhancedScore: {
-              $multiply: [
-                '$maxScore',
-                { $add: [1, { $multiply: ['$freeServiceCount', 0.3] }] }
-              ]
-            }
-          }
-        },
-        {
-          $sort: { enhancedScore: -1 }
-        },
-        {
-          $limit: limit
-        }
-      ]).toArray()
+        ]).toArray(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Query timeout')), 8000)
+        )
+      ]) as any[]
+    
+    // Apply relevance-first scoring in JavaScript  
+    const scoredResults = serviceResults.map((result: any) => {
+      // Calculate distance if location provided
+      let distance: number | undefined
+      if (location && result.provider.location?.coordinates) {
+        distance = calculateDistance(
+          location.latitude,
+          location.longitude,
+          result.provider.location.coordinates[1], // latitude
+          result.provider.location.coordinates[0]  // longitude
+        )
+      }
       
-      providers = serviceResults.map((result: any) => ({
-        ...result.provider,
-        searchScore: result.enhancedScore,
-        freeServiceCount: result.freeServiceCount
-      }))
-      
-      services = serviceResults.flatMap((result: any) => 
-        result.services.map((service: any) => ({
-          ...service,
-          searchScore: result.score
-        }))
+      const relevanceScore = calculateRelevanceScore(
+        result.baseScore, 
+        result.services, 
+        queryVector,
+        0.3, // Much lower threshold for better recall
+        distance
       )
       
-    } else {
-      // Provider-first approach
-      console.log('Using provider-first strategy')
+      return {
+        ...result,
+        finalScore: relevanceScore,
+        distance: distance,
+        serviceCount: result.services.length
+      }
+    })
+    
+    // Filter out providers with very low relevance scores or no services
+    const filteredResults = scoredResults.filter((result: any) => {
+      return result.finalScore > 0.05 && result.serviceCount > 0
+    })
+    
+
+    
+    // Sort by relevance-first score and limit
+    filteredResults.sort((a: any, b: any) => b.finalScore - a.finalScore)
+    const topResults = filteredResults.slice(0, limit)
+    
+    providers = topResults.map((result: any) => ({
+      ...result.provider,
+      searchScore: result.finalScore,
+      distance: result.distance,
+      serviceCount: result.serviceCount
+    }))
+    
+    services = topResults.flatMap((result: any) => 
+      result.services.map((service: any) => ({
+        ...service,
+        searchScore: calculateCosineSimilarity(queryVector, service.service_vector || [])
+      }))
+    )
+    
+    } catch (timeoutError) {
+      console.log('Service search timed out, falling back to simple provider search')
       
-      const providerResults = await providersCollection.aggregate([
-        {
-          $search: {
-            cosmosSearch: buildCosmosSearch(
-              queryVector,
-              "summary_vector",
-              Math.min(limit * 2, 100), 
-              providerFilters,
-              5 
-            ),
-            returnStoredSource: true
-          }
-        },
-        {
-          $project: {
-            provider: '$$ROOT',
-            score: { $meta: 'searchScore' }
-          }
-        },
-        {
-          $limit: limit
-        }
-      ]).toArray()
+      // Fallback: Simple provider search without complex aggregation
+      const simpleProviders = await providersCollection.find(
+        providerFilters,
+        { limit: limit * 2 }
+      ).toArray()
       
-      if (providerResults.length > 0) {
-        const providerIds = providerResults.map((r: any) => r.provider._id)
-        
-        // Get services for these providers
-        services = await servicesCollection.find({
+      if (simpleProviders.length > 0) {
+        const providerIds = simpleProviders.map((p: any) => p._id)
+        const simpleServices = await servicesCollection.find({
           provider_id: { $in: providerIds }
         }).toArray()
         
-        providers = providerResults.map((result: any) => ({
-          ...result.provider,
-          searchScore: result.score
+        // Simple scoring without complex aggregation
+        providers = simpleProviders.slice(0, limit).map((provider: any) => ({
+          ...provider,
+          searchScore: 0.5, // Default score
+          distance: location ? calculateDistance(
+            location.latitude,
+            location.longitude,
+            provider.location?.coordinates?.[1] || 0,
+            provider.location?.coordinates?.[0] || 0
+          ) : undefined
         }))
+        
+        services = simpleServices
       }
     }
-    
-    console.log(`Found ${providers.length} providers, ${services.length} services`)
     
     return {
       providers,
@@ -388,7 +477,6 @@ async function performOptimizedSearch(
     console.error('Database search error:', error)
     throw error
   }
-  // Note: Don't close client connection - reuse it
 }
 
 // Apply distance filtering and sorting
@@ -425,12 +513,18 @@ function applyLocationFiltering(
     )
   }
   
-  // Sort by distance first, then by score
+  // Sort by relevance score first (which includes distance consideration), then by actual distance
   resultsWithDistance.sort((a: any, b: any) => {
+    // Primary sort by relevance score (which already factors in distance and free services appropriately)
+    const scoreDiff = (b.searchScore || 0) - (a.searchScore || 0)
+    if (Math.abs(scoreDiff) > 0.01) { // Only override if significant score difference
+      return scoreDiff
+    }
+    // If scores are very close, then consider distance
     if (a.distance !== b.distance) {
       return a.distance - b.distance
     }
-    return (b.searchScore || 0) - (a.searchScore || 0)
+    return 0
   })
   
   return resultsWithDistance
@@ -448,12 +542,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Search request:', { 
-      query, 
-      filters, 
-      location,
-      hasServiceFilters: hasServiceFilters(filters)
-    })
+    // Create cache key for this specific query
+    const cacheKey = JSON.stringify({ query, filters, location, limit })
+    
+    // Check cache first
+    const cached = queryCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < QUERY_CACHE_TTL) {
+      console.log('Returning cached results')
+      return NextResponse.json(cached.data)
+    }
 
     // Generate embedding for the search query (with caching)
     const queryVector = await generateEmbedding(query)
@@ -465,32 +562,36 @@ export async function POST(request: NextRequest) {
     
     console.log(`Search completed: ${providers.length} providers, ${services.length} services`)
 
-    // Apply location filtering if location is provided
-    if (location) {
-      providers = applyLocationFiltering(providers, location, filters.maxDistance)
+    // Apply distance filtering if maxDistance is specified
+    if (location && filters.maxDistance) {
+      providers = providers.filter((provider: any) => 
+        !provider.distance || provider.distance <= filters.maxDistance!
+      )
     }
 
     // Format results
     const results = {
       providers: providers.map((provider: any) => ({
         ...provider,
-        distance: provider.distance || null,
-        freeServiceCount: provider.freeServiceCount || 0
+        distance: provider.distance || null
       })),
       services: services.map((service: any) => ({
         ...service,
         searchScore: service.searchScore || 0
       })),
       query,
-      totalResults: providers.length + services.length,
-      searchStrategy: hasServiceFilters(filters) ? 'service-first' : 'provider-first'
+      totalResults: providers.length + services.length
     }
 
-    console.log('Final results:', {
-      providersCount: results.providers.length,
-      servicesCount: results.services.length,
-      totalResults: results.totalResults,
-      strategy: results.searchStrategy
+    // Cache the results
+    if (queryCache.size >= QUERY_CACHE_SIZE_LIMIT) {
+      // Remove oldest entry
+      const firstKey = queryCache.keys().next().value as string
+      queryCache.delete(firstKey)
+    }
+    queryCache.set(cacheKey, {
+      data: results,
+      timestamp: Date.now()
     })
 
     return NextResponse.json(results)

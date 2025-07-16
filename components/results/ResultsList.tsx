@@ -113,82 +113,36 @@ export function ResultsList({
     switch (sortBy) {
       case 'distance':
         return providers.sort((a, b) => {
-          // First priority: providers with free services
-          const aHasFree = hasFreeServices(a._id)
-          const bHasFree = hasFreeServices(b._id)
-          
-          if (aHasFree && !bHasFree) return -1
-          if (!aHasFree && bHasFree) return 1
-          
-          // If both have free services, prioritize by number of free services
-          if (aHasFree && bHasFree) {
-            const aFreeCount = getFreeServiceCount(a._id)
-            const bFreeCount = getFreeServiceCount(b._id)
-            if (aFreeCount !== bFreeCount) return bFreeCount - aFreeCount
-          }
-          
-          // Then sort by distance
+          // Primary sort by distance
           if (!a.distance && !b.distance) return 0
           if (!a.distance) return 1
           if (!b.distance) return -1
-          return a.distance - b.distance
+          if (a.distance !== b.distance) return a.distance - b.distance
+          
+          // Secondary sort by relevance score (which already includes free service bonuses)
+          return (b.searchScore || 0) - (a.searchScore || 0)
         })
       case 'rating':
         return providers.sort((a, b) => {
-          // First priority: providers with free services
-          const aHasFree = hasFreeServices(a._id)
-          const bHasFree = hasFreeServices(b._id)
+          // Primary sort by rating
+          if (a.rating !== b.rating) return b.rating - a.rating
           
-          if (aHasFree && !bHasFree) return -1
-          if (!aHasFree && bHasFree) return 1
-          
-          // If both have free services, prioritize by number of free services
-          if (aHasFree && bHasFree) {
-            const aFreeCount = getFreeServiceCount(a._id)
-            const bFreeCount = getFreeServiceCount(b._id)
-            if (aFreeCount !== bFreeCount) return bFreeCount - aFreeCount
-          }
-          
-          // Then sort by rating
-          return b.rating - a.rating
+          // Secondary sort by relevance score (which already includes free service bonuses)
+          return (b.searchScore || 0) - (a.searchScore || 0)
         })
       case 'name':
         return providers.sort((a, b) => {
-          // First priority: providers with free services
-          const aHasFree = hasFreeServices(a._id)
-          const bHasFree = hasFreeServices(b._id)
+          // Primary sort by name
+          const nameComparison = a.name.localeCompare(b.name)
+          if (nameComparison !== 0) return nameComparison
           
-          if (aHasFree && !bHasFree) return -1
-          if (!aHasFree && bHasFree) return 1
-          
-          // If both have free services, prioritize by number of free services
-          if (aHasFree && bHasFree) {
-            const aFreeCount = getFreeServiceCount(a._id)
-            const bFreeCount = getFreeServiceCount(b._id)
-            if (aFreeCount !== bFreeCount) return bFreeCount - aFreeCount
-          }
-          
-          // Then sort by name
-          return a.name.localeCompare(b.name)
+          // Secondary sort by relevance score (which already includes free service bonuses)
+          return (b.searchScore || 0) - (a.searchScore || 0)
         })
       case 'relevance':
       default:
+        // Trust the backend relevance-first scoring completely
         return providers.sort((a, b) => {
-          // First priority: providers with free services
-          const aHasFree = hasFreeServices(a._id)
-          const bHasFree = hasFreeServices(b._id)
-          
-          if (aHasFree && !bHasFree) return -1
-          if (!aHasFree && bHasFree) return 1
-          
-          // If both have free services, prioritize by number of free services
-          if (aHasFree && bHasFree) {
-            const aFreeCount = getFreeServiceCount(a._id)
-            const bFreeCount = getFreeServiceCount(b._id)
-            if (aFreeCount !== bFreeCount) return bFreeCount - aFreeCount
-          }
-          
-          // Then sort by search relevance score
           return (b.searchScore || 0) - (a.searchScore || 0)
         })
     }
@@ -302,7 +256,7 @@ export function ResultsList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Results Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
@@ -366,8 +320,8 @@ export function ResultsList({
               <p className="text-gray-600">No providers found matching your criteria.</p>
             </Card>
           ) : (
-            <ScrollArea className="h-[600px] pr-4">
-              <div className="space-y-4">
+            <ScrollArea className="h-[800px] pr-4">
+              <div className="space-y-6">
             {sortedProviders.map((provider) => {
               const topService = getProviderTopService(provider._id)
               const allServices = results.services.filter(s => s.provider_id === provider._id)

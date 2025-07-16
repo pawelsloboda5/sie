@@ -164,10 +164,10 @@ export function ProviderCard({
   }
 
   return (
-    <Card className={`w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group ${compact ? 'p-3' : 'p-6'}`}>
-      <CardHeader className={compact ? 'pb-3' : 'pb-6'}>
+    <Card className={`w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group ${compact ? 'p-4' : 'p-8'}`}>
+      <CardHeader className={compact ? 'pb-4' : 'pb-8'}>
         <div className="flex items-start justify-between">
-          <div className="flex-1 space-y-3">
+          <div className="flex-1 space-y-4">
             {/* Provider Name and Category */}
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -219,7 +219,7 @@ export function ProviderCard({
         </div>
       </CardHeader>
 
-      <CardContent className={`${compact ? 'pt-0 space-y-4' : 'pt-0 space-y-6'}`}>
+      <CardContent className={`${compact ? 'pt-0 space-y-5' : 'pt-0 space-y-8'}`}>
         {/* Address */}
         <div className="flex items-start gap-3">
           <MapPin className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
