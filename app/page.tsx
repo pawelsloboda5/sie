@@ -20,7 +20,6 @@ export default function Landing() {
             </div>
             <span className="sr-only">SieWell home</span>
             <div className="leading-tight">
-              <h1 className="text-lg font-bold tracking-tight">SieWell</h1>
               <p className="text-[11px] font-medium text-muted-foreground">AI‑Powered Healthcare Discovery</p>
             </div>
           </Link>
@@ -45,33 +44,78 @@ export default function Landing() {
       </header>
 
       {/* ---------- Hero with Search ---------- */}
-      <section className="pt-16 pb-20 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/20 opacity-30"></div>
-        <div className="container max-w-screen-lg px-4 md:px-6 mx-auto relative">
-          <Badge variant="secondary" className="mb-6 animate-pulse">
-            <Bot className="w-3 h-3 mr-1" />
-            6 AI Agents Working 24/7
-          </Badge>
-          <h2 className="text-4xl md:text-7xl font-extrabold tracking-tight mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
-            Healthcare That&nbsp;
-            <span className="text-primary">Finds You</span>
-          </h2>
-          <p className="mx-auto max-w-3xl text-lg md:text-xl text-muted-foreground mb-8">
-            Our AI agents never sleep, constantly scanning thousands of clinics to instantly connect you with free, low-cost, and accessible healthcare—no insurance, no documentation, no barriers.
-          </p>
-          
-          {/* Search CTA */}
-          <div className="max-w-2xl mx-auto mb-8">
-            <SimpleHeroSection />
+      <SimpleHeroSection />
+
+      {/* ---------- Preventive Care Service ---------- */}
+      <section className="relative flex flex-col items-center justify-center min-h-[50vh] px-4 py-16 bg-gradient-to-br from-primary/5 via-background to-primary/10">
+        <div className="container max-w-4xl mx-auto text-center">
+          <div className="mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
+              <HeartHandshake className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold text-primary">Coming Soon</span>
+            </div>
+            
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
+              SIE Wellness Preventative Healthcare Coverage
+            </h2>
+            
+            <p className="max-w-3xl mx-auto text-lg text-muted-foreground leading-relaxed mb-8">
+              We're excited to announce the upcoming launch of SIE Wellness Preventative Healthcare Coverage, 
+              designed to proactively support your wellness with annual physicals, dental cleanings, essential 
+              lab tests, and personalized add-on services. Our plans are highly affordable with flexible 
+              payment options to fit your budget.
+            </p>
+            
+            <p className="max-w-2xl mx-auto text-base text-muted-foreground mb-12">
+              Sign up today to receive updates, exclusive early access opportunities, and news about our official start date!
+            </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button variant="outline" size="lg" asChild>
-              <Link href="#agents">Meet Our AI Agents</Link>
-            </Button>
-            <Button variant="ghost" size="lg" asChild>
-              <Link href="#how-it-works">How It Works</Link>
-            </Button>
+          {/* Email Signup */}
+          <div className="max-w-md mx-auto">
+            <div className="flex gap-3 p-2 bg-background/80 backdrop-blur border rounded-full shadow-lg">
+              <Input
+                type="email"
+                placeholder="Enter your email address"
+                className="flex-1 border-0 bg-transparent px-4 py-3 rounded-l-full focus:ring-0"
+              />
+              <Button 
+                size="lg" 
+                className="px-6 py-3 font-semibold rounded-r-full bg-primary hover:bg-primary/90 transition-all"
+              >
+                Join Waitlist
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              We respect your privacy. Unsubscribe at any time.
+            </p>
+          </div>
+
+          {/* Feature Highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-3xl mx-auto">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+                <Stethoscope className="h-6 w-6 text-primary" />
+              </div>
+              <h4 className="font-semibold mb-2">Annual Physicals</h4>
+              <p className="text-sm text-muted-foreground">Comprehensive yearly checkups</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+                <HeartHandshake className="h-6 w-6 text-primary" />
+              </div>
+              <h4 className="font-semibold mb-2">Dental Care</h4>
+              <p className="text-sm text-muted-foreground">Regular cleanings and checkups</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <h4 className="font-semibold mb-2">Lab Tests</h4>
+              <p className="text-sm text-muted-foreground">Essential health screenings</p>
+            </div>
           </div>
         </div>
       </section>
@@ -89,15 +133,14 @@ export default function Landing() {
       {/* ---------- AI Agents Section ---------- */}
       <section id="agents" className="py-24">
         <div className="container max-w-screen-xl px-4 md:px-6 mx-auto text-center mb-16">
-          <Badge variant="outline" className="mb-4">
-            <Zap className="w-3 h-3 mr-1" />
-            AI-Powered Intelligence
-          </Badge>
           <h3 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
             Meet Your AI Healthcare Team
           </h3>
-          <p className="max-w-4xl mx-auto text-muted-foreground text-lg md:text-xl">
-            Six specialized AI agents work around the clock, each one a digital expert that never sleeps, never takes breaks, and never stops helping you find the care you need.
+          <p className="max-w-3xl mx-auto text-muted-foreground text-lg md:text-xl">
+            Six specialized AI agents work around the clock, each one a digital expert that
+          </p>
+          <p className="max-w-3xl mx-auto text-muted-foreground text-lg md:text-xl">
+            never sleeps, never takes breaks, and never stops helping you find the care you need.
           </p>
         </div>
         <div className="container max-w-screen-xl px-4 md:px-6 mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -153,7 +196,10 @@ export default function Landing() {
             Built for Real People with Real Needs
           </h3>
           <p className="max-w-3xl mx-auto text-muted-foreground text-lg">
-            From individuals seeking care to organizations serving communities, our AI makes healthcare accessible for everyone.
+            From individuals seeking care to organizations serving communities, 
+          </p>
+          <p className="max-w-3xl mx-auto text-muted-foreground text-lg">
+            our AI makes healthcare accessible for everyone.
           </p>
         </div>
         <div className="container max-w-screen-xl px-4 md:px-6 mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -184,40 +230,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ---------- How It Works ---------- */}
-      <section id="how-it-works" className="py-24">
-        <div className="container max-w-screen-xl px-4 md:px-6 mx-auto text-center mb-16">
-          <Badge variant="outline" className="mb-4">
-            <Bot className="w-3 h-3 mr-1" />
-            Autonomous Intelligence
-          </Badge>
-          <h3 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
-            While You Sleep, We Work
-          </h3>
-          <p className="max-w-3xl mx-auto text-muted-foreground text-lg">
-            Our AI agents operate in a sophisticated pipeline, constantly monitoring and extracting healthcare data so you always have the most current information.
-          </p>
-        </div>
-        <div className="container max-w-screen-xl px-4 md:px-6 mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <ProcessStep 
-              step="01"
-              title="Continuous Discovery"
-              desc="Our agents scan thousands of healthcare provider websites every night, identifying new services, updated policies, and changing requirements."
-            />
-            <ProcessStep 
-              step="02"
-              title="Intelligent Extraction"
-              desc="Six specialized agents work in parallel, each extracting different types of information—services, insurance, eligibility, accessibility, and free care options."
-            />
-            <ProcessStep 
-              step="03"
-              title="Instant Access"
-              desc="When you search, our vector database instantly matches your needs with the most relevant providers, filtered by your specific requirements and location."
-            />
-          </div>
-        </div>
-      </section>
 
       {/* ---------- Impact Stories ---------- */}
       <section id="impact" className="py-24 bg-muted/40">
@@ -225,7 +237,7 @@ export default function Landing() {
           <h3 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
             Real Impact, Real Stories
           </h3>
-          <p className="max-w-3xl mx-auto text-muted-foreground text-lg">
+          <p className="max-w-4xl mx-auto text-muted-foreground text-lg">
             See how CareFind transforms healthcare access for individuals and organizations across the country.
           </p>
         </div>
