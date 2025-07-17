@@ -47,46 +47,46 @@ export default function Landing() {
       <SimpleHeroSection />
 
       {/* ---------- Preventive Care Service ---------- */}
-      <section className="relative flex flex-col items-center justify-center min-h-[50vh] px-4 py-16 bg-gradient-to-br from-primary/5 via-background to-primary/10">
-        <div className="container max-w-4xl mx-auto text-center">
-          <div className="mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
+      <section className="section-padding bg-gradient-to-br from-primary/5 via-background to-primary/10">
+        <div className="container text-center space-y-content">
+          <div className="space-y-element">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
               <HeartHandshake className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">Coming Soon</span>
+              <span className="text-body-sm font-semibold text-primary">Coming Soon</span>
             </div>
             
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
+            <h2 className="text-display-xl">
               SIE Wellness Preventative Healthcare Coverage
             </h2>
             
-            <p className="max-w-3xl mx-auto text-lg text-muted-foreground leading-relaxed mb-8">
+            <p className="max-w-4xl mx-auto text-body-lg text-muted-foreground">
               We&apos;re excited to announce the upcoming launch of SIE Wellness Preventative Healthcare Coverage, 
               designed to proactively support your wellness with annual physicals, dental cleanings, essential 
               lab tests, and personalized add-on services. Our plans are highly affordable with flexible 
               payment options to fit your budget.
             </p>
             
-            <p className="max-w-2xl mx-auto text-base text-muted-foreground mb-12">
+            <p className="max-w-3xl mx-auto text-body-md text-muted-foreground">
               Sign up today to receive updates, exclusive early access opportunities, and news about our official start date!
             </p>
           </div>
 
           {/* Email Signup */}
-          <div className="max-w-md mx-auto">
-            <div className="flex gap-3 p-2 bg-background/80 backdrop-blur border rounded-full shadow-lg">
+          <div className="max-w-lg mx-auto">
+            <div className="flex gap-3 p-2 glass rounded-2xl card-shadow-lg">
               <Input
                 type="email"
                 placeholder="Enter your email address"
-                className="flex-1 border-0 bg-transparent px-4 py-3 rounded-l-full focus:ring-0"
+                className="flex-1 border-0 bg-transparent input-lg rounded-l-2xl focus-ring-visible"
               />
               <Button 
                 size="lg" 
-                className="px-6 py-3 font-semibold rounded-r-full bg-primary hover:bg-primary/90 transition-all"
+                className="btn-lg rounded-r-2xl bg-primary hover:bg-primary/90 transition-smooth"
               >
                 Join Waitlist
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
+            <p className="text-body-sm text-muted-foreground mt-3">
               We respect your privacy. Unsubscribe at any time.
             </p>
           </div>
@@ -121,8 +121,8 @@ export default function Landing() {
       </section>
 
       {/* ---------- Quick Stats ---------- */}
-      <section className="py-12 border-y bg-muted/40">
-        <div className="container max-w-screen-xl px-4 md:px-6 mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      <section className="section-padding-sm border-y bg-muted/40">
+        <div className="container-lg grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           <Stat number="2,300+" label="Healthcare Providers" icon={Building} />
           <Stat number="68,000+" label="Verified Services" icon={Stethoscope} />
           <Stat number="24/7" label="AI Monitoring" icon={Clock} />
@@ -131,19 +131,23 @@ export default function Landing() {
       </section>
 
       {/* ---------- AI Agents Section ---------- */}
-      <section id="agents" className="py-24">
-        <div className="container max-w-screen-xl px-4 md:px-6 mx-auto text-center mb-16">
-          <h3 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
-            Meet Your AI Healthcare Team
-          </h3>
-          <p className="max-w-3xl mx-auto text-muted-foreground text-lg md:text-xl">
-            Six specialized AI agents work around the clock, each one a digital expert that
-          </p>
-          <p className="max-w-3xl mx-auto text-muted-foreground text-lg md:text-xl">
-            never sleeps, never takes breaks, and never stops helping you find the care you need.
-          </p>
+      <section id="agents" className="section-padding">
+        <div className="container-lg text-center space-y-content">
+          <div className="space-y-element">
+            <h3 className="text-display-xl">
+              Meet Your AI Healthcare Team
+            </h3>
+            <div className="max-w-4xl mx-auto space-y-2">
+              <p className="text-body-lg text-muted-foreground">
+                Six specialized AI agents work around the clock, each one a digital expert that
+              </p>
+              <p className="text-body-lg text-muted-foreground">
+                never sleeps, never takes breaks, and never stops helping you find the care you need.
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="container max-w-screen-xl px-4 md:px-6 mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="container-lg grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mt-12 md:mt-16">
           <AgentCard 
             icon={Stethoscope} 
             title="Service Agent" 
@@ -377,10 +381,10 @@ export default function Landing() {
 
 function Stat({ number, label, icon: Icon }: { number: string; label: string; icon: typeof MapPin }) {
   return (
-    <div className="space-y-3 text-center">
-      <Icon className="h-8 w-8 text-primary mx-auto" />
-      <div className="text-3xl md:text-4xl font-extrabold text-primary">{number}</div>
-      <p className="text-muted-foreground text-sm">{label}</p>
+    <div className="space-y-element text-center">
+      <Icon className="h-8 w-8 md:h-10 md:w-10 text-primary mx-auto" />
+      <div className="text-display-sm text-primary">{number}</div>
+      <p className="text-body-md text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -399,22 +403,22 @@ function AgentCard({
   capabilities: string[];
 }) {
   return (
-    <Card className="h-full shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-      <CardContent className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Icon className="h-6 w-6 text-primary" />
+    <Card className="h-full card-shadow hover:card-shadow-lg transition-slow hover-lift-sm group">
+      <CardContent className="p-6 md:p-8 space-y-element">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-smooth">
+            <Icon className="h-6 w-6 md:h-7 md:w-7 text-primary" />
           </div>
           <div>
-            <h4 className="text-lg font-semibold">{title}</h4>
-            <p className="text-sm text-muted-foreground italic">{nickname}</p>
+            <h4 className="text-display-sm">{title}</h4>
+            <p className="text-body-sm text-muted-foreground italic">{nickname}</p>
           </div>
         </div>
-        <p className="text-muted-foreground text-sm leading-relaxed mb-4">{desc}</p>
-        <div className="space-y-1">
+        <p className="text-body-md text-muted-foreground">{desc}</p>
+        <div className="space-y-2">
           {capabilities.map((capability, index) => (
-            <div key={index} className="flex items-center gap-2 text-xs">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+            <div key={index} className="flex items-center gap-3 text-body-sm">
+              <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
               <span className="text-muted-foreground">{capability}</span>
             </div>
           ))}

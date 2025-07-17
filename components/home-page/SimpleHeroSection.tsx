@@ -210,210 +210,214 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
     : capabilities
 
   return (
-    <section className="relative flex flex-col items-center justify-center min-h-[50vh] px-4 py-8 bg-gradient-to-br from-background via-muted/30 to-background">
-      {/* Logo and Company Name */}
-      <div className="flex flex-col items-center mb-16">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary transition-colors group-hover:bg-primary/90">
-            <span className="text-primary-foreground text-xl font-bold">♥</span>
-          </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold tracking-tight">SIE Wellness</h1>
-          </div>
-        </Link>
-      </div>
+    <section className="relative section-padding bg-gradient-to-br from-background via-muted/20 to-background">
+      <div className="container-lg">
+        {/* Logo and Company Name */}
+        <div className="flex flex-col items-center mb-12 md:mb-16">
+          <Link href="/" className="flex items-center gap-4 group">
+            <div className="flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full bg-primary transition-smooth group-hover:bg-primary/90 hover-lift-sm">
+              <span className="text-primary-foreground text-xl md:text-2xl font-bold">♥</span>
+            </div>
+            <div className="text-center">
+              <h1 className="text-display-md gradient-text">SIE Wellness</h1>
+              <p className="text-body-sm text-muted-foreground mt-1">AI-Powered Healthcare Discovery</p>
+            </div>
+          </Link>
+        </div>
 
-      {/* Search Error Alert */}
-      {searchError && (
-        <Alert className="mb-6 border-destructive/50 bg-destructive/5 max-w-2xl mx-auto">
-          <AlertDescription className="text-sm">{searchError}</AlertDescription>
-        </Alert>
-      )}
+        {/* Search Error Alert */}
+        {searchError && (
+          <Alert className="mb-6 md:mb-8 border-destructive/50 bg-destructive/5 max-w-2xl mx-auto">
+            <AlertDescription className="text-body-sm">{searchError}</AlertDescription>
+          </Alert>
+        )}
 
-      {/* Main Search Interface */}
-      <div className="w-full max-w-4xl">
-        {/* Search Bar */}
-        <div className="relative mb-8">
-          <div className="flex items-center bg-background/80 backdrop-blur border rounded-full shadow-xl hover:shadow-2xl transition-shadow">
-            {/* Search Input with dropdown trigger */}
-            <div className="flex-1 relative">
-              <div className="flex items-center">
-                <Search className="ml-4 h-5 w-5 text-muted-foreground flex-shrink-0" />
-                <Input
-                  placeholder="Ask a healthcare question..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 border-0 bg-transparent text-base rounded-l-full focus:ring-0 focus:border-0 pl-3 pr-2 py-4 h-14"
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-                <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mr-2 h-8 w-8 p-0 hover:bg-muted/50 rounded-full flex-shrink-0"
-                      onClick={() => setIsSearchOpen(!isSearchOpen)}
-                    >
-                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isSearchOpen ? 'rotate-180' : ''}`} />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[600px] p-0" align="start">
-                    <Command>
-                      <CommandList>
-                        <CommandEmpty>No suggestions found.</CommandEmpty>
-                        
-                        {/* Recent Searches */}
-                        {showRecentSearches && recentSearches.length > 0 && (
-                          <CommandGroup heading="Recent Searches">
-                            {recentSearches.map((search, index) => (
+        {/* Main Search Interface */}
+        <div className="w-full max-w-5xl mx-auto space-y-content">
+          {/* Search Bar */}
+          <div className="relative">
+            <div className="flex items-center glass rounded-2xl shadow-xl card-shadow-lg hover:shadow-2xl transition-slow overflow-hidden">
+              {/* Search Input with dropdown trigger */}
+              <div className="flex-1 relative">
+                <div className="flex items-center">
+                  <Search className="ml-4 md:ml-6 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
+                  <Input
+                    placeholder="Ask a healthcare question..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-1 border-0 bg-transparent input-xl rounded-l-2xl focus-ring-visible pl-3 pr-2"
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                  <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mr-2 h-8 w-8 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
+                        onClick={() => setIsSearchOpen(!isSearchOpen)}
+                      >
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[600px] p-0 card-shadow-lg" align="start">
+                      <Command>
+                        <CommandList>
+                          <CommandEmpty>No suggestions found.</CommandEmpty>
+                          
+                          {/* Recent Searches */}
+                          {showRecentSearches && recentSearches.length > 0 && (
+                            <CommandGroup heading="Recent Searches">
+                              {recentSearches.map((search, index) => (
+                                <CommandItem
+                                  key={`recent-${index}`}
+                                  onSelect={() => {
+                                    handleRecentSearchClick(search)
+                                    setIsSearchOpen(false)
+                                  }}
+                                  className="cursor-pointer transition-smooth"
+                                >
+                                  <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                                  <div>
+                                    <div className="text-body-sm">{search.query}</div>
+                                    {search.location && (
+                                      <div className="text-xs text-muted-foreground">{search.location}</div>
+                                    )}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
+
+                          {/* Popular Searches */}
+                          <CommandGroup heading="Popular Healthcare Searches">
+                            {searchSuggestions.map((suggestion, index) => (
                               <CommandItem
-                                key={`recent-${index}`}
+                                key={`suggestion-${index}`}
                                 onSelect={() => {
-                                  handleRecentSearchClick(search)
+                                  setSearchQuery(suggestion)
                                   setIsSearchOpen(false)
                                 }}
-                                className="cursor-pointer"
+                                className="cursor-pointer transition-smooth"
                               >
-                                <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                                <div>
-                                  <div>{search.query}</div>
-                                  {search.location && (
-                                    <div className="text-xs text-muted-foreground">{search.location}</div>
-                                  )}
-                                </div>
+                                <Search className="mr-2 h-4 w-4" />
+                                <span className="text-body-sm">{suggestion}</span>
                               </CommandItem>
                             ))}
                           </CommandGroup>
-                        )}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
 
-                        {/* Popular Searches */}
-                        <CommandGroup heading="Popular Healthcare Searches">
-                          {searchSuggestions.map((suggestion, index) => (
-                            <CommandItem
-                              key={`suggestion-${index}`}
-                              onSelect={() => {
-                                setSearchQuery(suggestion)
-                                setIsSearchOpen(false)
-                              }}
-                              className="cursor-pointer"
-                            >
-                              <Search className="mr-2 h-4 w-4" />
-                              {suggestion}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
+              {/* Location Input */}
+              <div className="flex-1 relative border-l border-border/50">
+                <div className="flex items-center">
+                  <MapPin className="ml-4 md:ml-6 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
+                  <Input
+                    placeholder="ZIP code, city, or address"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="flex-1 border-0 bg-transparent rounded-none focus-ring-visible input-xl pl-3 pr-2"
+                  />
+                  <Button
+                    onClick={handleGetLocation}
+                    disabled={isGettingLocation}
+                    variant="ghost"
+                    size="sm"
+                    className="mr-2 h-8 w-8 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
+                  >
+                    {isGettingLocation ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MapPin className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Search Button */}
+              <Button 
+                size="lg" 
+                className="btn-xl rounded-r-2xl bg-primary hover:bg-primary/90 transition-smooth flex-shrink-0"
+                onClick={handleSearch}
+                disabled={isSearching || !searchQuery.trim()}
+              >
+                {isSearching ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    <span className="hidden sm:inline">Searching...</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="h-5 w-5 sm:mr-2" />
+                    <span className="hidden sm:inline">Search</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Capability Buttons */}
+          <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 max-w-5xl mx-auto transition-all duration-300 ${showAllCapabilities ? 'grid-cols-1 md:grid-cols-3' : ''}`}>
+            {displayedCapabilities.map((capability) => {
+              const Icon = capability.icon
+              return (
+                <Popover 
+                  key={capability.key} 
+                  open={activeDropdown === capability.key} 
+                  onOpenChange={(open) => setActiveDropdown(open ? capability.key : null)}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="h-auto p-4 md:p-5 text-left justify-start hover:bg-muted/50 transition-smooth group relative glass hover-lift-sm"
+                    >
+                      <div className="flex items-center gap-3 w-full min-w-0">
+                        <Icon className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground group-hover:text-primary transition-smooth flex-shrink-0" />
+                        <span className="text-body-md text-muted-foreground group-hover:text-foreground transition-smooth truncate font-medium">
+                          {capability.text}
+                        </span>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto flex-shrink-0 group-hover:text-primary transition-smooth" />
+                      </div>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0 card-shadow-lg" align="start">
+                    <div className="p-4">
+                      <div className="text-body-md font-semibold text-foreground mb-3 px-2 py-1">
+                        {capability.text}
+                      </div>
+                      <div className="space-y-1">
+                        {capability.options.map((option, optionIndex) => (
+                          <button
+                            key={optionIndex}
+                            onClick={() => handleCapabilitySelect(option)}
+                            className="w-full text-left px-3 py-3 text-body-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground rounded-md transition-smooth"
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </PopoverContent>
                 </Popover>
-              </div>
-            </div>
-
-            {/* Location Input */}
-            <div className="flex-1 relative border-l border-border/50">
-              <div className="flex items-center">
-                <MapPin className="ml-4 h-5 w-5 text-muted-foreground flex-shrink-0" />
-                <Input
-                  placeholder="ZIP code, city, or address"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="flex-1 border-0 bg-transparent rounded-none focus:ring-0 focus:border-0 pl-3 pr-2 py-4 h-14"
-                />
-                <Button
-                  onClick={handleGetLocation}
-                  disabled={isGettingLocation}
-                  variant="ghost"
-                  size="sm"
-                  className="mr-2 h-8 w-8 p-0 hover:bg-muted/50 rounded-full flex-shrink-0"
-                >
-                  {isGettingLocation ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <MapPin className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* Search Button */}
-            <Button 
-              size="lg" 
-              className="px-8 py-4 h-14 font-semibold rounded-r-full bg-primary hover:bg-primary/90 transition-all flex-shrink-0"
-              onClick={handleSearch}
-              disabled={isSearching || !searchQuery.trim()}
-            >
-              {isSearching ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Searching...
-                </>
-              ) : (
-                <>
-                  <ArrowRight className="h-5 w-5" />
-                </>
-              )}
-            </Button>
+              )
+            })}
           </div>
         </div>
 
-        {/* Minimalistic Capability Buttons */}
-        <div className={`grid grid-cols-2 md:grid-cols-3 gap-2 max-w-4xl mx-auto transition-all duration-300 ${showAllCapabilities ? 'grid-cols-2 md:grid-cols-3' : ''}`}>
-          {displayedCapabilities.map((capability) => {
-            const Icon = capability.icon
-            return (
-              <Popover 
-                key={capability.key} 
-                open={activeDropdown === capability.key} 
-                onOpenChange={(open) => setActiveDropdown(open ? capability.key : null)}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="h-auto p-3 text-left justify-start hover:bg-muted/50 transition-colors group relative text-wrap"
-                  >
-                    <div className="flex items-center gap-2 w-full min-w-0">
-                      <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                        {capability.text}
-                      </span>
-                      <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto flex-shrink-0" />
-                    </div>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
-                  <div className="p-2">
-                    <div className="text-sm font-medium text-foreground mb-2 px-2 py-1">
-                      {capability.text}
-                    </div>
-                    <div className="space-y-1">
-                      {capability.options.map((option, optionIndex) => (
-                        <button
-                          key={optionIndex}
-                          onClick={() => handleCapabilitySelect(option)}
-                          className="w-full text-left px-2 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground rounded transition-colors"
-                        >
-                          {option}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )
-          })}
+        {/* Explore More */}
+        <div className="mt-8 md:mt-12 text-center">
+          <Button 
+            variant="ghost" 
+            className="text-muted-foreground hover:text-foreground text-body-sm transition-smooth"
+            onClick={() => setShowAllCapabilities(!showAllCapabilities)}
+          >
+            {showAllCapabilities ? 'Show Less' : 'Explore More Capabilities'}
+            <ChevronDown className={`ml-2 h-4 w-4 transition-transform duration-200 ${showAllCapabilities ? 'rotate-180' : ''}`} />
+          </Button>
         </div>
-      </div>
-
-      {/* Explore More */}
-      <div className="mt-8">
-        <Button 
-          variant="ghost" 
-          className="text-muted-foreground hover:text-foreground text-sm"
-          onClick={() => setShowAllCapabilities(!showAllCapabilities)}
-        >
-          {showAllCapabilities ? 'Show Less' : 'Explore More Capabilities'}
-          <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showAllCapabilities ? 'rotate-180' : ''}`} />
-        </Button>
       </div>
     </section>
   )
