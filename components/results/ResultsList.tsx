@@ -56,6 +56,7 @@ interface SearchResults {
   services: Service[]
   query: string
   totalResults: number
+  isFiltered?: boolean
 }
 
 interface ResultsListProps {
@@ -237,7 +238,11 @@ export function ResultsList({
       <div className="flex flex-col gap-3 sm:gap-0 sm:flex-row sm:items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-lg sm:text-lg font-semibold text-gray-900 break-words">
-            Found {results.totalResults} results for &quot;{results.query}&quot;
+            {results.isFiltered ? (
+              <>Found {results.totalResults} filtered results</>
+            ) : (
+              <>Found {results.totalResults} results for &quot;{results.query}&quot;</>
+            )}
           </h2>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
             <span className="flex items-center gap-1">
@@ -248,6 +253,12 @@ export function ResultsList({
               <Heart className="h-4 w-4" />
               {results.services.length} Services Available
             </span>
+            {results.isFiltered && (
+              <span className="flex items-center gap-1 text-primary font-medium">
+                <Search className="h-4 w-4" />
+                Filter Mode
+              </span>
+            )}
           </div>
         </div>
         

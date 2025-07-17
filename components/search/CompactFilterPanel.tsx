@@ -45,6 +45,7 @@ interface CompactFilterPanelProps {
   resultsCount?: number
   isLoading?: boolean
   className?: string
+  onFilterOnlySearch?: () => void
 }
 
 // Predefined filter options
@@ -72,7 +73,8 @@ export function CompactFilterPanel({
   onClearFilters, 
   resultsCount = 0,
   isLoading = false,
-  className = ""
+  className = "",
+  onFilterOnlySearch
 }: CompactFilterPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -398,8 +400,31 @@ export function CompactFilterPanel({
               </TabsContent>
             </Tabs>
 
+            {/* Filter-only search button */}
+            {onFilterOnlySearch && activeFiltersCount > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <Button 
+                  onClick={onFilterOnlySearch}
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Filter className="h-4 w-4 mr-2" />
+                      Search by Filters
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
             {/* Loading Indicator */}
-            {isLoading && (
+            {isLoading && !onFilterOnlySearch && (
               <div className="flex items-center justify-center py-4 mt-4 border-t">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
                 <span className="text-sm text-muted-foreground">Updating results...</span>

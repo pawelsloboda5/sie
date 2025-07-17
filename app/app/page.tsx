@@ -89,6 +89,48 @@ export default function FindPage() {
   const [initialQuery, setInitialQuery] = useState("")
   const [initialLocation, setInitialLocation] = useState("")
 
+
+  const handleFilterOnlySearch = useCallback(async (searchFilters: FilterOptions) => {
+    setIsLoading(true)
+    setCurrentQuery("Filtered Results")
+    
+    try {
+      const response = await fetch('/api/filter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filters: {
+            freeOnly: searchFilters.freeOnly,
+            acceptsUninsured: searchFilters.acceptsUninsured,
+            acceptsMedicaid: searchFilters.acceptsMedicaid,
+            acceptsMedicare: searchFilters.acceptsMedicare,
+            ssnRequired: searchFilters.ssnRequired,
+            telehealthAvailable: searchFilters.telehealthAvailable,
+            maxDistance: searchFilters.maxDistance,
+            insuranceProviders: searchFilters.insuranceProviders,
+            serviceCategories: searchFilters.serviceCategories,
+          },
+          location: currentLocation,
+          limit: 20
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Filter search failed')
+      }
+
+      const results = await response.json()
+      setSearchResults(results)
+    } catch (error) {
+      console.error('Filter search error:', error)
+      setSearchResults(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentLocation])
+
   const handleSearch = useCallback(async (query: string, location?: {latitude: number, longitude: number}, searchFilters?: Partial<FilterOptions>) => {
     const filtersToUse = searchFilters || filters
     setIsLoading(true)
@@ -157,6 +199,9 @@ export default function FindPage() {
       }
       
       setSearchResults(results)
+      
+      // Remove the automatic filter-after-search logic to prevent infinite loops
+      // Users can manually apply filters if needed
     } catch (error) {
       console.error('Search error:', error)
       setSearchResults(null)
@@ -181,16 +226,30 @@ export default function FindPage() {
       sortBy: newFilters.sortBy || 'relevance'
     }
     setFilters(convertedFilters)
-    // Immediately re-search with new filters if we have a current query
-    if (currentQuery) {
-      handleSearch(currentQuery, currentLocation, convertedFilters)
+    // Check if any advanced filters are active
+    const hasAdvancedFilters = convertedFilters.freeOnly || 
+      convertedFilters.acceptsUninsured || 
+      convertedFilters.acceptsMedicaid || 
+      convertedFilters.acceptsMedicare || 
+      convertedFilters.ssnRequired === false || 
+      convertedFilters.telehealthAvailable || 
+      convertedFilters.insuranceProviders.length > 0 || 
+      convertedFilters.serviceCategories.length > 0
+    
+    // Use filter API if advanced filters are active
+    if (hasAdvancedFilters) {
+      handleFilterOnlySearch(convertedFilters)
     }
   }
 
   const handleClearFilters = () => {
     setFilters(defaultFilters)
-    if (currentQuery) {
+    if (currentQuery && currentQuery !== "Filtered Results") {
       handleSearch(currentQuery, currentLocation, defaultFilters)
+    } else if (currentQuery === "Filtered Results") {
+      // If we were in filter-only mode, clear results
+      setSearchResults(null)
+      setCurrentQuery("")
     }
   }
 
@@ -253,7 +312,7 @@ export default function FindPage() {
         // so the user can manually trigger the search
       }
     }
-  }, [handleSearch]) // Include handleSearch in dependencies
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
@@ -268,6 +327,7 @@ export default function FindPage() {
           resultsCount={searchResults?.totalResults || 0}
           initialQuery={initialQuery}
           initialLocation={initialLocation}
+          onFilterOnlySearch={() => handleFilterOnlySearch(filters)}
         />
       </div>
       
@@ -303,6 +363,10 @@ export default function FindPage() {
                         onClearFilters={handleClearFilters}
                         resultsCount={searchResults?.totalResults || 0}
                         isLoading={isLoading}
+                        onFilterOnlySearch={() => {
+                          handleFilterOnlySearch(filters)
+                          setShowMobileFilters(false)
+                        }}
                       />
                     </div>
                   </SheetContent>

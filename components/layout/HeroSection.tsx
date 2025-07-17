@@ -34,6 +34,7 @@ interface HeroSectionProps {
   resultsCount?: number
   initialQuery?: string
   initialLocation?: string
+  onFilterOnlySearch?: () => void
 }
 
 export function HeroSection({ 
@@ -57,7 +58,8 @@ export function HeroSection({
   onClearFilters,
   resultsCount = 0,
   initialQuery = "",
-  initialLocation = ""
+  initialLocation = "",
+  onFilterOnlySearch
 }: HeroSectionProps) {
   const [searchQuery, setSearchQuery] = useState(initialQuery)
   const [location, setLocation] = useState(initialLocation)
@@ -334,6 +336,7 @@ export function HeroSection({
                onClearFilters={handleClearFilters}
                resultsCount={resultsCount}
                isLoading={isSearching}
+               onFilterOnlySearch={onFilterOnlySearch}
              />
            </div>
         </div>

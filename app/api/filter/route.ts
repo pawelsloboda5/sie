@@ -2,30 +2,27 @@ import { NextRequest, NextResponse } from 'next/server'
 import { MongoClient, ObjectId } from 'mongodb'
 
 // Types based on our data schema
-interface SearchFilters {
-  freeOnly?: boolean
-  acceptsUninsured?: boolean
-  acceptsMedicaid?: boolean
-  acceptsMedicare?: boolean
-  ssnRequired?: boolean
-  telehealthAvailable?: boolean
-  insuranceProviders?: string[]
-  maxDistance?: number
-  serviceCategories?: string[]
-}
-
-interface SearchRequest {
-  query: string
+interface FilterRequest {
+  filters: {
+    freeOnly?: boolean
+    acceptsUninsured?: boolean
+    acceptsMedicaid?: boolean
+    acceptsMedicare?: boolean
+    ssnRequired?: boolean
+    telehealthAvailable?: boolean
+    insuranceProviders?: string[]
+    serviceCategories?: string[]
+    maxDistance?: number
+  }
   location?: {
     latitude: number
     longitude: number
   }
-  filters?: SearchFilters
   limit?: number
 }
 
 interface FilterConditions {
-  [key: string]: boolean | { $in: string[] }
+  [key: string]: any
 }
 
 interface ServiceResult {
@@ -37,7 +34,7 @@ interface ServiceResult {
   is_free: boolean
   is_discounted: boolean
   price_info: string
-  searchScore: number
+  searchScore?: number
 }
 
 interface ProviderResult {
@@ -60,13 +57,11 @@ interface ProviderResult {
   ssn_required: boolean
   telehealth_available: boolean
   insurance_providers: string[]
-  searchScore: number
   distance?: number
-  total_services?: number
-  free_services?: number
+  searchScore?: number
+  total_services?: number  // Add this line
+  free_services?: number   // Add this line
 }
-
-const DEFAULT_NPROBES = parseInt(process.env.COSMOS_NPROBES ?? "10") // Higher nProbes for better recall
 
 // MongoDB connection - fresh connection each time
 async function getMongoClient() {
@@ -78,9 +73,9 @@ async function getMongoClient() {
   // Fresh MongoDB client with optimized settings for Azure Cosmos DB
   const client = new MongoClient(uri, {
     maxPoolSize: 5, // Reduced pool size for better connection management
-    serverSelectionTimeoutMS: 10000, // Reduced timeout for faster failure detection
-    socketTimeoutMS: 10000, // Reduced timeout
-    connectTimeoutMS: 10000, // Reduced timeout
+    serverSelectionTimeoutMS: 8000, // Further reduced timeout for filter operations
+    socketTimeoutMS: 8000, // Further reduced timeout
+    connectTimeoutMS: 8000, // Further reduced timeout
     maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
     retryWrites: true, // Automatically retry write operations
   })
@@ -91,61 +86,7 @@ async function getMongoClient() {
   return { client, db }
 }
 
-// Azure OpenAI embedding generation - no caching
-async function generateEmbedding(text: string): Promise<number[]> {
-  const endpoint = process.env.AZURE_OPENAI_ENDPOINT
-  const apiKey = process.env.AZURE_OPENAI_API_KEY
-  const model = process.env.AZURE_OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small'
-
-  if (!endpoint || !apiKey) {
-    throw new Error('Azure OpenAI credentials not configured')
-  }
-
-  try {
-    const response = await fetch(`${endpoint}/openai/deployments/${model}/embeddings?api-version=2023-05-15`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': apiKey,
-      },
-      body: JSON.stringify({
-        input: text,
-        model: model
-      }),
-      // Add timeout to prevent hanging
-      signal: AbortSignal.timeout(3000) // 3 second timeout
-    })
-
-    if (!response.ok) {
-      throw new Error(`Azure OpenAI API error: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    const embedding = data.data[0].embedding
-    
-    return embedding
-  } catch (error) {
-    console.error('Embedding generation failed:', error)
-    // Return a zero vector as fallback
-    return new Array(1536).fill(0)
-  }
-}
-
-// Helper function to build cosmosSearch object safely
-function buildCosmosSearch(
-  vector: number[],
-  path: "summary_vector" | "service_vector",
-  k: number,
-  matchConditions: FilterConditions,
-  nProbes?: number
-) {
-  const cs: Record<string, unknown> = { vector, path, k }
-  if (nProbes && nProbes > 0) cs.nProbes = nProbes
-  if (Object.keys(matchConditions).length) cs.filter = matchConditions
-  return cs
-}
-
-// Helper function to calculate distance between two points using Haversine formula
+// Helper function to calculate distance (client-side for better performance)
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3959 // Earth's radius in miles
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -155,11 +96,11 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
     Math.sin(dLon/2) * Math.sin(dLon/2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-  return R * c // Distance in miles
+  return R * c
 }
 
-// Helper function to build provider-level filter conditions
-function buildProviderFilters(filters: SearchFilters): FilterConditions {
+// Build provider filter conditions
+function buildProviderFilters(filters: FilterRequest['filters']): FilterConditions {
   const matchConditions: FilterConditions = {}
   
   if (filters.acceptsUninsured) {
@@ -189,8 +130,8 @@ function buildProviderFilters(filters: SearchFilters): FilterConditions {
   return matchConditions
 }
 
-// Helper function to build service-level filter conditions
-function buildServiceFilters(filters: SearchFilters): FilterConditions {
+// Build service filter conditions
+function buildServiceFilters(filters: FilterRequest['filters']): FilterConditions {
   const matchConditions: FilterConditions = {}
   
   if (filters.freeOnly) {
@@ -204,61 +145,52 @@ function buildServiceFilters(filters: SearchFilters): FilterConditions {
   return matchConditions
 }
 
-// Helper function to search providers with projection to exclude vectors
-async function searchProviders(
-  queryVector: number[],
+// OPTIMIZED: Filter providers with simplified query
+async function filterProviders(
   db: ReturnType<MongoClient['db']>,
-  filters: SearchFilters,
+  filters: FilterRequest['filters'],
   location?: { latitude: number, longitude: number },
-  limit: number = 10
+  limit: number = 20
 ) {
   const providerFilters = buildProviderFilters(filters)
   const providersCollection = db.collection('providers')
   
   try {
-    const results = await providersCollection.aggregate([
-      {
-        $search: {
-          cosmosSearch: buildCosmosSearch(
-            queryVector,
-            "summary_vector",
-            Math.min(limit * 2, 50),
-            providerFilters,
-            DEFAULT_NPROBES
-          ),
-          returnStoredSource: true
-        }
-      },
-      {
-        $project: {
-          score: { $meta: "searchScore" },
-          _id: 1,
-          name: 1,
-          category: 1,
-          address: 1,
-          phone: 1,
-          website: 1,
-          email: 1,
-          rating: 1,
-          location: 1,
-          state: 1,
-          accepts_uninsured: 1,
-          medicaid: 1,
-          medicare: 1,
-          ssn_required: 1,
-          telehealth_available: 1,
-          insurance_providers: 1,
-          total_services: 1,
-          free_services: 1
-          // Exclude summary_vector and other large fields
-        }
-      },
-      { $limit: limit }
-    ]).toArray()
+    // Use simpler find operation instead of complex aggregation
+    const query = { ...providerFilters }
+    
+    // If location filtering is needed, we'll do it client-side for better performance
+    const results = await providersCollection.find(query, {
+      projection: {
+        _id: 1,
+        name: 1,
+        category: 1,
+        address: 1,
+        phone: 1,
+        website: 1,
+        email: 1,
+        rating: 1,
+        location: 1,
+        state: 1,
+        accepts_uninsured: 1,
+        medicaid: 1,
+        medicare: 1,
+        ssn_required: 1,
+        telehealth_available: 1,
+        insurance_providers: 1,
+        total_services: 1,
+        free_services: 1
+      }
+    })
+    .sort({ free_services: -1, rating: -1, name: 1 }) // Use indexed sort
+    .limit(limit * 2) // Get more results for distance filtering
+    .toArray()
 
-    return results.map((result) => ({
+    // Apply distance filtering client-side (much faster)
+    let filteredResults = results.map((result) => ({
       ...result,
-      searchScore: result.score,
+      _id: result._id.toString(),
+      searchScore: (result.rating * 20) + (result.free_services * 100) + (result.total_services * 10),
       distance: location ? calculateDistance(
         location.latitude,
         location.longitude,
@@ -266,66 +198,65 @@ async function searchProviders(
         result.location?.coordinates?.[0] || 0
       ) : undefined
     }))
+
+    // Filter by distance if specified
+    if (location && filters.maxDistance) {
+      filteredResults = filteredResults.filter(provider => 
+        !provider.distance || provider.distance <= filters.maxDistance!
+      )
+    }
+
+    // Return limited results
+    return filteredResults.slice(0, limit)
+    
   } catch (error) {
-    console.error('Provider search error:', error)
+    console.error('Provider filter error:', error)
     return []
   }
 }
 
-// Helper function to search services with projection to exclude vectors
-async function searchServices(
-  queryVector: number[],
+// OPTIMIZED: Filter services with simplified query
+async function filterServices(
   db: ReturnType<MongoClient['db']>,
-  filters: SearchFilters,
-  limit: number = 20
+  filters: FilterRequest['filters'],
+  limit: number = 30
 ) {
   const serviceFilters = buildServiceFilters(filters)
   const servicesCollection = db.collection('services')
   
   try {
-    const results = await servicesCollection.aggregate([
-      {
-        $search: {
-          cosmosSearch: buildCosmosSearch(
-            queryVector,
-            "service_vector",
-            Math.min(limit * 2, 60),
-            serviceFilters,
-            DEFAULT_NPROBES
-          ),
-          returnStoredSource: true
-        }
-      },
-      {
-        $project: {
-          score: { $meta: "searchScore" },
-          _id: 1,
-          provider_id: 1,
-          name: 1,
-          category: 1,
-          description: 1,
-          is_free: 1,
-          is_discounted: 1,
-          price_info: 1
-          // Exclude service_vector
-        }
-      },
-      { $limit: limit }
-    ]).toArray()
-
+    // Use simpler find operation
+    const query = { ...serviceFilters }
+    
+    const results = await servicesCollection.find(query, {
+      projection: {
+        _id: 1,
+        provider_id: 1,
+        name: 1,
+        category: 1,
+        description: 1,
+        is_free: 1,
+        is_discounted: 1,
+        price_info: 1
+      }
+    })
+    .sort({ is_free: -1, is_discounted: -1, name: 1 }) // Simple sort
+    .limit(limit)
+    .toArray()
+    
     return results.map((result) => ({
       ...result,
       _id: result._id.toString(),
       provider_id: result.provider_id.toString(),
-      searchScore: result.score
+      searchScore: result.is_free ? 100 : (result.is_discounted ? 75 : 50)
     }))
   } catch (error) {
-    console.error('Service search error:', error)
+    console.error('Service filter error:', error)
     return []
   }
 }
 
-// Helper function to get provider details for services (with projection)
+// Get provider details for services
 async function getProviderDetails(
   db: ReturnType<MongoClient['db']>,
   providerIds: string[]
@@ -354,15 +285,16 @@ async function getProviderDetails(
           ssn_required: 1,
           telehealth_available: 1,
           insurance_providers: 1
-          // Exclude summary_vector
         }
       }
     ).toArray()
 
-    // Create a map for quick lookup
     const providerMap = new Map()
     providers.forEach(provider => {
-      providerMap.set(provider._id.toString(), provider)
+      providerMap.set(provider._id.toString(), {
+        ...provider,
+        _id: provider._id.toString()
+      })
     })
 
     return providerMap
@@ -372,55 +304,61 @@ async function getProviderDetails(
   }
 }
 
-// OPTIMIZED SEARCH with parallel execution and fallback strategies
-async function performOptimizedSearch(
-  queryVector: number[],
-  filters: SearchFilters,
+// OPTIMIZED: Main filter function with timeouts
+async function performFilterSearch(
+  filters: FilterRequest['filters'],
   location?: { latitude: number, longitude: number },
-  limit: number = 10
+  limit: number = 20
 ) {
   const { client, db } = await getMongoClient()
   
   try {
-    // Run provider and service searches in parallel with timeouts
+    // Run provider and service filters in parallel with shorter timeouts
     const [providerResults, serviceResults] = await Promise.allSettled([
       Promise.race([
-        searchProviders(queryVector, db, filters, location, limit),
+        filterProviders(db, filters, location, limit),
         new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Provider search timeout')), 5000)
+          setTimeout(() => reject(new Error('Provider filter timeout')), 8000) // Reduced timeout
         )
       ]),
       Promise.race([
-        searchServices(queryVector, db, filters, Math.ceil(limit * 1.5)),
+        filterServices(db, filters, Math.ceil(limit * 1.5)),
         new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Service search timeout')), 5000)
+          setTimeout(() => reject(new Error('Service filter timeout')), 8000) // Reduced timeout
         )
       ])
     ])
 
     let providers: ProviderResult[] = []
     let services: (ServiceResult & { provider?: ProviderResult | null })[] = []
-    let relevantServices: ServiceResult[] = [] // Keep track of vector-matched services for featured service logic
+    let relevantServices: ServiceResult[] = [] // Keep track of filter-matched services
 
     // Handle provider results
     if (providerResults.status === 'fulfilled') {
-      providers = (providerResults.value || []) as ProviderResult[]
+      providers = (providerResults.value || []) as any
     } else {
-      console.error('Provider search failed:', providerResults.reason)
+      console.error('Provider filter failed:', providerResults.reason)
     }
 
     // Handle service results and get associated provider details
     if (serviceResults.status === 'fulfilled') {
-      const rawServices = (serviceResults.value || []) as ServiceResult[]
+      const rawServices = (serviceResults.value || []) as any
       relevantServices = rawServices // Store for featured service logic
+      services = rawServices
 
       // Get unique provider IDs from services
-      const serviceProviderIds = [...new Set(rawServices.map(s => s.provider_id))]
+      const serviceProviderIds = [...new Set(rawServices.map((s: any) => s.provider_id))] as string[]
       
       if (serviceProviderIds.length > 0) {
-        // Get provider details for services in parallel
+        // Get provider details for services
         const providerDetailsMap = await getProviderDetails(db, serviceProviderIds)
         
+        // Attach provider details to services
+        services = rawServices.map((service: any) => ({
+          ...service,
+          provider: providerDetailsMap.get(service.provider_id) || null
+        })) as any
+
         // Add service providers to main provider list if not already present
         const existingProviderIds = new Set(providers.map(p => p._id.toString()))
         const additionalProviders = Array.from(providerDetailsMap.values())
@@ -430,7 +368,7 @@ async function performOptimizedSearch(
         providers = [...providers, ...additionalProviders]
       }
     } else {
-      console.error('Service search failed:', serviceResults.reason)
+      console.error('Service filter failed:', serviceResults.reason)
     }
 
     // CRITICAL FIX: Always fetch ALL services for ALL providers in the final results
@@ -468,7 +406,7 @@ async function performOptimizedSearch(
           is_free: service.is_free,
           is_discounted: service.is_discounted,
           price_info: service.price_info,
-          // For services that matched the vector search, use their search score
+          // For services that matched the filter search, use their search score
           // For other services, use a base score
           searchScore: relevantServices.find(rs => rs._id === service._id.toString())?.searchScore || 0.1
         }))
@@ -514,8 +452,8 @@ async function performOptimizedSearch(
           enhancedScore *= 2 // Double the score!
         }
         
-        // RELEVANCE BONUS: Boost based on average service search scores for vector-matched services
-        const relevantProviderServices = providerServices.filter(s => s.searchScore > 0.1)
+        // RELEVANCE BONUS: Boost based on average service search scores for filter-matched services
+        const relevantProviderServices = providerServices.filter(s => (s.searchScore || 0) > 0.1)
         if (relevantProviderServices.length > 0) {
           const avgServiceScore = relevantProviderServices.reduce((sum, s) => sum + (s.searchScore || 0), 0) / relevantProviderServices.length
           enhancedScore += avgServiceScore * 20 // Amplify service relevance
@@ -538,88 +476,13 @@ async function performOptimizedSearch(
       }
     }
 
-    // Fallback if both searches failed or returned no results
-    if (providers.length === 0 && services.length === 0) {
-      console.log('Both searches failed, trying simple fallback')
-      
-      try {
-        const fallbackProviders = await db.collection('providers').find(
-          buildProviderFilters(filters),
-          { 
-            projection: {
-              _id: 1, name: 1, category: 1, address: 1, phone: 1, website: 1, 
-              email: 1, rating: 1, location: 1, state: 1, accepts_uninsured: 1,
-              medicaid: 1, medicare: 1, ssn_required: 1, telehealth_available: 1,
-              insurance_providers: 1
-            },
-            limit: limit 
-          }
-        ).toArray()
-
-        providers = fallbackProviders.map(provider => ({
-          ...provider,
-          _id: provider._id.toString(),
-          searchScore: 0.5,
-          distance: location ? calculateDistance(
-            location.latitude,
-            location.longitude,
-            provider.location?.coordinates?.[1] || 0,
-            provider.location?.coordinates?.[0] || 0
-          ) : undefined
-        })) as ProviderResult[]
-
-        // CRITICAL: Also fetch ALL services for fallback providers
-        if (providers.length > 0) {
-          try {
-            const fallbackServices = await db.collection('services').find(
-              { 
-                provider_id: { 
-                  $in: providers.map(p => new ObjectId(p._id)) 
-                } 
-              },
-              {
-                projection: {
-                  _id: 1,
-                  provider_id: 1,
-                  name: 1,
-                  category: 1,
-                  description: 1,
-                  is_free: 1,
-                  is_discounted: 1,
-                  price_info: 1
-                }
-              }
-            ).toArray()
-
-            services = fallbackServices.map(service => ({
-              _id: service._id.toString(),
-              provider_id: service.provider_id.toString(),
-              name: service.name,
-              category: service.category,
-              description: service.description,
-              is_free: service.is_free,
-              is_discounted: service.is_discounted,
-              price_info: service.price_info,
-              searchScore: 0.1
-            }))
-
-            console.log(`Fetched ${services.length} services for ${providers.length} fallback providers`)
-          } catch (fallbackServiceError) {
-            console.error('Error fetching services for fallback providers:', fallbackServiceError)
-          }
-        }
-      } catch (fallbackError) {
-        console.error('Fallback search failed:', fallbackError)
-      }
-    }
-
     return {
       providers: providers.slice(0, limit),
       services: services // Return ALL services, don't limit them
     }
     
   } catch (error) {
-    console.error('Database search error:', error)
+    console.error('Database filter error:', error)
     throw error
   } finally {
     // Always close the connection
@@ -633,26 +496,25 @@ async function performOptimizedSearch(
 
 export async function POST(request: NextRequest) {
   try {
-    const body: SearchRequest = await request.json()
-    const { query, location, filters = {}, limit = 10 } = body
+    const body: FilterRequest = await request.json()
+    const { filters, location, limit = 20 } = body
 
-    if (!query || query.trim().length === 0) {
+    if (!filters || Object.keys(filters).length === 0) {
       return NextResponse.json(
-        { error: 'Search query is required' },
+        { error: 'At least one filter is required' },
         { status: 400 }
       )
     }
 
-    // Generate embedding for the search query (no caching)
-    const queryVector = await generateEmbedding(query)
+    console.log('Filtering with criteria:', filters)
 
-    // Perform optimized search
-    const searchResults = await performOptimizedSearch(queryVector, filters, location, limit)
+    // Perform optimized filter search
+    const searchResults = await performFilterSearch(filters, location, limit)
     
     let { providers } = searchResults
     const { services } = searchResults
     
-    console.log(`Search completed: ${providers.length} providers, ${services.length} services`)
+    console.log(`Filter completed: ${providers.length} providers, ${services.length} services`)
     
     // Log free service statistics
     const totalFreeServices = services.filter(s => s.is_free).length
@@ -660,14 +522,7 @@ export async function POST(request: NextRequest) {
       services.some(s => s.provider_id.toString() === p._id.toString() && s.is_free)
     ).length
     console.log(`Free services found: ${totalFreeServices}, Providers with free services: ${providersWithFreeServices}`)
-
-    // Apply distance filtering if maxDistance is specified
-    if (location && filters.maxDistance) {
-      providers = providers.filter((provider) => 
-        !provider.distance || provider.distance <= filters.maxDistance!
-      )
-    }
-
+    
     // Format results
     const results = {
       providers: providers.map((provider) => ({
@@ -678,16 +533,17 @@ export async function POST(request: NextRequest) {
         ...service,
         searchScore: service.searchScore || 0
       })),
-      query,
-      totalResults: providers.length + services.length
+      query: 'Filtered Results',
+      totalResults: providers.length + services.length,
+      isFiltered: true
     }
 
     return NextResponse.json(results)
 
   } catch (error) {
-    console.error('Search API error:', error)
+    console.error('Filter API error:', error)
     return NextResponse.json(
-      { error: 'Search temporarily unavailable. Please try again.', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Filter temporarily unavailable. Please try again.', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

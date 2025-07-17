@@ -33,7 +33,7 @@ export function Header() {
               href="#agents" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              AI Agents
+              How It Works
             </Link>
             <Link 
               href="#who-we-help" 
@@ -41,18 +41,7 @@ export function Header() {
             >
               Who We Help
             </Link>
-            <Link 
-              href="#how-it-works" 
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              How It Works
-            </Link>
-            <Link 
-              href="#impact" 
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Impact
-            </Link>
+  
           </nav>
 
           {/* Language Switcher */}

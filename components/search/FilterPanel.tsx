@@ -60,6 +60,7 @@ interface FilterPanelProps {
   onClearFilters: () => void
   resultsCount?: number
   isLoading?: boolean
+  onFilterOnlySearch?: () => void
 }
 
 const insuranceOptions = [
@@ -108,7 +109,8 @@ export function FilterPanel({
   onFiltersChange, 
   onClearFilters, 
   resultsCount = 0,
-  isLoading = false 
+  isLoading = false,
+  onFilterOnlySearch
 }: FilterPanelProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     basic: true,
@@ -439,8 +441,29 @@ export function FilterPanel({
           </Select>
         </div>
 
+        {/* Filter-only search button */}
+        {onFilterOnlySearch && activeFiltersCount > 0 && (
+          <Button 
+            onClick={onFilterOnlySearch}
+            className="w-full"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
+                Searching...
+              </>
+            ) : (
+              <>
+                <Filter className="h-4 w-4 mr-2" />
+                Search by Filters
+              </>
+            )}
+          </Button>
+        )}
+
         {/* Real-time filtering indicator */}
-        {isLoading && (
+        {isLoading && !onFilterOnlySearch && (
           <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
             Updating results...

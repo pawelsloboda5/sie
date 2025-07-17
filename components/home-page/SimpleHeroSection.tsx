@@ -210,20 +210,24 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
     : capabilities
 
   return (
-    <section className="relative section-padding bg-gradient-to-br from-background via-muted/20 to-background">
-      <div className="container-lg">
-        {/* Logo and Company Name */}
-        <div className="flex flex-col items-center mb-12 md:mb-16">
-          <Link href="/" className="flex items-center gap-4 group">
-            <div className="flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full bg-primary transition-smooth group-hover:bg-primary/90 hover-lift-sm">
-              <span className="text-primary-foreground text-xl md:text-2xl font-bold">♥</span>
-            </div>
-            <div className="text-center">
-              <h1 className="text-display-md gradient-text">SIE Wellness</h1>
-              <p className="text-body-sm text-muted-foreground mt-1">AI-Powered Healthcare Discovery</p>
-            </div>
-          </Link>
-        </div>
+    <section className="min-h-screen-75 flex flex-col justify-center items-center bg-gradient-to-b from-background via-background to-muted/30 relative">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
+      
+      <div className="container-xl relative z-10">
+        <div className="max-w-5xl mx-auto text-center space-y-12">
+          
+          {/* Brand and Logo */}
+          <div className="space-y-6 flex flex-col items-center justify-center">
+            <Link href="/" className="flex items-center gap-4 group">
+              <div className="flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full bg-primary transition-smooth group-hover:bg-primary/90 hover-lift-sm">
+                <span className="text-primary-foreground text-xl md:text-2xl font-bold">♥</span>
+              </div>
+              <div className="text-center">
+                <h1 className="text-display-xl gradient-text">SIE Wellness</h1>
+              </div>
+            </Link>
+          </div>
 
         {/* Search Error Alert */}
         {searchError && (
@@ -233,31 +237,31 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
         )}
 
         {/* Main Search Interface */}
-        <div className="w-full max-w-5xl mx-auto space-y-content">
+        <div className="w-full  max-w-5xl mx-auto space-y-content">
           {/* Search Bar */}
           <div className="relative">
-            <div className="flex items-center glass rounded-2xl shadow-xl card-shadow-lg hover:shadow-2xl transition-slow overflow-hidden">
+            <div className="flex items-center glass rounded-3xl shadow-xl card-shadow-lg hover:shadow-2xl transition-slow overflow-hidden h-16 md:h-20">
               {/* Search Input with dropdown trigger */}
               <div className="flex-1 relative">
-                <div className="flex items-center">
-                  <Search className="ml-4 md:ml-6 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
+                <div className="flex items-center h-full">
+                  <Search className="ml-6 md:ml-8 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
                   <Input
-                    placeholder="Ask a healthcare question..."
+                    placeholder="Describe your healthcare need..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 border-0 bg-transparent input-xl rounded-l-2xl focus-ring-visible pl-3 pr-2"
+                    className="flex-1 border-0 bg-transparent input-xl rounded-l-3xl focus-ring-visible pl-4 pr-2 h-full"
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   />
                   <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mr-2 h-8 w-8 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
-                        onClick={() => setIsSearchOpen(!isSearchOpen)}
-                      >
-                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
-                      </Button>
+                                        <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mr-3 h-10 w-10 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
+                    onClick={() => setIsSearchOpen(!isSearchOpen)}
+                  >
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
+                  </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[600px] p-0 card-shadow-lg" align="start">
                       <Command>
@@ -312,21 +316,21 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
               </div>
 
               {/* Location Input */}
-              <div className="flex-1 relative border-l border-border/50">
-                <div className="flex items-center">
-                  <MapPin className="ml-4 md:ml-6 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
+              <div className="flex-[0.6] relative border-l border-border/50">
+                <div className="flex items-center h-full">
+                  <MapPin className="ml-6 md:ml-8 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
                   <Input
                     placeholder="ZIP code, city, or address"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="flex-1 border-0 bg-transparent rounded-none focus-ring-visible input-xl pl-3 pr-2"
+                    className="flex-1 border-0 bg-transparent rounded-none focus-ring-visible input-xl pl-4 pr-2 h-full"
                   />
                   <Button
                     onClick={handleGetLocation}
                     disabled={isGettingLocation}
                     variant="ghost"
                     size="sm"
-                    className="mr-2 h-8 w-8 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
+                    className="mr-3 h-10 w-10 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
                   >
                     {isGettingLocation ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -340,7 +344,7 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
               {/* Search Button */}
               <Button 
                 size="lg" 
-                className="btn-xl rounded-r-2xl bg-primary hover:bg-primary/90 transition-smooth flex-shrink-0"
+                className="btn-xl rounded-r-3xl bg-primary hover:bg-primary/90 transition-smooth flex-shrink-0 h-16 md:h-20 px-6 md:px-8"
                 onClick={handleSearch}
                 disabled={isSearching || !searchQuery.trim()}
               >
@@ -417,6 +421,7 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
             {showAllCapabilities ? 'Show Less' : 'Explore More Capabilities'}
             <ChevronDown className={`ml-2 h-4 w-4 transition-transform duration-200 ${showAllCapabilities ? 'rotate-180' : ''}`} />
           </Button>
+        </div>
         </div>
       </div>
     </section>
