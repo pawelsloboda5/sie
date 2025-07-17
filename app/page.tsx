@@ -32,8 +32,6 @@ export default function Landing() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link href="tel:911" className="hidden sm:inline-flex text-sm text-destructive font-semibold hover:underline">Emergency 911</Link>
-            <Link href="tel:988" className="hidden sm:inline-flex text-sm text-blue-600 font-semibold hover:underline">Crisis 988</Link>
             <Button asChild className="hidden md:inline-flex">
               <Link href="/app">
                 Launch App <ArrowRight className="ml-1 h-4 w-4" />
