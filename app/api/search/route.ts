@@ -26,46 +26,46 @@ interface SearchRequest {
 
 
 
-interface AggregationResult {
-  _id: string
-  provider: {
-    _id: string
-    name: string
-    category: string
-    address: string
-    phone?: string
-    website?: string
-    email?: string
-    rating: number
-    location: {
-      type: 'Point'
-      coordinates: [number, number]
-    }
-    state: string
-    accepts_uninsured: boolean
-    medicaid: boolean
-    medicare: boolean
-    ssn_required: boolean
-    telehealth_available: boolean
-    insurance_providers: string[]
-    summary_vector: number[]
-  }
-  services: Array<{
-    _id: string
-    provider_id: string
-    name: string
-    category: string
-    description: string
-    is_free: boolean
-    is_discounted: boolean
-    price_info: string
-    service_vector: number[]
-  }>
-  baseScore: number
-}
+
 
 interface FilterConditions {
   [key: string]: boolean | { $in: string[] }
+}
+
+interface ServiceResult {
+  _id: string
+  provider_id: string
+  name: string
+  category: string
+  description: string
+  is_free: boolean
+  is_discounted: boolean
+  price_info: string
+  searchScore: number
+}
+
+interface ProviderResult {
+  _id: string
+  name: string
+  category: string
+  address: string
+  phone?: string
+  website?: string
+  email?: string
+  rating: number
+  location: {
+    type: 'Point'
+    coordinates: [number, number]
+  }
+  state: string
+  accepts_uninsured: boolean
+  medicaid: boolean
+  medicare: boolean
+  ssn_required: boolean
+  telehealth_available: boolean
+  insurance_providers: string[]
+  searchScore: number
+  distance?: number
 }
 
 // Singleton MongoDB client with connection pooling
@@ -91,7 +91,7 @@ async function getMongoClient() {
       // Test connection with a simple ping
       await cachedClient.db('admin').admin().ping()
       return { client: cachedClient, db: cachedDb }
-    } catch (error) {
+    } catch {
       console.log('Cached connection lost, reconnecting...')
       cachedClient = null
       cachedDb = null
@@ -204,82 +204,9 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c // Distance in miles
 }
 
-// Helper function to calculate cosine similarity between two vectors
-function calculateCosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) return 0
-  
-  let dotProduct = 0
-  let normA = 0
-  let normB = 0
-  
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i]
-    normA += a[i] * a[i]
-    normB += b[i] * b[i]
-  }
-  
-  if (normA === 0 || normB === 0) return 0
-  
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
-}
 
-// SIMPLIFIED: Service relevance first, simple scoring
-function calculateRelevanceScore(
-  baseScore: number, 
-  services: Array<{
-    service_vector?: number[]
-    is_free: boolean
-    is_discounted: boolean
-  }>, 
-  queryVector: number[],
-  minRelevanceThreshold: number = 0.3, // Much lower threshold
-  distance?: number
-): number {
-  // If provider has no services, return very low score
-  if (!services || services.length === 0) {
-    return 0.01
-  }
-  
-  // Find the most relevant service - this should drive the score
-  let maxServiceRelevance = 0
-  let bestServiceIsFree = false
-  let bestServiceIsDiscounted = false
-  
-  for (const service of services) {
-    if (service.service_vector && service.service_vector.length > 0) {
-      const serviceRelevance = calculateCosineSimilarity(queryVector, service.service_vector)
-      
-      if (serviceRelevance > maxServiceRelevance && serviceRelevance >= minRelevanceThreshold) {
-        maxServiceRelevance = serviceRelevance
-        bestServiceIsFree = service.is_free
-        bestServiceIsDiscounted = service.is_discounted
-      }
-    }
-  }
-  
-  // If no relevant services, return low score
-  if (maxServiceRelevance === 0) {
-    return 0.05
-  }
-  
-  // SIMPLIFIED SCORING: Start with the best service relevance
-  let finalScore = maxServiceRelevance
-  
-  // Small bonus for free/discounted services (but relevance is still king)
-  if (bestServiceIsFree) {
-    finalScore += 0.1 // Small bonus for free
-  } else if (bestServiceIsDiscounted) {
-    finalScore += 0.05 // Smaller bonus for discounted
-  }
-  
-  // Light distance penalty
-  if (distance !== undefined && distance > 0) {
-    const distancePenalty = Math.exp(-distance / 20) // Lighter penalty
-    finalScore *= distancePenalty
-  }
-  
-  return finalScore
-}
+
+
 
 // Helper function to build provider-level filter conditions
 function buildProviderFilters(filters: SearchFilters): FilterConditions {
@@ -517,30 +444,30 @@ async function performOptimizedSearch(
       ])
     ])
 
-    let providers: any[] = []
-    let services: any[] = []
+    let providers: ProviderResult[] = []
+    let services: (ServiceResult & { provider?: ProviderResult | null })[] = []
 
     // Handle provider results
     if (providerResults.status === 'fulfilled') {
-      providers = providerResults.value || []
+      providers = (providerResults.value || []) as ProviderResult[]
     } else {
       console.error('Provider search failed:', providerResults.reason)
     }
 
     // Handle service results and get associated provider details
     if (serviceResults.status === 'fulfilled') {
-      const rawServices = serviceResults.value || []
+      const rawServices = (serviceResults.value || []) as ServiceResult[]
       services = rawServices
 
       // Get unique provider IDs from services
-      const serviceProviderIds = [...new Set(rawServices.map((s: any) => s.provider_id))]
+      const serviceProviderIds = [...new Set(rawServices.map(s => s.provider_id))]
       
       if (serviceProviderIds.length > 0) {
         // Get provider details for services in parallel
         const providerDetailsMap = await getProviderDetails(db, serviceProviderIds)
         
         // Attach provider details to services
-        services = rawServices.map((service: any) => ({
+        services = rawServices.map(service => ({
           ...service,
           provider: providerDetailsMap.get(service.provider_id.toString()) || null
         }))
@@ -575,16 +502,17 @@ async function performOptimizedSearch(
           }
         ).toArray()
 
-        providers = fallbackProviders.map(provider => ({
-          ...provider,
-          searchScore: 0.5,
-          distance: location ? calculateDistance(
-            location.latitude,
-            location.longitude,
-            provider.location?.coordinates?.[1] || 0,
-            provider.location?.coordinates?.[0] || 0
-          ) : undefined
-        }))
+                 providers = fallbackProviders.map(provider => ({
+           ...provider,
+           _id: provider._id.toString(),
+           searchScore: 0.5,
+           distance: location ? calculateDistance(
+             location.latitude,
+             location.longitude,
+             provider.location?.coordinates?.[1] || 0,
+             provider.location?.coordinates?.[0] || 0
+           ) : undefined
+         })) as ProviderResult[]
       } catch (fallbackError) {
         console.error('Fallback search failed:', fallbackError)
       }
