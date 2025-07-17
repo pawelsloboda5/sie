@@ -22,7 +22,7 @@ interface FilterRequest {
 }
 
 interface FilterConditions {
-  [key: string]: any
+  [key: string]: boolean | string[] | { $in: string[] }
 }
 
 interface ServiceResult {
@@ -335,29 +335,29 @@ async function performFilterSearch(
 
     // Handle provider results
     if (providerResults.status === 'fulfilled') {
-      providers = (providerResults.value || []) as any
+      providers = (providerResults.value || []) as ProviderResult[]
     } else {
       console.error('Provider filter failed:', providerResults.reason)
     }
 
     // Handle service results and get associated provider details
     if (serviceResults.status === 'fulfilled') {
-      const rawServices = (serviceResults.value || []) as any
+      const rawServices = (serviceResults.value || []) as ServiceResult[]
       relevantServices = rawServices // Store for featured service logic
       services = rawServices
 
       // Get unique provider IDs from services
-      const serviceProviderIds = [...new Set(rawServices.map((s: any) => s.provider_id))] as string[]
+      const serviceProviderIds = [...new Set(rawServices.map((s: ServiceResult) => s.provider_id))] as string[]
       
       if (serviceProviderIds.length > 0) {
         // Get provider details for services
         const providerDetailsMap = await getProviderDetails(db, serviceProviderIds)
         
         // Attach provider details to services
-        services = rawServices.map((service: any) => ({
+        services = rawServices.map((service: ServiceResult) => ({
           ...service,
           provider: providerDetailsMap.get(service.provider_id) || null
-        })) as any
+        })) as (ServiceResult & { provider?: ProviderResult | null })[]
 
         // Add service providers to main provider list if not already present
         const existingProviderIds = new Set(providers.map(p => p._id.toString()))
@@ -365,7 +365,7 @@ async function performFilterSearch(
           .filter(provider => !existingProviderIds.has(provider._id.toString()))
           .slice(0, Math.max(0, limit - providers.length))
 
-        providers = [...providers, ...additionalProviders]
+        providers = [...providers, ...additionalProviders] as ProviderResult[]
       }
     } else {
       console.error('Service filter failed:', serviceResults.reason)
@@ -511,7 +511,7 @@ export async function POST(request: NextRequest) {
     // Perform optimized filter search
     const searchResults = await performFilterSearch(filters, location, limit)
     
-    let { providers } = searchResults
+    const { providers } = searchResults
     const { services } = searchResults
     
     console.log(`Filter completed: ${providers.length} providers, ${services.length} services`)

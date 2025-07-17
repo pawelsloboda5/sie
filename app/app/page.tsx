@@ -312,7 +312,7 @@ export default function FindPage() {
         // so the user can manually trigger the search
       }
     }
-  }, [])
+  }, [handleSearch])
 
   return (
     <div className="min-h-screen bg-background">
