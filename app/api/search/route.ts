@@ -142,7 +142,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
         model: model
       }),
       // Add timeout to prevent hanging
-      signal: AbortSignal.timeout(10000) // 10 second timeout
+      signal: AbortSignal.timeout(3000) // 3 second timeout
     })
 
     if (!response.ok) {
@@ -381,7 +381,7 @@ async function performOptimizedSearch(
               cosmosSearch: buildCosmosSearch(
                 queryVector,
                 "service_vector", 
-                Math.min(limit * 3, 50), // Reduced for better performance
+                Math.min(limit * 2, 30), // Reduced for better performance
                 serviceFilters,
                 DEFAULT_NPROBES // Configurable nProbes for balanced recall/perf
               ),
@@ -423,7 +423,7 @@ async function performOptimizedSearch(
           }
         ]).toArray(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Query timeout')), 8000)
+          setTimeout(() => reject(new Error('Query timeout')), 4000)
         )
       ]) as AggregationResult[]
     
