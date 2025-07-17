@@ -173,7 +173,7 @@ export function ResultsList({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-10 w-32" />
         </div>
@@ -181,19 +181,19 @@ export function ResultsList({
           {Array.from({ length: 5 }).map((_, i) => (
             <Card key={i} className="p-4">
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <Skeleton className="h-6 w-64" />
                   <Skeleton className="h-4 w-16" />
                 </div>
                 <Skeleton className="h-4 w-48" />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Skeleton className="h-6 w-20" />
                   <Skeleton className="h-6 w-24" />
                   <Skeleton className="h-6 w-16" />
                 </div>
-                <div className="flex gap-2">
-                  <Skeleton className="h-8 w-24" />
-                  <Skeleton className="h-8 w-32" />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Skeleton className="h-10 w-full sm:w-24" />
+                  <Skeleton className="h-10 w-full sm:w-32" />
                 </div>
               </div>
             </Card>
@@ -206,14 +206,14 @@ export function ResultsList({
   // Empty State
   if (!results || (results.providers.length === 0 && results.services.length === 0)) {
     return (
-      <Card className="p-8 text-center">
+      <Card className="p-6 sm:p-8 text-center">
         <div className="flex flex-col items-center space-y-4">
           <Search className="h-12 w-12 text-gray-400" />
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-gray-900">
               {!results ? 'Start your search' : 'No results found'}
             </h3>
-            <p className="text-gray-600 max-w-md">
+            <p className="text-gray-600 max-w-md text-sm sm:text-base">
               {!results 
                 ? 'Enter a service, condition, or location to find healthcare providers near you.'
                 : `We couldn't find any providers matching "${results.query}". Try adjusting your search terms or filters.`
@@ -221,7 +221,7 @@ export function ResultsList({
             </p>
           </div>
           {onRetry && results && (
-            <Button onClick={onRetry} variant="outline">
+            <Button onClick={onRetry} variant="outline" className="mt-2">
               <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
             </Button>
@@ -232,14 +232,14 @@ export function ResultsList({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Results Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:gap-0 sm:flex-row sm:items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg sm:text-lg font-semibold text-gray-900 break-words">
             Found {results.totalResults} results for &quot;{results.query}&quot;
           </h2>
-          <div className="flex items-center gap-4 text-sm text-gray-600">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
             <span className="flex items-center gap-1">
               <Building className="h-4 w-4" />
               {results.providers.length} Providers
@@ -252,9 +252,9 @@ export function ResultsList({
         </div>
         
         {/* Sort Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40 h-11">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -296,8 +296,8 @@ export function ResultsList({
               <p className="text-gray-600">No providers found matching your criteria.</p>
             </Card>
           ) : (
-            <ScrollArea className="h-[800px] pr-4">
-              <div className="space-y-6">
+            <ScrollArea className="h-[600px] sm:h-[800px] pr-2 sm:pr-4">
+              <div className="space-y-4 sm:space-y-6">
             {sortedProviders.map((provider) => {
               const topService = getProviderTopService(provider._id)
               const allServices = results.services.filter(s => s.provider_id === provider._id)

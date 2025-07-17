@@ -114,11 +114,11 @@ export function CompactFilterPanel({
     <div className={`w-full ${className}`}>
       {/* Compact Filter Trigger */}
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <CollapsibleTrigger asChild>
             <Button
               variant="outline"
-              className="flex items-center gap-2 px-4 py-2 h-11 border-2 hover:border-primary/50 transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 h-12 sm:h-11 border-2 hover:border-primary/50 transition-colors w-full sm:w-auto"
             >
               <Filter className="h-4 w-4" />
               <span className="font-medium">Advanced Filters</span>
@@ -132,9 +132,9 @@ export function CompactFilterPanel({
           </CollapsibleTrigger>
 
           {/* Quick Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
             {resultsCount > 0 && (
-              <span className="text-sm text-muted-foreground hidden sm:inline">
+              <span className="text-sm text-muted-foreground">
                 {resultsCount} results found
               </span>
             )}
@@ -143,7 +143,7 @@ export function CompactFilterPanel({
                 variant="ghost"
                 size="sm"
                 onClick={onClearFilters}
-                className="h-8 px-3 text-muted-foreground hover:text-foreground"
+                className="h-10 sm:h-8 px-3 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4 mr-1" />
                 Clear
@@ -154,30 +154,30 @@ export function CompactFilterPanel({
 
         {/* Expanded Filter Panel */}
         <CollapsibleContent className="mt-4">
-          <div className="p-6 bg-muted/20 rounded-lg border border-border">
+          <div className="p-4 sm:p-6 bg-muted/20 rounded-lg border border-border">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-6">
-                <TabsTrigger value="basic" className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  <span className="hidden sm:inline">Basic</span>
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 sm:mb-6 h-12 sm:h-auto">
+                <TabsTrigger value="basic" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Basic</span>
                 </TabsTrigger>
-                <TabsTrigger value="services" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <span className="hidden sm:inline">Services</span>
+                <TabsTrigger value="services" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Services</span>
                 </TabsTrigger>
-                <TabsTrigger value="insurance" className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  <span className="hidden sm:inline">Insurance</span>
+                <TabsTrigger value="insurance" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Insurance</span>
                 </TabsTrigger>
-                <TabsTrigger value="advanced" className="flex items-center gap-2">
-                  <Star className="h-4 w-4" />
-                  <span className="hidden sm:inline">Advanced</span>
+                <TabsTrigger value="advanced" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <Star className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Advanced</span>
                 </TabsTrigger>
               </TabsList>
 
               {/* Basic Filters Tab */}
               <TabsContent value="basic" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {/* Accessibility & Cost */}
                   <div className="space-y-4">
                     <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
@@ -185,38 +185,38 @@ export function CompactFilterPanel({
                       Cost & Accessibility
                     </h4>
                     
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between space-x-3 p-3 sm:p-0 bg-white sm:bg-transparent rounded-md sm:rounded-none">
+                        <Label htmlFor="free-only" className="text-sm font-medium cursor-pointer flex-1">
+                          Free services only
+                        </Label>
                         <Switch
                           id="free-only"
                           checked={filters.freeOnly}
                           onCheckedChange={(checked) => updateFilter('freeOnly', checked)}
                         />
-                        <Label htmlFor="free-only" className="text-sm font-medium cursor-pointer">
-                          Free services only
-                        </Label>
                       </div>
 
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center justify-between space-x-3 p-3 sm:p-0 bg-white sm:bg-transparent rounded-md sm:rounded-none">
+                        <Label htmlFor="accepts-uninsured" className="text-sm font-medium cursor-pointer flex-1">
+                          Accepts uninsured
+                        </Label>
                         <Switch
                           id="accepts-uninsured"
                           checked={filters.acceptsUninsured}
                           onCheckedChange={(checked) => updateFilter('acceptsUninsured', checked)}
                         />
-                        <Label htmlFor="accepts-uninsured" className="text-sm font-medium cursor-pointer">
-                          Accepts uninsured
-                        </Label>
                       </div>
 
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center justify-between space-x-3 p-3 sm:p-0 bg-white sm:bg-transparent rounded-md sm:rounded-none">
+                        <Label htmlFor="no-ssn-required" className="text-sm font-medium cursor-pointer flex-1">
+                          No SSN required
+                        </Label>
                         <Switch
                           id="no-ssn-required"
                           checked={filters.ssnRequired === false}
                           onCheckedChange={(checked) => updateFilter('ssnRequired', !checked)}
                         />
-                        <Label htmlFor="no-ssn-required" className="text-sm font-medium cursor-pointer">
-                          No SSN required
-                        </Label>
                       </div>
                     </div>
                   </div>
@@ -228,52 +228,52 @@ export function CompactFilterPanel({
                       Insurance Coverage
                     </h4>
                     
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between space-x-3 p-3 sm:p-0 bg-white sm:bg-transparent rounded-md sm:rounded-none">
+                        <Label htmlFor="accepts-medicaid" className="text-sm font-medium cursor-pointer flex-1">
+                          Accepts Medicaid
+                        </Label>
                         <Switch
                           id="accepts-medicaid"
                           checked={filters.acceptsMedicaid}
                           onCheckedChange={(checked) => updateFilter('acceptsMedicaid', checked)}
                         />
-                        <Label htmlFor="accepts-medicaid" className="text-sm font-medium cursor-pointer">
-                          Accepts Medicaid
-                        </Label>
                       </div>
 
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center justify-between space-x-3 p-3 sm:p-0 bg-white sm:bg-transparent rounded-md sm:rounded-none">
+                        <Label htmlFor="accepts-medicare" className="text-sm font-medium cursor-pointer flex-1">
+                          Accepts Medicare
+                        </Label>
                         <Switch
                           id="accepts-medicare"
                           checked={filters.acceptsMedicare}
                           onCheckedChange={(checked) => updateFilter('acceptsMedicare', checked)}
                         />
-                        <Label htmlFor="accepts-medicare" className="text-sm font-medium cursor-pointer">
-                          Accepts Medicare
-                        </Label>
                       </div>
 
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center justify-between space-x-3 p-3 sm:p-0 bg-white sm:bg-transparent rounded-md sm:rounded-none">
+                        <Label htmlFor="telehealth" className="text-sm font-medium cursor-pointer flex-1">
+                          Telehealth available
+                        </Label>
                         <Switch
                           id="telehealth"
                           checked={filters.telehealthAvailable}
                           onCheckedChange={(checked) => updateFilter('telehealthAvailable', checked)}
                         />
-                        <Label htmlFor="telehealth" className="text-sm font-medium cursor-pointer">
-                          Telehealth available
-                        </Label>
                       </div>
                     </div>
                   </div>
 
                   {/* Distance & Location */}
-                  <div className="space-y-4">
+                  <div className="space-y-4 sm:col-span-2 lg:col-span-1">
                     <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-orange-600" />
                       Distance
                     </h4>
                     
-                    <div className="space-y-3">
+                    <div className="space-y-3 p-3 sm:p-0 bg-white sm:bg-transparent rounded-md sm:rounded-none">
                       <div>
-                        <Label className="text-sm font-medium mb-2 block">
+                        <Label className="text-sm font-medium mb-3 block">
                           Maximum distance: <span className="font-bold text-primary">{filters.maxDistance} miles</span>
                         </Label>
                         <Slider
@@ -294,15 +294,15 @@ export function CompactFilterPanel({
               <TabsContent value="services" className="mt-0">
                 <div className="space-y-4">
                   <h4 className="font-semibold text-sm text-foreground mb-4">Select Service Categories</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {serviceCategories.map((category) => (
-                      <div key={category} className="flex items-center space-x-2">
+                      <div key={category} className="flex items-center space-x-2 p-3 bg-white sm:bg-transparent rounded-md sm:rounded-none">
                         <Checkbox
                           id={`service-${category}`}
                           checked={filters.serviceCategories.includes(category)}
                           onCheckedChange={() => toggleArrayFilter('serviceCategories', category)}
                         />
-                        <Label htmlFor={`service-${category}`} className="text-sm cursor-pointer">
+                        <Label htmlFor={`service-${category}`} className="text-sm cursor-pointer flex-1">
                           {category}
                         </Label>
                       </div>
@@ -315,15 +315,15 @@ export function CompactFilterPanel({
               <TabsContent value="insurance" className="mt-0">
                 <div className="space-y-4">
                   <h4 className="font-semibold text-sm text-foreground mb-4">Select Insurance Providers</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {insuranceOptions.map((insurance) => (
-                      <div key={insurance} className="flex items-center space-x-2">
+                      <div key={insurance} className="flex items-center space-x-2 p-3 bg-white sm:bg-transparent rounded-md sm:rounded-none">
                         <Checkbox
                           id={`insurance-${insurance}`}
                           checked={filters.insuranceProviders.includes(insurance)}
                           onCheckedChange={() => toggleArrayFilter('insuranceProviders', insurance)}
                         />
-                        <Label htmlFor={`insurance-${insurance}`} className="text-sm cursor-pointer">
+                        <Label htmlFor={`insurance-${insurance}`} className="text-sm cursor-pointer flex-1">
                           {insurance}
                         </Label>
                       </div>
@@ -334,19 +334,19 @@ export function CompactFilterPanel({
 
               {/* Advanced Tab */}
               <TabsContent value="advanced" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Provider Types */}
                   <div className="space-y-4">
                     <h4 className="font-semibold text-sm text-foreground mb-4">Provider Types</h4>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                    <div className="space-y-2 max-h-60 sm:max-h-48 overflow-y-auto">
                       {providerTypes.map((type) => (
-                        <div key={type} className="flex items-center space-x-2">
+                        <div key={type} className="flex items-center space-x-2 p-3 bg-white sm:bg-transparent rounded-md sm:rounded-none">
                           <Checkbox
                             id={`provider-${type}`}
                             checked={filters.providerTypes.includes(type)}
                             onCheckedChange={() => toggleArrayFilter('providerTypes', type)}
                           />
-                          <Label htmlFor={`provider-${type}`} className="text-sm cursor-pointer">
+                          <Label htmlFor={`provider-${type}`} className="text-sm cursor-pointer flex-1">
                             {type}
                           </Label>
                         </div>
@@ -357,10 +357,10 @@ export function CompactFilterPanel({
                   {/* Rating & Sort */}
                   <div className="space-y-6">
                     {/* Minimum Rating */}
-                    <div className="space-y-3">
+                    <div className="space-y-3 p-3 sm:p-0 bg-white sm:bg-transparent rounded-md sm:rounded-none">
                       <h4 className="font-semibold text-sm text-foreground">Minimum Rating</h4>
                       <div>
-                        <Label className="text-sm font-medium mb-2 block">
+                        <Label className="text-sm font-medium mb-3 block">
                           Rating: <span className="font-bold text-primary">
                             {filters.minRating > 0 ? `${filters.minRating} stars` : 'Any'}
                           </span>
@@ -379,10 +379,10 @@ export function CompactFilterPanel({
                     <Separator />
 
                     {/* Sort Options */}
-                    <div className="space-y-3">
+                    <div className="space-y-3 p-3 sm:p-0 bg-white sm:bg-transparent rounded-md sm:rounded-none">
                       <Label className="text-sm font-semibold">Sort Results By</Label>
                       <Select value={filters.sortBy} onValueChange={(value) => updateFilter('sortBy', value)}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-12 sm:h-auto">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>

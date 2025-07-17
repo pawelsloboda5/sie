@@ -79,16 +79,16 @@ export function ProviderCard({
     const hasHalfStar = rating % 1 !== 0
 
     for (let i = 0; i < fullStars; i++) {
-      stars.push(<Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />)
+      stars.push(<Star key={i} className="h-4 w-4 sm:h-5 sm:w-5 fill-yellow-400 text-yellow-400" />)
     }
 
     if (hasHalfStar) {
-      stars.push(<Star key="half" className="h-5 w-5 fill-yellow-400/50 text-yellow-400" />)
+      stars.push(<Star key="half" className="h-4 w-4 sm:h-5 sm:w-5 fill-yellow-400/50 text-yellow-400" />)
     }
 
     const remainingStars = 5 - Math.ceil(rating)
     for (let i = 0; i < remainingStars; i++) {
-      stars.push(<Star key={`empty-${i}`} className="h-5 w-5 text-gray-300" />)
+      stars.push(<Star key={`empty-${i}`} className="h-4 w-4 sm:h-5 sm:w-5 text-gray-300" />)
     }
 
     return stars
@@ -99,17 +99,17 @@ export function ProviderCard({
     
     if (provider.accepts_uninsured) {
       badges.push(
-        <Badge key="uninsured" className="bg-blue-600 text-white hover:bg-blue-700 border-0 font-medium px-3 py-1">
-          <Shield className="h-4 w-4 mr-2" />
-          Accepts Uninsured
+        <Badge key="uninsured" className="bg-blue-600 text-white hover:bg-blue-700 border-0 font-medium px-2 sm:px-3 py-1 text-xs sm:text-sm">
+          <Shield className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Accepts </span>Uninsured
         </Badge>
       )
     }
     
     if (provider.medicaid) {
       badges.push(
-        <Badge key="medicaid" className="bg-green-600 text-white hover:bg-green-700 border-0 font-medium px-3 py-1">
-          <CreditCard className="h-4 w-4 mr-2" />
+        <Badge key="medicaid" className="bg-green-600 text-white hover:bg-green-700 border-0 font-medium px-2 sm:px-3 py-1 text-xs sm:text-sm">
+          <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Medicaid
         </Badge>
       )
@@ -117,8 +117,8 @@ export function ProviderCard({
     
     if (provider.medicare) {
       badges.push(
-        <Badge key="medicare" className="bg-green-600 text-white hover:bg-green-700 border-0 font-medium px-3 py-1">
-          <CreditCard className="h-4 w-4 mr-2" />
+        <Badge key="medicare" className="bg-green-600 text-white hover:bg-green-700 border-0 font-medium px-2 sm:px-3 py-1 text-xs sm:text-sm">
+          <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Medicare
         </Badge>
       )
@@ -126,17 +126,17 @@ export function ProviderCard({
     
     if (!provider.ssn_required) {
       badges.push(
-        <Badge key="no-ssn" className="bg-purple-600 text-white hover:bg-purple-700 border-0 font-medium px-3 py-1">
-          <CheckCircle className="h-4 w-4 mr-2" />
-          No SSN Required
+        <Badge key="no-ssn" className="bg-purple-600 text-white hover:bg-purple-700 border-0 font-medium px-2 sm:px-3 py-1 text-xs sm:text-sm">
+          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">No SSN</span><span className="sm:hidden">SSN</span>
         </Badge>
       )
     }
     
     if (provider.telehealth_available) {
       badges.push(
-        <Badge key="telehealth" className="bg-indigo-600 text-white hover:bg-indigo-700 border-0 font-medium px-3 py-1">
-          <Phone className="h-4 w-4 mr-2" />
+        <Badge key="telehealth" className="bg-indigo-600 text-white hover:bg-indigo-700 border-0 font-medium px-2 sm:px-3 py-1 text-xs sm:text-sm">
+          <Phone className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Telehealth
         </Badge>
       )
@@ -161,38 +161,38 @@ export function ProviderCard({
   }
 
   return (
-    <Card className={`w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group ${compact ? 'p-4' : 'p-8'}`}>
-      <CardHeader className={compact ? 'pb-4' : 'pb-8'}>
-        <div className="flex items-start justify-between">
-          <div className="flex-1 space-y-4">
+    <Card className={`w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group ${compact ? 'p-3 sm:p-4' : 'p-4 sm:p-8'}`}>
+      <CardHeader className={compact ? 'pb-3 sm:pb-4' : 'pb-4 sm:pb-8'}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 space-y-3 sm:space-y-4 min-w-0">
             {/* Provider Name and Category */}
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <CardTitle className={`${compact ? 'text-xl' : 'text-2xl'} font-bold text-foreground leading-tight`}>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                <CardTitle className={`${compact ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'} font-bold text-foreground leading-tight break-words`}>
                   {provider.name}
                 </CardTitle>
                 {showDistance && provider.distance && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 px-3 py-1 text-sm font-medium">
-                    <MapPin className="h-4 w-4 mr-1" />
+                  <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium w-fit">
+                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                     {formatDistance(provider.distance)}
                   </Badge>
                 )}
               </div>
               
-              <div className="flex items-center gap-4 mb-3">
-                <Badge variant="outline" className="text-sm px-3 py-1 font-medium">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
+                <Badge variant="outline" className="text-xs sm:text-sm px-2 sm:px-3 py-1 font-medium w-fit">
                   {provider.category}
                 </Badge>
                 
-                {/* Rating with larger stars */}
+                {/* Rating with responsive stars */}
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
                     {renderStars(provider.rating)}
                   </div>
-                  <span className="text-lg font-semibold text-foreground">
+                  <span className="text-base sm:text-lg font-semibold text-foreground">
                     {provider.rating.toFixed(1)}
                   </span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-xs sm:text-sm text-muted-foreground">
                     rating
                   </span>
                 </div>
@@ -201,35 +201,36 @@ export function ProviderCard({
           </div>
           
           {!compact && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 flex-shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onViewDetails?.(provider)}
-                className="text-sm hover:bg-primary hover:text-primary-foreground transition-colors"
+                className="text-xs sm:text-sm hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap"
               >
-                <Info className="h-4 w-4 mr-2" />
-                View Details
+                <Info className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">View Details</span>
+                <span className="sm:hidden">Details</span>
               </Button>
             </div>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className={`${compact ? 'pt-0 space-y-5' : 'pt-0 space-y-8'}`}>
+      <CardContent className={`${compact ? 'pt-0 space-y-4 sm:space-y-5' : 'pt-0 space-y-5 sm:space-y-8'}`}>
         {/* Address */}
         <div className="flex items-start gap-3">
-          <MapPin className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
-          <span className="text-base text-foreground leading-relaxed">{provider.address}</span>
+          <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mt-1 text-primary flex-shrink-0" />
+          <span className="text-sm sm:text-base text-foreground leading-relaxed break-words">{provider.address}</span>
         </div>
 
         {/* Prominent Accessibility Badges */}
         {!compact && (
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">
               Accessibility & Coverage
             </h4>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1 sm:gap-2">
               {getAccessibilityBadges()}
             </div>
           </div>
@@ -237,54 +238,54 @@ export function ProviderCard({
 
         {/* Featured Service Highlight */}
         {topService && (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-primary" />
-              <span className="text-sm font-semibold text-primary uppercase tracking-wide">
+              <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <span className="text-xs sm:text-sm font-semibold text-primary uppercase tracking-wide">
                 Featured Service
               </span>
             </div>
-            <div className={`p-4 rounded-lg border-2 transition-all ${
+            <div className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
               topService.is_free 
                 ? 'bg-green-50 border-green-200' 
                 : topService.is_discounted 
                 ? 'bg-orange-50 border-orange-200' 
                 : 'bg-primary/5 border-primary/20'
             }`}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h5 className="text-lg font-semibold text-foreground mb-1">
+              <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+                <div className="flex-1 min-w-0">
+                  <h5 className="text-base sm:text-lg font-semibold text-foreground mb-1 break-words">
                     {topService.name}
                   </h5>
-                  <p className="text-sm text-muted-foreground">{topService.category}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{topService.category}</p>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {topService.is_free && (
-                    <Badge className="bg-green-600 text-white hover:bg-green-700 border-0 text-sm font-bold px-3 py-1">
-                      <DollarSign className="h-4 w-4 mr-1" />
+                    <Badge className="bg-green-600 text-white hover:bg-green-700 border-0 text-xs sm:text-sm font-bold px-2 sm:px-3 py-1">
+                      <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                       FREE
                     </Badge>
                   )}
                   {topService.is_discounted && !topService.is_free && (
-                    <Badge className="bg-orange-600 text-white hover:bg-orange-700 border-0 text-sm font-bold px-3 py-1">
-                      <DollarSign className="h-4 w-4 mr-1" />
-                      DISCOUNTED
+                    <Badge className="bg-orange-600 text-white hover:bg-orange-700 border-0 text-xs sm:text-sm font-bold px-2 sm:px-3 py-1">
+                      <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      DISC
                     </Badge>
                   )}
                 </div>
               </div>
               
               {topService.description && (
-                <p className="text-sm text-foreground/80 mb-3 leading-relaxed">
+                <p className="text-xs sm:text-sm text-foreground/80 mb-2 sm:mb-3 leading-relaxed">
                   {topService.description}
                 </p>
               )}
               
               {topService.price_info && (
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                   <span className="font-medium text-foreground">Pricing:</span>
-                  <span className="text-muted-foreground">{topService.price_info}</span>
+                  <span className="text-muted-foreground break-words">{topService.price_info}</span>
                 </div>
               )}
             </div>
@@ -293,33 +294,33 @@ export function ProviderCard({
 
         {/* Service Summary */}
         {services.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">
               Services Available
             </h4>
-            <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 bg-muted/30 rounded-lg">
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary mb-1">
+                <div className="text-lg sm:text-2xl font-bold text-primary mb-1">
                   {services.length}
                 </div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Total Services
+                <div className="text-xs text-muted-foreground uppercase tracking-wide leading-tight">
+                  Total<span className="hidden sm:inline"> Services</span>
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600 mb-1">
+                <div className="text-lg sm:text-2xl font-bold text-green-600 mb-1">
                   {getFreeServices().length}
                 </div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Free Services
+                <div className="text-xs text-muted-foreground uppercase tracking-wide leading-tight">
+                  Free<span className="hidden sm:inline"> Services</span>
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600 mb-1">
+                <div className="text-lg sm:text-2xl font-bold text-orange-600 mb-1">
                   {getDiscountedServices().length}
                 </div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Discounted
+                <div className="text-xs text-muted-foreground uppercase tracking-wide leading-tight">
+                  <span className="hidden sm:inline">Discounted</span><span className="sm:hidden">Disc</span>
                 </div>
               </div>
             </div>
@@ -328,19 +329,19 @@ export function ProviderCard({
 
         {/* Insurance Information */}
         {provider.insurance_providers.length > 0 && !compact && (
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-blue-600" />
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
+              <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
               Insurance Accepted
             </h4>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1 sm:gap-2">
               {provider.insurance_providers.slice(0, 4).map((insurance) => (
-                <Badge key={insurance} variant="outline" className="text-sm px-3 py-1">
+                <Badge key={insurance} variant="outline" className="text-xs sm:text-sm px-2 sm:px-3 py-1">
                   {insurance}
                 </Badge>
               ))}
               {provider.insurance_providers.length > 4 && (
-                <Badge variant="outline" className="text-sm px-3 py-1">
+                <Badge variant="outline" className="text-xs sm:text-sm px-2 sm:px-3 py-1">
                   +{provider.insurance_providers.length - 4} more
                 </Badge>
               )}
@@ -348,19 +349,19 @@ export function ProviderCard({
           </div>
         )}
 
-        <Separator className="my-6" />
+        <Separator className="my-4 sm:my-6" />
 
         {/* Action Buttons */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Primary Actions */}
-          <div className={`grid gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-2'}`}>
+          <div className={`grid gap-2 sm:gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
             {provider.phone && (
               <Button
                 size="lg"
                 onClick={() => onCallProvider?.(provider)}
-                className="h-12 text-base font-semibold bg-primary hover:bg-primary/90 transition-colors"
+                className="h-12 sm:h-12 text-sm sm:text-base font-semibold bg-primary hover:bg-primary/90 transition-colors"
               >
-                <Phone className="h-5 w-5 mr-2" />
+                <Phone className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Call Now
               </Button>
             )}
@@ -369,22 +370,22 @@ export function ProviderCard({
               size="lg"
               variant="outline"
               onClick={() => onGetDirections?.(provider)}
-              className="h-12 text-base font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+              className="h-12 sm:h-12 text-sm sm:text-base font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
             >
-              <Navigation className="h-5 w-5 mr-2" />
+              <Navigation className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Get Directions
             </Button>
           </div>
           
           {/* Secondary Actions */}
           {!compact && (
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               {provider.website && (
                 <a
                   href={provider.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center px-3 py-2 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50"
+                  className="flex-1 flex items-center justify-center px-3 py-3 sm:py-2 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50 min-h-[44px] sm:min-h-auto"
                   onClick={() => onVisitWebsite?.(provider)}
                 >
                   <Globe className="h-4 w-4 mr-2" />
@@ -398,7 +399,7 @@ export function ProviderCard({
                   variant="ghost"
                   size="sm"
                   onClick={() => window.open(`mailto:${provider.email}`, '_self')}
-                  className="flex-1 text-sm hover:bg-muted"
+                  className="flex-1 text-sm hover:bg-muted h-11 sm:h-auto"
                 >
                   <Mail className="h-4 w-4 mr-2" />
                   Send Email
@@ -410,11 +411,11 @@ export function ProviderCard({
 
         {/* Compact mode additional info */}
         {compact && (
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-1 sm:gap-2 mt-4">
             {getAccessibilityBadges().slice(0, 2)}
             {getAccessibilityBadges().length > 2 && (
               <Badge variant="outline" className="text-xs px-2 py-1">
-                +{getAccessibilityBadges().length - 2} more benefits
+                +{getAccessibilityBadges().length - 2} more
               </Badge>
             )}
           </div>

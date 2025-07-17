@@ -257,30 +257,35 @@ export default function FindPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Streamlined Hero Section - Max 50vh */}
-      <HeroSection 
-        onSearch={handleSearch}
-        isSearching={isLoading}
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
-        resultsCount={searchResults?.totalResults || 0}
-        initialQuery={initialQuery}
-        initialLocation={initialLocation}
-      />
+      {/* Streamlined Hero Section - Responsive Height */}
+      <div className="max-h-[60vh] sm:max-h-[50vh]">
+        <HeroSection 
+          onSearch={handleSearch}
+          isSearching={isLoading}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onClearFilters={handleClearFilters}
+          resultsCount={searchResults?.totalResults || 0}
+          initialQuery={initialQuery}
+          initialLocation={initialLocation}
+        />
+      </div>
       
-      {/* Main Results Area - Min 50vh */}
-      <main className="min-h-[50vh] bg-background">
-        <div className="container mx-auto px-4 py-8">
+      {/* Main Results Area - Responsive Min Height */}
+      <main className="min-h-[40vh] sm:min-h-[50vh] bg-background">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
           {/* Enhanced Results Area - Now Full Width */}
           <div className="w-full">
               {/* Mobile Controls */}
-              <div className="lg:hidden mb-6 flex items-center justify-between">
+              <div className="lg:hidden mb-4 sm:mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0">
                 <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex items-center justify-center gap-2 h-12 sm:h-auto border-2 font-medium"
+                    >
                       <Filter className="h-4 w-4" />
-                      Mobile Filters
+                      <span>Advanced Filters</span>
                       {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
                         filters.acceptsMedicare || filters.telehealthAvailable || 
                         filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
@@ -303,13 +308,13 @@ export default function FindPage() {
                   </SheetContent>
                 </Sheet>
                 
-                {/* View Mode Toggle */}
-                <div className="flex items-center gap-2">
+                {/* View Mode Toggle - Better Mobile Layout */}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <Button
                     variant={viewMode === 'list' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setViewMode('list')}
-                    className="flex items-center gap-2"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 h-12 sm:h-auto"
                   >
                     <List className="h-4 w-4" />
                     List
@@ -318,7 +323,7 @@ export default function FindPage() {
                     variant={viewMode === 'map' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setViewMode('map')}
-                    className="flex items-center gap-2"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 h-12 sm:h-auto"
                   >
                     <MapPin className="h-4 w-4" />
                     Map
@@ -337,15 +342,15 @@ export default function FindPage() {
                   compact={false}
                 />
               ) : (
-                <div className="bg-muted/30 rounded-lg p-8 h-96 flex items-center justify-center border border-border">
-                  <div className="text-center">
+                <div className="bg-muted/30 rounded-lg p-6 sm:p-8 h-80 sm:h-96 flex items-center justify-center border border-border">
+                  <div className="text-center max-w-sm">
                     <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-2 font-medium">Map View - Coming Soon</p>
-                    <p className="text-sm text-muted-foreground">Interactive Azure Maps will display here with provider pins</p>
+                    <p className="text-muted-foreground mb-2 font-medium text-sm sm:text-base">Map View - Coming Soon</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-4">Interactive Azure Maps will display here with provider pins</p>
                     <Button 
                       variant="outline" 
                       onClick={() => setViewMode('list')}
-                      className="mt-4"
+                      className="h-10 sm:h-auto"
                     >
                       View as List
                     </Button>
