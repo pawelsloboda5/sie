@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { HeroSection } from "@/components/layout/HeroSection"
 import { FilterPanel } from "@/components/search/FilterPanel"
 import { ResultsList } from "@/components/results/ResultsList"
@@ -23,9 +23,40 @@ interface FilterOptions {
   sortBy: 'distance' | 'rating' | 'name' | 'relevance'
 }
 
+interface Provider {
+  _id: string
+  name: string
+  category: string
+  address: string
+  phone?: string
+  website?: string
+  email?: string
+  rating: number
+  accepts_uninsured: boolean
+  medicaid: boolean
+  medicare: boolean
+  ssn_required: boolean
+  telehealth_available: boolean
+  insurance_providers: string[]
+  distance?: number
+  searchScore?: number
+}
+
+interface Service {
+  _id: string
+  provider_id: string
+  name: string
+  category: string
+  description: string
+  is_free: boolean
+  is_discounted: boolean
+  price_info: string
+  searchScore?: number
+}
+
 interface SearchResults {
-  providers: any[]
-  services: any[]
+  providers: Provider[]
+  services: Service[]
   query: string
   totalResults: number
 }
@@ -58,7 +89,7 @@ export default function FindPage() {
   const [initialQuery, setInitialQuery] = useState("")
   const [initialLocation, setInitialLocation] = useState("")
 
-  const handleSearch = async (query: string, location?: {latitude: number, longitude: number}, searchFilters?: any) => {
+  const handleSearch = useCallback(async (query: string, location?: {latitude: number, longitude: number}, searchFilters?: Partial<FilterOptions>) => {
     const filtersToUse = searchFilters || filters
     setIsLoading(true)
     setCurrentQuery(query)
@@ -96,12 +127,12 @@ export default function FindPage() {
       
       // Sort providers to prioritize those with free services
       if (results.providers && results.services) {
-        results.providers.sort((a: any, b: any) => {
+        results.providers.sort((a: Provider, b: Provider) => {
           // Check if providers have free services
-          const aHasFree = results.services.some((service: any) => 
+          const aHasFree = results.services.some((service: Service) => 
             service.provider_id === a._id && service.is_free
           )
-          const bHasFree = results.services.some((service: any) => 
+          const bHasFree = results.services.some((service: Service) => 
             service.provider_id === b._id && service.is_free
           )
           
@@ -111,10 +142,10 @@ export default function FindPage() {
           
           // If both have free services, count them
           if (aHasFree && bHasFree) {
-            const aFreeCount = results.services.filter((service: any) => 
+            const aFreeCount = results.services.filter((service: Service) => 
               service.provider_id === a._id && service.is_free
             ).length
-            const bFreeCount = results.services.filter((service: any) => 
+            const bFreeCount = results.services.filter((service: Service) => 
               service.provider_id === b._id && service.is_free
             ).length
             if (aFreeCount !== bFreeCount) return bFreeCount - aFreeCount
@@ -132,9 +163,9 @@ export default function FindPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [filters])
 
-  const handleFiltersChange = (newFilters: any) => {
+  const handleFiltersChange = (newFilters: Partial<FilterOptions>) => {
     const convertedFilters: FilterOptions = {
       freeOnly: newFilters.freeOnly || false,
       acceptsUninsured: newFilters.acceptsUninsured || false,
@@ -169,7 +200,7 @@ export default function FindPage() {
     }
   }
 
-  const handleProviderAction = (action: string, provider: any) => {
+  const handleProviderAction = (action: string, provider: Provider) => {
     // Handle provider actions like call, directions, etc.
     console.log(`Action: ${action}`, provider)
   }
@@ -222,7 +253,7 @@ export default function FindPage() {
         // so the user can manually trigger the search
       }
     }
-  }, []) // Run only on mount
+  }, [handleSearch]) // Include handleSearch in dependencies
 
   return (
     <div className="min-h-screen bg-background">

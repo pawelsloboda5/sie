@@ -18,11 +18,9 @@ import {
   DollarSign, 
   Shield, 
   CreditCard, 
-  Phone, 
   MapPin,
   FileText,
-  Star,
-  Clock
+  Star
 } from "lucide-react"
 
 interface FilterOptions {
@@ -78,7 +76,7 @@ export function CompactFilterPanel({
 }: CompactFilterPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  const updateFilter = (key: keyof FilterOptions, value: any) => {
+  const updateFilter = (key: keyof FilterOptions, value: boolean | number | string | string[]) => {
     onFiltersChange({
       ...filters,
       [key]: value

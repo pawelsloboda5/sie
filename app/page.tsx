@@ -1,6 +1,6 @@
 'use client'
 import Link from "next/link";
-import { ArrowRight, HeartHandshake, MapPin, Stethoscope, Users, Search, Bot, Shield, Zap, Clock, Globe, FileText, CreditCard, Building, Phone } from "lucide-react";
+import { ArrowRight, HeartHandshake, MapPin, Stethoscope, Users, Shield, Clock, Globe, CreditCard, Building, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +60,7 @@ export default function Landing() {
             </h2>
             
             <p className="max-w-3xl mx-auto text-lg text-muted-foreground leading-relaxed mb-8">
-              We're excited to announce the upcoming launch of SIE Wellness Preventative Healthcare Coverage, 
+              We&apos;re excited to announce the upcoming launch of SIE Wellness Preventative Healthcare Coverage, 
               designed to proactively support your wellness with annual physicals, dental cleanings, essential 
               lab tests, and personalized add-on services. Our plans are highly affordable with flexible 
               payment options to fit your budget.
@@ -454,17 +454,7 @@ function UserGroup({
   );
 }
 
-function ProcessStep({ step, title, desc }: { step: string; title: string; desc: string }) {
-  return (
-    <div className="text-center">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground text-lg font-bold mb-4">
-        {step}
-      </div>
-      <h4 className="text-xl font-semibold mb-3">{title}</h4>
-      <p className="text-muted-foreground leading-relaxed">{desc}</p>
-    </div>
-  );
-}
+
 
 function ImpactCard({ metric, title, desc }: { metric: string; title: string; desc: string }) {
   return (

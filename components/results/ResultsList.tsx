@@ -3,28 +3,20 @@
 import React, { useState, useMemo } from "react"
 import { ProviderCard } from "./ProviderCard"
 import { ProviderDetailsModal } from "../provider/ProviderDetailsModal"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { 
   Search, 
   MapPin, 
-  Clock, 
   Star, 
-  Filter, 
   SortAsc, 
-  SortDesc,
-  Users,
   Building,
   Heart,
   AlertCircle,
-  CheckCircle,
-  RefreshCw,
-  ExternalLink
+  RefreshCw
 } from "lucide-react"
 
 interface Provider {
@@ -94,22 +86,6 @@ export function ResultsList({
     
     const providers = [...results.providers]
     
-    // Helper function to check if provider has free services
-    const hasFreeServices = (providerId: string) => {
-      if (!results?.services) return false
-      return results.services.some(service => 
-        service.provider_id === providerId && service.is_free
-      )
-    }
-    
-    // Helper function to count free services for a provider
-    const getFreeServiceCount = (providerId: string) => {
-      if (!results?.services) return 0
-      return results.services.filter(service => 
-        service.provider_id === providerId && service.is_free
-      ).length
-    }
-    
     switch (sortBy) {
       case 'distance':
         return providers.sort((a, b) => {
@@ -146,7 +122,7 @@ export function ResultsList({
           return (b.searchScore || 0) - (a.searchScore || 0)
         })
     }
-  }, [results?.providers, results?.services, sortBy])
+  }, [results?.providers, sortBy])
 
   // Get the most relevant service for each provider
   const getProviderTopService = (providerId: string) => {
@@ -261,7 +237,7 @@ export function ResultsList({
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold text-gray-900">
-            Found {results.totalResults} results for "{results.query}"
+            Found {results.totalResults} results for &quot;{results.query}&quot;
           </h2>
           <div className="flex items-center gap-4 text-sm text-gray-600">
             <span className="flex items-center gap-1">

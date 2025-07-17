@@ -14,7 +14,7 @@ export interface RecentSearch {
 export interface UserPreference {
   id?: number
   key: string
-  value: any
+  value: string | number | boolean | object
   timestamp: Date
 }
 
@@ -86,7 +86,7 @@ export const getRecentSearches = async (limit = 10): Promise<RecentSearch[]> => 
   }
 }
 
-export const saveUserPreference = async (key: string, value: any) => {
+export const saveUserPreference = async (key: string, value: string | number | boolean | object) => {
   try {
     // Update or insert preference
     const existing = await db.userPreferences.where('key').equals(key).first()
@@ -100,7 +100,7 @@ export const saveUserPreference = async (key: string, value: any) => {
   }
 }
 
-export const getUserPreference = async (key: string, defaultValue?: any) => {
+export const getUserPreference = async (key: string, defaultValue?: string | number | boolean | object) => {
   try {
     const preference = await db.userPreferences.where('key').equals(key).first()
     return preference ? preference.value : defaultValue

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Search, MapPin, Loader2, ChevronDown, Clock, FileText, Bot, Shield, Users, ArrowRight, Calculator, User, Stethoscope, HeartHandshake } from "lucide-react"
+import { Search, MapPin, Loader2, ChevronDown, Clock, FileText, Bot, Shield, Users, ArrowRight, Stethoscope, HeartHandshake } from "lucide-react"
 import type { RecentSearch } from "@/lib/db"
 import * as db from "@/lib/db"
 import Link from "next/link"
@@ -358,7 +358,7 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
 
         {/* Minimalistic Capability Buttons */}
         <div className={`grid grid-cols-2 md:grid-cols-3 gap-2 max-w-4xl mx-auto transition-all duration-300 ${showAllCapabilities ? 'grid-cols-2 md:grid-cols-3' : ''}`}>
-          {displayedCapabilities.map((capability, index) => {
+          {displayedCapabilities.map((capability) => {
             const Icon = capability.icon
             return (
               <Popover 

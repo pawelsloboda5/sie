@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useTransition } from "react"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CompactFilterPanel } from "@/components/search/CompactFilterPanel"
@@ -142,7 +142,7 @@ export function HeroSection({
     }
   }
 
-  const handleFiltersChange = (newFilters: any) => {
+  const handleFiltersChange = (newFilters: SearchFilters) => {
     if (onFiltersChange) {
       onFiltersChange(newFilters)
     }
