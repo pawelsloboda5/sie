@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
@@ -206,12 +207,20 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
           
           {/* Brand and Logo */}
           <div className="space-y-6 flex flex-col items-center justify-center">
-            <Link href="/" className="flex items-center gap-4 group">
-              <div className="flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full bg-primary transition-smooth group-hover:bg-primary/90 hover-lift-sm">
-                <span className="text-primary-foreground text-xl md:text-2xl font-bold">♥</span>
+            <Link href="/" className="flex items-center gap-6 group">
+              <div className="flex items-center justify-center transition-transform group-hover:scale-105">
+                <Image
+                  src="/logo_560x560.png"
+                  alt="SIE Wellness Logo"
+                  width={120}
+                  height={120}
+                  className="rounded-xl w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40"
+                />
               </div>
               <div className="text-center">
-                <h1 className="text-display-xl gradient-text">SIE Wellness</h1>
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent leading-tight">
+                  SIE Wellness
+                </h1>
               </div>
             </Link>
           </div>
@@ -224,33 +233,33 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
         )}
 
         {/* Main Search Interface */}
-        <div className="w-full  max-w-5xl mx-auto space-y-content">
+        <div className="w-full max-w-6xl mx-auto space-y-content px-4 sm:px-0 md:px-8">
           {/* Search Bar */}
           <div className="relative">
-            <div className="flex items-center glass rounded-3xl shadow-xl card-shadow-lg hover:shadow-2xl transition-slow overflow-hidden h-16 md:h-20">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center glass rounded-2xl md:rounded-3xl shadow-xl card-shadow-lg hover:shadow-2xl transition-slow overflow-hidden">
               {/* Search Input with dropdown trigger */}
               <div className="flex-1 relative">
-                <div className="flex items-center h-full">
-                  <Search className="ml-6 md:ml-8 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
+                <div className="flex items-center h-16 md:h-20">
+                  <Search className="ml-4 md:ml-6 lg:ml-8 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
                   <Input
                     placeholder="Describe your healthcare need..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 border-0 bg-transparent input-xl rounded-l-3xl focus-ring-visible pl-4 pr-2 h-full"
+                    className="flex-1 border-0 bg-transparent text-base md:text-lg rounded-l-2xl md:rounded-l-3xl focus:outline-none focus:ring-0 pl-3 md:pl-4 pr-2 h-full"
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   />
                   <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                     <PopoverTrigger asChild>
-                                        <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mr-3 h-10 w-10 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
-                    onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  >
-                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
-                  </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mr-2 md:mr-3 h-10 w-10 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
+                        onClick={() => setIsSearchOpen(!isSearchOpen)}
+                      >
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
+                      </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[600px] p-0 card-shadow-lg" align="start">
+                    <PopoverContent className="w-[320px] md:w-[600px] p-0 card-shadow-lg" align="start">
                       <Command>
                         <CommandList>
                           <CommandEmpty>No suggestions found.</CommandEmpty>
@@ -303,21 +312,21 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
               </div>
 
               {/* Location Input */}
-              <div className="flex-[0.6] relative border-l border-border/50">
-                <div className="flex items-center h-full">
-                  <MapPin className="ml-6 md:ml-8 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
+              <div className="flex-1 md:flex-[0.6] relative border-t md:border-t-0 md:border-l border-border/50">
+                <div className="flex items-center h-16 md:h-20">
+                  <MapPin className="ml-4 md:ml-6 lg:ml-8 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
                   <Input
                     placeholder="ZIP code, city, or address"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="flex-1 border-0 bg-transparent rounded-none focus-ring-visible input-xl pl-4 pr-2 h-full"
+                    className="flex-1 border-0 bg-transparent rounded-none focus:outline-none focus:ring-0 text-base md:text-lg pl-3 md:pl-4 pr-2 h-full"
                   />
                   <Button
                     onClick={handleGetLocation}
                     disabled={isGettingLocation}
                     variant="ghost"
                     size="sm"
-                    className="mr-3 h-10 w-10 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
+                    className="mr-2 md:mr-3 h-10 w-10 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
                   >
                     {isGettingLocation ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -331,7 +340,7 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
               {/* Search Button */}
               <Button 
                 size="lg" 
-                className="btn-xl rounded-r-3xl bg-primary hover:bg-primary/90 transition-smooth flex-shrink-0 h-16 md:h-20 px-6 md:px-8"
+                className="h-16 md:h-20 rounded-b-2xl md:rounded-r-3xl md:rounded-b-3xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-smooth flex-shrink-0 px-6 md:px-8 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl"
                 onClick={handleSearch}
                 disabled={isSearching || !searchQuery.trim()}
               >
@@ -339,11 +348,13 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     <span className="hidden sm:inline">Searching...</span>
+                    <span className="sm:hidden">Search</span>
                   </>
                 ) : (
                   <>
                     <ArrowRight className="h-5 w-5 sm:mr-2" />
                     <span className="hidden sm:inline">Search</span>
+                    <span className="sm:hidden">Go</span>
                   </>
                 )}
               </Button>

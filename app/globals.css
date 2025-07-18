@@ -135,7 +135,12 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+  
+  /* Subtle focus outline only for keyboard navigation */
+  *:focus-visible {
+    @apply outline-2 outline-primary/20 outline-offset-1;
   }
   
   html {
@@ -406,13 +411,18 @@
     font-size: var(--font-size-sm);
   }
   
-  /* Focus Improvements */
+  /* Focus Improvements - More subtle and border-following */
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary;
+    @apply focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary/50 transition-all duration-200;
   }
   
   .focus-ring-visible {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary;
+    @apply focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary/50 transition-all duration-200;
+  }
+  
+  /* Input-specific focus that follows the input border */
+  input:focus {
+    @apply outline-none ring-0 border-primary/40;
   }
   
   /* Transition Improvements */
@@ -439,7 +449,12 @@
   
   /* Glass Effect */
   .glass {
-    @apply bg-background/80 backdrop-blur-md border border-border/40;
+    @apply bg-background/80 backdrop-blur-md border border-border/40 transition-all duration-200;
+  }
+  
+  /* Subtle focus-within effect for glass containers */
+  .glass:focus-within {
+    @apply border-primary/30 shadow-lg;
   }
   
   .glass-strong {

@@ -1,5 +1,6 @@
 'use client'
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, HeartHandshake, MapPin, Stethoscope, Users, Shield, Clock, CreditCard, Building, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,23 +13,35 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col">
       {/* ---------- Header ---------- */}
       <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container max-w-screen-xl mx-auto flex h-16 items-center justify-between">
-          <Link href="#" className="flex items-center gap-3 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary transition-colors group-hover:bg-primary/90">
-              <span className="text-primary-foreground text-base font-semibold">♥</span>
+        <div className="container max-w-screen-xl mx-auto flex h-20 items-center justify-between px-4">
+          <Link href="#" className="flex items-center gap-4 group">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-105 group-hover:from-primary/20 group-hover:to-primary/10">
+              <Image
+                src="/logo_560x560.png"
+                alt="SIE Wellness Logo"
+                width={56}
+                height={56}
+                className="rounded-xl transition-transform duration-300 group-hover:scale-105"
+              />
             </div>
             <div className="leading-tight">
-              <p className="text-body-xs font-medium text-muted-foreground">AI‑Powered Healthcare Discovery</p>
+              <p className="text-sm font-medium text-muted-foreground">AI‑Powered Healthcare Discovery</p>
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 text-body-sm font-medium">
-            <Link href="#agents" className="text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
-            <Link href="#who-we-help" className="text-muted-foreground hover:text-foreground transition-colors">Who We Help</Link>
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+            <Link href="#agents" className="text-muted-foreground hover:text-primary transition-colors duration-300 relative group">
+              How It Works
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </Link>
+            <Link href="#who-we-help" className="text-muted-foreground hover:text-primary transition-colors duration-300 relative group">
+              Who We Help
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-4">
-            <Button asChild className="hidden md:inline-flex btn-base">
+            <Button asChild className="hidden md:inline-flex bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-lg hover:shadow-xl">
               <Link href="/app">
                 Launch App <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -238,10 +251,16 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div className="space-y-4">
               <Link href="#" className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary">
-                  <span className="text-primary-foreground text-sm font-semibold">♥</span>
+                <div className="flex h-8 w-8 items-center justify-center">
+                  <Image
+                    src="/logo_560x560.png"
+                    alt="SIE Wellness Logo"
+                    width={32}
+                    height={32}
+                    className="rounded-lg"
+                  />
                 </div>
-                <span className="text-h5">CareFind</span>
+                <span className="text-h5">SIE Wellness</span>
               </Link>
               <p className="text-body-sm text-muted-foreground">
                 AI-powered healthcare discovery for everyone.
@@ -274,13 +293,13 @@ export default function Landing() {
           </div>
           <Separator className="mb-8" />
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-body-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} CareFind. Built with ♥ for communities in need.</p>
+            <p>© {new Date().getFullYear()} SIE Wellness. Built with ♥ for communities in need.</p>
             <div className="flex items-center gap-4">
               <Link href="/privacy" className="hover:underline">Privacy</Link>
               <Separator orientation="vertical" className="h-4" />
               <Link href="/terms" className="hover:underline">Terms</Link>
               <Separator orientation="vertical" className="h-4" />
-              <Link href="mailto:hello@carefind.org" className="hover:underline">Contact</Link>
+              <Link href="mailto:hello@siewellness.org" className="hover:underline">Contact</Link>
             </div>
           </div>
         </div>

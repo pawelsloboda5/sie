@@ -13,8 +13,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CareFind - Free & Low-Cost Healthcare Near You",
+  title: "SIE Wellness - Free & Low-Cost Healthcare Near You",
   description: "Find accessible healthcare services in your area, regardless of insurance status. Discover free clinics, community health centers, and affordable medical care.",
+  icons: {
+    icon: "/logo_560x560.png",
+    shortcut: "/logo_560x560.png",
+    apple: "/logo_560x560.png",
+  },
+  openGraph: {
+    title: "SIE Wellness - Free & Low-Cost Healthcare Near You",
+    description: "Find accessible healthcare services in your area, regardless of insurance status. Discover free clinics, community health centers, and affordable medical care.",
+    images: ["/logo_560x560.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SIE Wellness - Free & Low-Cost Healthcare Near You",
+    description: "Find accessible healthcare services in your area, regardless of insurance status. Discover free clinics, community health centers, and affordable medical care.",
+    images: ["/logo_560x560.png"],
+  },
 };
 
 export default function RootLayout({
@@ -24,6 +40,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/logo_560x560.png" sizes="any" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

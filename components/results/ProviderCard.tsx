@@ -539,109 +539,109 @@ export function ProviderCard({
   // Enhanced Desktop Card View Layout
   return (
     <Card className="w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group">
-      <CardHeader className="p-8 pb-6">
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex-1 space-y-6 min-w-0">
+      <CardHeader className="p-4 sm:p-6 lg:p-8 pb-3 sm:pb-4 lg:pb-6">
+        <div className="flex items-start justify-between gap-3 sm:gap-4 lg:gap-6">
+          <div className="flex-1 space-y-3 sm:space-y-4 lg:space-y-6 min-w-0">
             {/* Provider Name and Category */}
             <div>
-              <div className="flex flex-col gap-4 mb-4">
-                <div className="flex items-start justify-between gap-4">
-                  <CardTitle className="text-2xl lg:text-3xl font-bold text-foreground leading-tight break-words flex-1">
+              <div className="flex flex-col gap-2 sm:gap-3 lg:gap-4 mb-2 sm:mb-3 lg:mb-4">
+                <div className="flex items-start justify-between gap-2 sm:gap-3 lg:gap-4">
+                  <CardTitle className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-foreground leading-tight break-words flex-1">
                     {provider.name}
                   </CardTitle>
                   {showDistance && provider.distance && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 px-4 py-2 text-base font-medium flex-shrink-0">
-                      <MapPin className="h-5 w-5 mr-2" />
+                    <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 text-xs sm:text-sm lg:text-base font-medium flex-shrink-0">
+                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-1.5 lg:mr-2" />
                       {formatDistance(provider.distance)}
                     </Badge>
                   )}
                 </div>
                 
-                <Badge variant="outline" className="text-base px-4 py-2 font-medium w-fit">
+                <Badge variant="outline" className="text-xs sm:text-sm lg:text-base px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 font-medium w-fit">
                   {provider.category}
                 </Badge>
               </div>
               
               {/* Rating with responsive stars */}
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3">
+                <div className="flex items-center gap-0.5 sm:gap-1">
                   {renderStars(provider.rating)}
                 </div>
-                <span className="text-xl font-semibold text-foreground">
+                <span className="text-base sm:text-lg lg:text-xl font-semibold text-foreground">
                   {provider.rating.toFixed(1)}
                 </span>
-                <span className="text-base text-muted-foreground">
+                <span className="text-sm sm:text-base text-muted-foreground">
                   rating
                 </span>
               </div>
             </div>
           </div>
           
-          <div className="flex flex-col gap-3 flex-shrink-0">
+          <div className="flex flex-col gap-2 sm:gap-2.5 lg:gap-3 flex-shrink-0">
             <Button
               variant="outline"
-              size="lg"
+              size="sm"
               onClick={() => onViewDetails?.(provider)}
-              className="text-base hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap h-12 px-6"
+              className="text-xs sm:text-sm lg:text-base hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap h-8 sm:h-10 lg:h-12 px-3 sm:px-4 lg:px-6"
             >
-              <Info className="h-5 w-5 mr-2" />
-              View Details
+              <Info className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-1.5 lg:mr-2" />
+              Details
             </Button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="px-8 pb-8 space-y-8">
+      <CardContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Address */}
-        <div className="flex items-start gap-4">
-          <MapPin className="h-6 w-6 mt-1 text-primary flex-shrink-0" />
-          <span className="text-base text-foreground leading-relaxed break-words">{provider.address}</span>
+        <div className="flex items-start gap-2 sm:gap-3 lg:gap-4">
+          <MapPin className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 mt-0.5 sm:mt-1 text-primary flex-shrink-0" />
+          <span className="text-sm sm:text-base text-foreground leading-relaxed break-words">{provider.address}</span>
         </div>
 
         {/* Prominent Accessibility Badges */}
-        <div className="space-y-4">
-          <h4 className="text-base font-semibold text-foreground uppercase tracking-wide">
+        <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+          <h4 className="text-xs sm:text-sm lg:text-base font-semibold text-foreground uppercase tracking-wide">
             Accessibility & Coverage
           </h4>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 lg:gap-3">
             {getAccessibilityBadges()}
           </div>
         </div>
 
         {/* Featured Service Highlight */}
         {topService && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Heart className="h-6 w-6 text-primary" />
-              <span className="text-base font-semibold text-primary uppercase tracking-wide">
+          <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+            <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3">
+              <Heart className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary" />
+              <span className="text-xs sm:text-sm lg:text-base font-semibold text-primary uppercase tracking-wide">
                 Featured Service
               </span>
             </div>
-            <div className={`p-6 rounded-lg border-2 transition-all ${
+            <div className={`p-3 sm:p-4 lg:p-6 rounded-lg border-2 transition-all ${
               topService.is_free 
                 ? 'bg-green-50 border-green-200' 
                 : topService.is_discounted 
                 ? 'bg-orange-50 border-orange-200' 
                 : 'bg-primary/5 border-primary/20'
             }`}>
-              <div className="flex items-start justify-between mb-4 gap-4">
+              <div className="flex items-start justify-between mb-2 sm:mb-3 lg:mb-4 gap-2 sm:gap-3 lg:gap-4">
                 <div className="flex-1 min-w-0">
-                  <h5 className="text-xl font-semibold text-foreground mb-2 break-words">
+                  <h5 className="text-base sm:text-lg lg:text-xl font-semibold text-foreground mb-1 sm:mb-1.5 lg:mb-2 break-words">
                     {topService.name}
                   </h5>
-                  <p className="text-base text-muted-foreground">{topService.category}</p>
+                  <p className="text-sm sm:text-base text-muted-foreground">{topService.category}</p>
                 </div>
                 
-                <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0">
                   {topService.is_free && (
-                    <Badge className="bg-green-600 text-white hover:bg-green-700 border-0 text-base font-bold px-4 py-2">
-                      <DollarSign className="h-5 w-5 mr-2" />
+                    <Badge className="bg-green-600 text-white hover:bg-green-700 border-0 text-xs sm:text-sm lg:text-base font-bold px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2">
+                      <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-1.5 lg:mr-2" />
                       FREE
                     </Badge>
                   )}
                   {topService.is_discounted && !topService.is_free && (
-                    <Badge className="bg-orange-600 text-white hover:bg-orange-700 border-0 text-base font-bold px-4 py-2">
-                      <DollarSign className="h-5 w-5 mr-2" />
+                    <Badge className="bg-orange-600 text-white hover:bg-orange-700 border-0 text-xs sm:text-sm lg:text-base font-bold px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2">
+                      <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-1.5 lg:mr-2" />
                       DISC
                     </Badge>
                   )}
@@ -649,13 +649,13 @@ export function ProviderCard({
               </div>
               
               {topService.description && (
-                <p className="text-base text-foreground/80 mb-4 leading-relaxed">
+                <p className="text-sm sm:text-base text-foreground/80 mb-2 sm:mb-3 lg:mb-4 leading-relaxed">
                   {topService.description}
                 </p>
               )}
               
               {topService.price_info && (
-                <div className="flex items-center gap-3 text-base">
+                <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 text-sm sm:text-base">
                   <span className="font-medium text-foreground">Pricing:</span>
                   <span className="text-muted-foreground break-words">{topService.price_info}</span>
                 </div>
@@ -666,32 +666,32 @@ export function ProviderCard({
 
         {/* Service Summary */}
         {services.length > 0 && (
-          <div className="space-y-4">
-            <h4 className="text-base font-semibold text-foreground uppercase tracking-wide">
+          <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+            <h4 className="text-xs sm:text-sm lg:text-base font-semibold text-foreground uppercase tracking-wide">
               Services Available
             </h4>
-            <div className="grid grid-cols-3 gap-6 p-6 bg-muted/30 rounded-lg">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:gap-6 p-3 sm:p-4 lg:p-6 bg-muted/30 rounded-lg">
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary mb-2">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary mb-1 sm:mb-1.5 lg:mb-2">
                   {services.length}
                 </div>
-                <div className="text-sm text-muted-foreground uppercase tracking-wide leading-tight">
+                <div className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide leading-tight">
                   Total Services
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 mb-2">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600 mb-1 sm:mb-1.5 lg:mb-2">
                   {getFreeServices().length}
                 </div>
-                <div className="text-sm text-muted-foreground uppercase tracking-wide leading-tight">
+                <div className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide leading-tight">
                   Free Services
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-orange-600 mb-2">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-600 mb-1 sm:mb-1.5 lg:mb-2">
                   {getDiscountedServices().length}
                 </div>
-                <div className="text-sm text-muted-foreground uppercase tracking-wide leading-tight">
+                <div className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide leading-tight">
                   Discounted
                 </div>
               </div>
@@ -701,19 +701,19 @@ export function ProviderCard({
 
         {/* Insurance Information */}
         {provider.insurance_providers.length > 0 && (
-          <div className="space-y-4">
-            <h4 className="text-base font-semibold text-foreground uppercase tracking-wide flex items-center gap-3">
-              <CreditCard className="h-5 w-5 text-blue-600" />
+          <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+            <h4 className="text-xs sm:text-sm lg:text-base font-semibold text-foreground uppercase tracking-wide flex items-center gap-2 sm:gap-2.5 lg:gap-3">
+              <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-blue-600" />
               Insurance Accepted
             </h4>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 lg:gap-3">
               {provider.insurance_providers.slice(0, 6).map((insurance) => (
-                <Badge key={insurance} variant="outline" className="text-base px-4 py-2">
+                <Badge key={insurance} variant="outline" className="text-xs sm:text-sm lg:text-base px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2">
                   {insurance}
                 </Badge>
               ))}
               {provider.insurance_providers.length > 6 && (
-                <Badge variant="outline" className="text-base px-4 py-2">
+                <Badge variant="outline" className="text-xs sm:text-sm lg:text-base px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2">
                   +{provider.insurance_providers.length - 6} more
                 </Badge>
               )}
@@ -721,19 +721,19 @@ export function ProviderCard({
           </div>
         )}
 
-        <Separator className="my-8" />
+        <Separator className="my-4 sm:my-6 lg:my-8" />
 
         {/* Action Buttons */}
-        <div className="space-y-6">
+        <div className="space-y-3 sm:space-y-4 lg:space-y-6">
           {/* Primary Actions */}
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+          <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-1 sm:grid-cols-2">
             {provider.phone && (
               <Button
                 size="lg"
                 onClick={() => onCallProvider?.(provider)}
-                className="h-16 text-lg font-semibold bg-primary hover:bg-primary/90 transition-colors"
+                className="h-12 sm:h-14 lg:h-16 text-sm sm:text-base lg:text-lg font-semibold bg-primary hover:bg-primary/90 transition-colors"
               >
-                <Phone className="h-6 w-6 mr-3" />
+                <Phone className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 mr-2 sm:mr-2.5 lg:mr-3" />
                 Call Now
               </Button>
             )}
@@ -742,26 +742,27 @@ export function ProviderCard({
               size="lg"
               variant="outline"
               onClick={() => onGetDirections?.(provider)}
-              className="h-16 text-lg font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+              className="h-12 sm:h-14 lg:h-16 text-sm sm:text-base lg:text-lg font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
             >
-              <Navigation className="h-6 w-6 mr-3" />
+              <Navigation className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 mr-2 sm:mr-2.5 lg:mr-3" />
               Get Directions
             </Button>
           </div>
           
           {/* Secondary Actions */}
-          <div className="flex gap-4">
+          <div className="flex gap-2 sm:gap-3 lg:gap-4">
             {provider.website && (
               <a
                 href={provider.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center px-6 py-4 text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50 min-h-[56px]"
+                className="flex-1 flex items-center justify-center px-3 sm:px-4 lg:px-6 py-3 sm:py-3.5 lg:py-4 text-sm sm:text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50 min-h-[48px] sm:min-h-[52px] lg:min-h-[56px]"
                 onClick={() => onVisitWebsite?.(provider)}
               >
-                <Globe className="h-5 w-5 mr-3" />
-                Visit Website
-                <ExternalLink className="h-4 w-4 ml-3" />
+                <Globe className="h-4 w-4 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-2 sm:mr-2.5 lg:mr-3" />
+                <span className="hidden sm:inline">Visit Website</span>
+                <span className="sm:hidden">Website</span>
+                <ExternalLink className="h-3 w-3 sm:h-3 sm:w-3 lg:h-4 lg:w-4 ml-1.5 sm:ml-2 lg:ml-3" />
               </a>
             )}
             
@@ -769,10 +770,11 @@ export function ProviderCard({
               <Button
                 variant="ghost"
                 onClick={() => window.open(`mailto:${provider.email}`, '_self')}
-                className="flex-1 text-base hover:bg-muted h-14"
+                className="flex-1 text-sm sm:text-base hover:bg-muted h-12 sm:h-13 lg:h-14"
               >
-                <Mail className="h-5 w-5 mr-3" />
-                Send Email
+                <Mail className="h-4 w-4 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-2 sm:mr-2.5 lg:mr-3" />
+                <span className="hidden sm:inline">Send Email</span>
+                <span className="sm:hidden">Email</span>
               </Button>
             )}
           </div>

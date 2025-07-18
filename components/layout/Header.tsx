@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Heart, Menu, Globe } from "lucide-react"
+import { Menu, Globe } from "lucide-react"
 import Link from "next/link"
 
 export function Header() {
@@ -15,8 +16,14 @@ export function Header() {
       <div className="container mx-auto flex h-14 items-center justify-between px-4 md:px-6">
         {/* Logo Section */}
         <Link href="/" className="flex items-center space-x-3 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary transition-colors group-hover:bg-primary/90">
-            <Heart className="h-4 w-4 text-primary-foreground" />
+          <div className="flex h-8 w-8 items-center justify-center transition-transform group-hover:scale-105">
+            <Image
+              src="/logo_560x560.png"
+              alt="SIE Wellness Logo"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
           </div>
           <div className="hidden sm:block">
             <h1 className="text-lg font-semibold tracking-tight text-foreground group-hover:text-foreground/90 transition-colors">
@@ -86,8 +93,14 @@ export function Header() {
               <div className="flex flex-col h-full">
                 {/* Header */}
                 <div className="flex items-center space-x-2 p-6 border-b border-border/40">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
-                    <Heart className="h-4 w-4 text-primary-foreground" />
+                  <div className="flex h-8 w-8 items-center justify-center">
+                    <Image
+                      src="/logo_560x560.png"
+                      alt="SIE Wellness Logo"
+                      width={32}
+                      height={32}
+                      className="rounded-lg"
+                    />
                   </div>
                   <div>
                     <h2 className="text-base font-semibold">SIE Wellness</h2>
