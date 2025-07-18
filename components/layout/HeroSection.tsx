@@ -157,10 +157,10 @@ export function HeroSection({
   }
 
   return (
-    <section className="bg-gradient-to-br from-primary/5 via-background to-primary/10 py-8 px-4 max-h-[50vh] min-h-[400px]">
+    <section className="bg-gradient-to-br from-primary/5 via-background to-primary/10 py-4 md:py-8 px-4 min-h-[300px] md:min-h-[400px]">
       <div className="container mx-auto max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-8">
+        {/* Header - Hidden on mobile, visible on desktop */}
+        <div className="text-center mb-8 hidden md:block">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3 leading-tight">
             Find Free & Low-Cost Healthcare Near You
           </h1>
@@ -172,13 +172,13 @@ export function HeroSection({
 
         {/* Search Error Alert */}
         {searchError && (
-          <Alert className="mb-6 border-destructive/50 bg-destructive/5">
+          <Alert className="mb-4 md:mb-6 border-destructive/50 bg-destructive/5">
             <AlertDescription className="text-sm">{searchError}</AlertDescription>
           </Alert>
         )}
 
         {/* Main Search Interface - Mobile-first responsive */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-3 md:space-y-6">
           {/* Search Row - Mobile Stacked, Desktop Horizontal */}
           <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-4">
             {/* Search Input - Full width on mobile */}

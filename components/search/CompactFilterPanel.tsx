@@ -14,7 +14,6 @@ import { Separator } from "@/components/ui/separator"
 import { 
   Filter, 
   ChevronDown, 
-  X, 
   DollarSign, 
   Shield, 
   CreditCard, 
@@ -70,8 +69,6 @@ const providerTypes = [
 export function CompactFilterPanel({ 
   filters, 
   onFiltersChange, 
-  onClearFilters, 
-  resultsCount = 0,
   isLoading = false,
   className = "",
   onFilterOnlySearch
@@ -132,26 +129,6 @@ export function CompactFilterPanel({
               <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
             </Button>
           </CollapsibleTrigger>
-
-          {/* Quick Actions */}
-          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-            {resultsCount > 0 && (
-              <span className="text-sm text-muted-foreground">
-                {resultsCount} results found
-              </span>
-            )}
-            {activeFiltersCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearFilters}
-                className="h-10 sm:h-8 px-3 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4 mr-1" />
-                Clear
-              </Button>
-            )}
-          </div>
         </div>
 
         {/* Expanded Filter Panel */}

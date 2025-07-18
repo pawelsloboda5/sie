@@ -160,15 +160,145 @@ export function ProviderCard({
     return `${distance.toFixed(1)} mi`
   }
 
+  // Compact List View Layout
+  if (compact) {
+    return (
+      <div className="w-full border-b border-border py-4 px-4 hover:bg-muted/20 transition-colors">
+        <div className="grid grid-cols-12 gap-3 items-start">
+          {/* Provider Info - 6 columns */}
+          <div className="col-span-6 space-y-1">
+            <h3 className="font-semibold text-base text-foreground leading-tight line-clamp-2">
+              {provider.name}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {provider.category}
+            </p>
+            <div className="flex items-center gap-1">
+              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+              <span className="text-sm font-medium">{provider.rating.toFixed(1)}</span>
+              {showDistance && provider.distance && (
+                <>
+                  <span className="text-muted-foreground mx-1">•</span>
+                  <span className="text-sm text-muted-foreground">{formatDistance(provider.distance)}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Services Info - 3 columns */}
+          <div className="col-span-3 space-y-1">
+            <div className="text-xs text-muted-foreground">Services</div>
+            <div className="flex items-center gap-2 text-sm">
+              {getFreeServices().length > 0 && (
+                <span className="inline-flex items-center gap-1 text-green-600 font-medium">
+                  <DollarSign className="h-3 w-3" />
+                  {getFreeServices().length} Free
+                </span>
+              )}
+              {services.length > 0 && (
+                <span className="text-muted-foreground">
+                  {services.length} Total
+                </span>
+              )}
+            </div>
+            
+            <div className="flex flex-wrap gap-1 mt-2">
+              {provider.accepts_uninsured && (
+                <Badge variant="outline" className="text-xs px-1 py-0">Uninsured</Badge>
+              )}
+              {provider.medicaid && (
+                <Badge variant="outline" className="text-xs px-1 py-0">Medicaid</Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Actions - 3 columns */}
+          <div className="col-span-3 flex flex-col gap-1.5">
+            {provider.phone && (
+              <Button
+                size="sm"
+                onClick={() => onCallProvider?.(provider)}
+                className="h-7 text-xs px-2"
+              >
+                <Phone className="h-3 w-3 mr-1" />
+                Call
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onGetDirections?.(provider)}
+              className="h-7 text-xs px-2"
+            >
+              <Navigation className="h-3 w-3 mr-1" />
+              Directions
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onViewDetails?.(provider)}
+              className="h-7 text-xs px-2 border border-border hover:bg-primary hover:text-primary-foreground"
+            >
+              <Info className="h-3 w-3 mr-1" />
+              Details
+            </Button>
+          </div>
+        </div>
+
+        {/* Featured Service - Full width above address */}
+        {topService && (
+          <div className="mt-3 px-2 py-2 bg-muted/30 rounded-md">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  {topService.is_free && (
+                    <Badge className="bg-green-600 text-white text-xs px-2 py-0.5">
+                      FREE
+                    </Badge>
+                  )}
+                  {topService.is_discounted && !topService.is_free && (
+                    <Badge className="bg-orange-600 text-white text-xs px-2 py-0.5">
+                      DISCOUNTED
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">
+                  {topService.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {topService.category}
+                </p>
+                {topService.description && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {topService.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Address - Full width row */}
+        <div className="mt-2 pt-2 border-t border-border/50">
+          <div className="flex items-start gap-2">
+            <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs text-muted-foreground leading-relaxed">{provider.address}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Default Card View Layout (existing code)
   return (
-    <Card className={`w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group ${compact ? 'p-3 sm:p-4' : 'p-3 sm:p-4 lg:p-6'}`}>
-      <CardHeader className={compact ? 'pb-3 sm:pb-4' : 'pb-3 sm:pb-4 lg:pb-6'}>
+    <Card className={`w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group p-3 sm:p-4 lg:p-6`}>
+      <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 space-y-3 sm:space-y-4 min-w-0">
             {/* Provider Name and Category */}
             <div>
               <div className="flex flex-col gap-2 sm:gap-3 mb-2">
-                <CardTitle className={`${compact ? 'text-lg sm:text-xl' : 'text-lg sm:text-xl lg:text-2xl'} font-bold text-foreground leading-tight break-words`}>
+                <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground leading-tight break-words">
                   {provider.name}
                 </CardTitle>
                 {showDistance && provider.distance && (
@@ -200,24 +330,22 @@ export function ProviderCard({
             </div>
           </div>
           
-          {!compact && (
-            <div className="flex flex-col gap-2 flex-shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onViewDetails?.(provider)}
-                className="text-xs sm:text-sm hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap"
-              >
-                <Info className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">View Details</span>
-                <span className="sm:hidden">Details</span>
-              </Button>
-            </div>
-          )}
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onViewDetails?.(provider)}
+              className="text-xs sm:text-sm hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap"
+            >
+              <Info className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">View Details</span>
+              <span className="sm:hidden">Details</span>
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className={`${compact ? 'pt-0 space-y-4 sm:space-y-5' : 'pt-0 space-y-5 sm:space-y-8'}`}>
+      <CardContent className="pt-0 space-y-5 sm:space-y-8">
         {/* Address */}
         <div className="flex items-start gap-3">
           <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mt-1 text-primary flex-shrink-0" />
@@ -225,16 +353,14 @@ export function ProviderCard({
         </div>
 
         {/* Prominent Accessibility Badges */}
-        {!compact && (
-          <div className="space-y-2 sm:space-y-3">
-            <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">
-              Accessibility & Coverage
-            </h4>
-            <div className="flex flex-wrap gap-1 sm:gap-2">
-              {getAccessibilityBadges()}
-            </div>
+        <div className="space-y-2 sm:space-y-3">
+          <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">
+            Accessibility & Coverage
+          </h4>
+          <div className="flex flex-wrap gap-1 sm:gap-2">
+            {getAccessibilityBadges()}
           </div>
-        )}
+        </div>
 
         {/* Featured Service Highlight */}
         {topService && (
@@ -328,7 +454,7 @@ export function ProviderCard({
         )}
 
         {/* Insurance Information */}
-        {provider.insurance_providers.length > 0 && !compact && (
+        {provider.insurance_providers.length > 0 && (
           <div className="space-y-2 sm:space-y-3">
             <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
               <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
@@ -354,7 +480,7 @@ export function ProviderCard({
         {/* Action Buttons */}
         <div className="space-y-3 sm:space-y-4">
           {/* Primary Actions */}
-          <div className={`grid gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
             {provider.phone && (
               <Button
                 size="lg"
@@ -378,47 +504,33 @@ export function ProviderCard({
           </div>
           
           {/* Secondary Actions */}
-          {!compact && (
-            <div className="flex flex-col sm:flex-row gap-3">
-              {provider.website && (
-                <a
-                  href={provider.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center px-4 py-3 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50 min-h-[48px]"
-                  onClick={() => onVisitWebsite?.(provider)}
-                >
-                  <Globe className="h-4 w-4 mr-2" />
-                  Visit Website
-                  <ExternalLink className="h-3 w-3 ml-2" />
-                </a>
-              )}
-              
-              {provider.email && (
-                <Button
-                  variant="ghost"
-                  onClick={() => window.open(`mailto:${provider.email}`, '_self')}
-                  className="flex-1 text-sm hover:bg-muted h-12"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Email
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Compact mode additional info */}
-        {compact && (
-          <div className="flex flex-wrap gap-1 sm:gap-2 mt-4">
-            {getAccessibilityBadges().slice(0, 2)}
-            {getAccessibilityBadges().length > 2 && (
-              <Badge variant="outline" className="text-xs px-2 py-1">
-                +{getAccessibilityBadges().length - 2} more
-              </Badge>
+          <div className="flex flex-col sm:flex-row gap-3">
+            {provider.website && (
+              <a
+                href={provider.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center px-4 py-3 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50 min-h-[48px]"
+                onClick={() => onVisitWebsite?.(provider)}
+              >
+                <Globe className="h-4 w-4 mr-2" />
+                Visit Website
+                <ExternalLink className="h-3 w-3 ml-2" />
+              </a>
+            )}
+            
+            {provider.email && (
+              <Button
+                variant="ghost"
+                onClick={() => window.open(`mailto:${provider.email}`, '_self')}
+                className="flex-1 text-sm hover:bg-muted h-12"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Send Email
+              </Button>
             )}
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   )

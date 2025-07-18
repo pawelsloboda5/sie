@@ -6,7 +6,7 @@ import { FilterPanel } from "@/components/search/FilterPanel"
 import { ResultsList } from "@/components/results/ResultsList"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Filter, MapPin, List } from "lucide-react"
+import { Filter, MapPin, List, Search } from "lucide-react"
  
 interface FilterOptions {
   freeOnly: boolean
@@ -83,7 +83,7 @@ export default function FindPage() {
   const [currentQuery, setCurrentQuery] = useState("")
   const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | undefined>(undefined)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('list')
+  const [viewMode, setViewMode] = useState<'display' | 'list'>('display')
   
   // State for initial values from URL parameters
   const [initialQuery, setInitialQuery] = useState("")
@@ -317,7 +317,7 @@ export default function FindPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile-optimized Hero Section */}
-      <div className="min-h-[320px] sm:min-h-[400px] lg:min-h-[450px] flex flex-col">
+      <div className="min-h-[280px] sm:min-h-[320px] lg:min-h-[400px] flex flex-col">
         <HeroSection 
           onSearch={handleSearch}
           isSearching={isLoading}
@@ -338,43 +338,16 @@ export default function FindPage() {
           <div className="w-full">
             {/* Mobile Controls - Improved touch targets and spacing */}
             <div className="lg:hidden mb-4 sm:mb-6 space-y-3">
-              {/* Filter Button */}
-              <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
-                <SheetTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="w-full flex items-center justify-center gap-3 h-14 border-2 font-medium text-base bg-background hover:bg-accent transition-colors"
-                  >
-                    <Filter className="h-5 w-5" />
-                    <span>Advanced Filters</span>
-                    {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
-                      filters.acceptsMedicare || filters.telehealthAvailable || 
-                      filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
-                      <span className="ml-2 bg-primary text-primary-foreground text-sm px-3 py-1 rounded-full font-semibold">
-                        Active
-                      </span>
-                    )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-full sm:w-96 p-0 overflow-y-auto">
-                  <div className="p-4 sm:p-6">
-                    <FilterPanel
-                      filters={filters}
-                      onFiltersChange={handleFiltersChange}
-                      onClearFilters={handleClearFilters}
-                      resultsCount={searchResults?.totalResults || 0}
-                      isLoading={isLoading}
-                      onFilterOnlySearch={() => {
-                        handleFilterOnlySearch(filters)
-                        setShowMobileFilters(false)
-                      }}
-                    />
-                  </div>
-                </SheetContent>
-              </Sheet>
-              
-              {/* View Mode Toggle - Improved mobile layout */}
+              {/* View Mode Toggle - Display vs List */}
               <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant={viewMode === 'display' ? 'default' : 'outline'}
+                  onClick={() => setViewMode('display')}
+                  className="h-14 flex items-center justify-center gap-3 text-base font-medium transition-colors"
+                >
+                  <Search className="h-5 w-5" />
+                  Card View
+                </Button>
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'outline'}
                   onClick={() => setViewMode('list')}
@@ -383,46 +356,18 @@ export default function FindPage() {
                   <List className="h-5 w-5" />
                   List View
                 </Button>
-                <Button
-                  variant={viewMode === 'map' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('map')}
-                  className="h-14 flex items-center justify-center gap-3 text-base font-medium transition-colors"
-                >
-                  <MapPin className="h-5 w-5" />
-                  Map View
-                </Button>
               </div>
             </div>
             
             {/* Results Display - Mobile-optimized */}
-            {viewMode === 'list' ? (
-              <ResultsList
-                results={searchResults}
-                isLoading={isLoading}
-                onRetry={handleRetrySearch}
-                onProviderAction={handleProviderAction}
-                showDistance={!!currentLocation}
-                compact={false}
-              />
-            ) : (
-              <div className="bg-muted/30 rounded-xl p-6 sm:p-8 lg:p-12 h-80 sm:h-96 lg:h-[500px] flex items-center justify-center border border-border">
-                <div className="text-center max-w-md px-4">
-                  <MapPin className="h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground mx-auto mb-6" />
-                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-3">Map View Coming Soon</h3>
-                  <p className="text-sm sm:text-base text-muted-foreground mb-6 leading-relaxed">
-                    Interactive Azure Maps will display here with provider pins and advanced location features
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setViewMode('list')}
-                    className="h-12 px-6 text-base font-medium"
-                  >
-                    <List className="h-4 w-4 mr-2" />
-                    View as List
-                  </Button>
-                </div>
-              </div>
-            )}
+            <ResultsList
+              results={searchResults}
+              isLoading={isLoading}
+              onRetry={handleRetrySearch}
+              onProviderAction={handleProviderAction}
+              showDistance={!!currentLocation}
+              compact={viewMode === 'list'}
+            />
           </div>
         </div>
       </main>
