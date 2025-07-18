@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
@@ -89,15 +89,7 @@ export function HeroSection({
     "Substance abuse treatment"
   ]
 
-  // Auto-request location on component mount
-  useEffect(() => {
-    if (!initialLocation && !hasAutoRequestedLocation) {
-      setHasAutoRequestedLocation(true)
-      handleGetLocation()
-    }
-  }, [initialLocation, hasAutoRequestedLocation])
-
-  const handleGetLocation = async () => {
+  const handleGetLocation = useCallback(async () => {
     setIsGettingLocation(true)
     try {
       if ("geolocation" in navigator) {
@@ -128,7 +120,15 @@ export function HeroSection({
         setSearchError("Error accessing location services.")
       }
     }
-  }
+  }, [hasAutoRequestedLocation])
+
+  // Auto-request location on component mount
+  useEffect(() => {
+    if (!initialLocation && !hasAutoRequestedLocation) {
+      setHasAutoRequestedLocation(true)
+      handleGetLocation()
+    }
+  }, [initialLocation, hasAutoRequestedLocation, handleGetLocation])
 
   const parseLocation = (locationString: string) => {
     // Check if it's coordinates (latitude, longitude)
