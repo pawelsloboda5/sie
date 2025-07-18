@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { HeroSection } from "@/components/layout/HeroSection"
-import { FilterPanel } from "@/components/search/FilterPanel"
 import { ResultsList } from "@/components/results/ResultsList"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Filter, MapPin, List, Search } from "lucide-react"
+import { List, Search } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
  
 interface FilterOptions {
   freeOnly: boolean
@@ -82,7 +81,6 @@ export default function FindPage() {
   const [filters, setFilters] = useState<FilterOptions>(defaultFilters)
   const [currentQuery, setCurrentQuery] = useState("")
   const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | undefined>(undefined)
-  const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [viewMode, setViewMode] = useState<'display' | 'list'>('display')
   
   // State for initial values from URL parameters
@@ -336,7 +334,7 @@ export default function FindPage() {
         <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-6 lg:py-8">
           {/* Mobile-optimized Results Container */}
           <div className="w-full">
-            {/* Mobile Controls - Improved touch targets and spacing */}
+            {/* Mobile Controls */}
             <div className="lg:hidden mb-4 sm:mb-6 space-y-3">
               {/* View Mode Toggle - Display vs List */}
               <div className="grid grid-cols-2 gap-3">
@@ -356,6 +354,72 @@ export default function FindPage() {
                   <List className="h-5 w-5" />
                   List View
                 </Button>
+              </div>
+            </div>
+
+            {/* Desktop Controls */}
+            <div className="hidden lg:flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                {/* View Mode Toggle for Desktop */}
+                <div className="flex items-center border border-border rounded-lg p-1">
+                  <Button
+                    variant={viewMode === 'display' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('display')}
+                    className="h-8 px-3 text-sm transition-colors"
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    Card View
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className="h-8 px-3 text-sm transition-colors"
+                  >
+                    <List className="h-4 w-4 mr-2" />
+                    List View
+                  </Button>
+                </div>
+
+                {/* Filter indicators */}
+                {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
+                  filters.acceptsMedicare || filters.telehealthAvailable || 
+                  filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Active filters:</span>
+                    <div className="flex gap-1">
+                      {filters.freeOnly && (
+                        <Badge variant="secondary" className="text-xs">Free Only</Badge>
+                      )}
+                      {filters.acceptsUninsured && (
+                        <Badge variant="secondary" className="text-xs">Uninsured</Badge>
+                      )}
+                      {filters.acceptsMedicaid && (
+                        <Badge variant="secondary" className="text-xs">Medicaid</Badge>
+                      )}
+                      {filters.acceptsMedicare && (
+                        <Badge variant="secondary" className="text-xs">Medicare</Badge>
+                      )}
+                      {filters.telehealthAvailable && (
+                        <Badge variant="secondary" className="text-xs">Telehealth</Badge>
+                      )}
+                      {(filters.insuranceProviders.length + filters.serviceCategories.length) > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          +{filters.insuranceProviders.length + filters.serviceCategories.length} more
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                {searchResults?.totalResults && (
+                  <span className="text-sm text-muted-foreground">
+                    {searchResults.totalResults} results found
+                  </span>
+                )}
               </div>
             </div>
             

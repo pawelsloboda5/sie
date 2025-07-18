@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -73,6 +73,19 @@ export function ProviderCard({
   showDistance = true,
   compact = false
 }: ProviderCardProps) {
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsDesktop(window.innerWidth >= 1024)
+    }
+    
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+    
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
+
   const renderStars = (rating: number) => {
     const stars = []
     const fullStars = Math.floor(rating)
@@ -160,8 +173,8 @@ export function ProviderCard({
     return `${distance.toFixed(1)} mi`
   }
 
-  // Compact List View Layout
-  if (compact) {
+  // Mobile Compact List View Layout
+  if (compact && !isDesktop) {
     return (
       <div className="w-full border-b border-border py-4 px-4 hover:bg-muted/20 transition-colors">
         <div className="grid grid-cols-12 gap-3 items-start">
@@ -289,113 +302,346 @@ export function ProviderCard({
     )
   }
 
-  // Default Card View Layout (existing code)
-  return (
-    <Card className={`w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group p-3 sm:p-4 lg:p-6`}>
-      <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 space-y-3 sm:space-y-4 min-w-0">
-            {/* Provider Name and Category */}
+  // Desktop List View Layout
+  if (compact && isDesktop) {
+    return (
+      <div className="w-full border border-border rounded-lg mb-4 p-6 hover:shadow-lg hover:border-primary/30 transition-all duration-200 bg-card">
+        <div className="grid grid-cols-12 gap-6 items-start">
+          {/* Provider Info - 4 columns */}
+          <div className="col-span-4 space-y-3">
             <div>
-              <div className="flex flex-col gap-2 sm:gap-3 mb-2">
-                <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground leading-tight break-words">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <h3 className="font-bold text-xl text-foreground leading-tight">
                   {provider.name}
-                </CardTitle>
+                </h3>
                 {showDistance && provider.distance && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 px-3 py-1.5 text-sm font-medium w-fit">
-                    <MapPin className="h-4 w-4 mr-2" />
+                  <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 px-3 py-1 text-sm font-medium flex-shrink-0">
+                    <MapPin className="h-4 w-4 mr-1" />
                     {formatDistance(provider.distance)}
                   </Badge>
                 )}
               </div>
               
-              <div className="flex flex-col gap-3 mb-3">
-                <Badge variant="outline" className="text-sm px-3 py-1.5 font-medium w-fit">
+              <Badge variant="outline" className="text-sm px-3 py-1 font-medium mb-3">
+                {provider.category}
+              </Badge>
+              
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  {renderStars(provider.rating)}
+                </div>
+                <span className="text-lg font-semibold text-foreground">
+                  {provider.rating.toFixed(1)}
+                </span>
+                <span className="text-sm text-muted-foreground">rating</span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <MapPin className="h-4 w-4 mt-1 text-primary flex-shrink-0" />
+              <span className="text-sm text-foreground leading-relaxed">{provider.address}</span>
+            </div>
+          </div>
+
+          {/* Services & Featured Service - 4 columns */}
+          <div className="col-span-4 space-y-4">
+            {/* Service Summary */}
+            <div>
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
+                Services Available
+              </h4>
+              <div className="grid grid-cols-3 gap-4 p-4 bg-muted/20 rounded-lg">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary mb-1">
+                    {services.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Total
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600 mb-1">
+                    {getFreeServices().length}
+                  </div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Free
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600 mb-1">
+                    {getDiscountedServices().length}
+                  </div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Discounted
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Featured Service */}
+            {topService && (
+              <div className={`p-4 rounded-lg border-2 ${
+                topService.is_free 
+                  ? 'bg-green-50 border-green-200' 
+                  : topService.is_discounted 
+                  ? 'bg-orange-50 border-orange-200' 
+                  : 'bg-primary/5 border-primary/20'
+              }`}>
+                <div className="flex items-start justify-between mb-2 gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Heart className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold text-primary uppercase tracking-wide">
+                        Featured Service
+                      </span>
+                    </div>
+                    <h5 className="text-lg font-semibold text-foreground mb-1">
+                      {topService.name}
+                    </h5>
+                    <p className="text-sm text-muted-foreground">{topService.category}</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {topService.is_free && (
+                      <Badge className="bg-green-600 text-white hover:bg-green-700 border-0 text-sm font-bold px-3 py-1">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        FREE
+                      </Badge>
+                    )}
+                    {topService.is_discounted && !topService.is_free && (
+                      <Badge className="bg-orange-600 text-white hover:bg-orange-700 border-0 text-sm font-bold px-3 py-1">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        DISC
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                {topService.description && (
+                  <p className="text-sm text-foreground/80 mb-3 leading-relaxed">
+                    {topService.description}
+                  </p>
+                )}
+                
+                {topService.price_info && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-medium text-foreground">Pricing:</span>
+                    <span className="text-muted-foreground">{topService.price_info}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Accessibility & Actions - 4 columns */}
+          <div className="col-span-4 space-y-4">
+            {/* Accessibility Badges */}
+            <div>
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
+                Accessibility & Coverage
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {getAccessibilityBadges()}
+              </div>
+            </div>
+
+            {/* Insurance Information */}
+            {provider.insurance_providers.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2 mb-3">
+                  <CreditCard className="h-4 w-4 text-blue-600" />
+                  Insurance Accepted
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {provider.insurance_providers.slice(0, 3).map((insurance) => (
+                    <Badge key={insurance} variant="outline" className="text-sm px-3 py-1">
+                      {insurance}
+                    </Badge>
+                  ))}
+                  {provider.insurance_providers.length > 3 && (
+                    <Badge variant="outline" className="text-sm px-3 py-1">
+                      +{provider.insurance_providers.length - 3} more
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-3 pt-2">
+              <div className="grid gap-3">
+                {provider.phone && (
+                  <Button
+                    size="lg"
+                    onClick={() => onCallProvider?.(provider)}
+                    className="h-12 text-base font-semibold bg-primary hover:bg-primary/90 transition-colors"
+                  >
+                    <Phone className="h-5 w-5 mr-2" />
+                    Call Now
+                  </Button>
+                )}
+                
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => onGetDirections?.(provider)}
+                  className="h-12 text-base font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                >
+                  <Navigation className="h-5 w-5 mr-2" />
+                  Get Directions
+                </Button>
+
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  onClick={() => onViewDetails?.(provider)}
+                  className="h-12 text-base font-semibold border-2 border-border hover:bg-muted transition-colors"
+                >
+                  <Info className="h-5 w-5 mr-2" />
+                  View Details
+                </Button>
+              </div>
+
+              {/* Secondary Actions */}
+              <div className="flex gap-3 pt-2">
+                {provider.website && (
+                  <a
+                    href={provider.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center px-4 py-3 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50"
+                    onClick={() => onVisitWebsite?.(provider)}
+                  >
+                    <Globe className="h-4 w-4 mr-2" />
+                    Visit Website
+                    <ExternalLink className="h-3 w-3 ml-2" />
+                  </a>
+                )}
+                
+                {provider.email && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => window.open(`mailto:${provider.email}`, '_self')}
+                    className="flex-1 text-sm hover:bg-muted h-12"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send Email
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Enhanced Desktop Card View Layout
+  return (
+    <Card className="w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group">
+      <CardHeader className="p-8 pb-6">
+        <div className="flex items-start justify-between gap-6">
+          <div className="flex-1 space-y-6 min-w-0">
+            {/* Provider Name and Category */}
+            <div>
+              <div className="flex flex-col gap-4 mb-4">
+                <div className="flex items-start justify-between gap-4">
+                  <CardTitle className="text-2xl lg:text-3xl font-bold text-foreground leading-tight break-words flex-1">
+                    {provider.name}
+                  </CardTitle>
+                  {showDistance && provider.distance && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 px-4 py-2 text-base font-medium flex-shrink-0">
+                      <MapPin className="h-5 w-5 mr-2" />
+                      {formatDistance(provider.distance)}
+                    </Badge>
+                  )}
+                </div>
+                
+                <Badge variant="outline" className="text-base px-4 py-2 font-medium w-fit">
                   {provider.category}
                 </Badge>
-                
-                {/* Rating with responsive stars */}
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    {renderStars(provider.rating)}
-                  </div>
-                  <span className="text-lg font-semibold text-foreground">
-                    {provider.rating.toFixed(1)}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    rating
-                  </span>
+              </div>
+              
+              {/* Rating with responsive stars */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  {renderStars(provider.rating)}
                 </div>
+                <span className="text-xl font-semibold text-foreground">
+                  {provider.rating.toFixed(1)}
+                </span>
+                <span className="text-base text-muted-foreground">
+                  rating
+                </span>
               </div>
             </div>
           </div>
           
-          <div className="flex flex-col gap-2 flex-shrink-0">
+          <div className="flex flex-col gap-3 flex-shrink-0">
             <Button
               variant="outline"
-              size="sm"
+              size="lg"
               onClick={() => onViewDetails?.(provider)}
-              className="text-xs sm:text-sm hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap"
+              className="text-base hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap h-12 px-6"
             >
-              <Info className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">View Details</span>
-              <span className="sm:hidden">Details</span>
+              <Info className="h-5 w-5 mr-2" />
+              View Details
             </Button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0 space-y-5 sm:space-y-8">
+      <CardContent className="px-8 pb-8 space-y-8">
         {/* Address */}
-        <div className="flex items-start gap-3">
-          <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mt-1 text-primary flex-shrink-0" />
-          <span className="text-sm sm:text-base text-foreground leading-relaxed break-words">{provider.address}</span>
+        <div className="flex items-start gap-4">
+          <MapPin className="h-6 w-6 mt-1 text-primary flex-shrink-0" />
+          <span className="text-base text-foreground leading-relaxed break-words">{provider.address}</span>
         </div>
 
         {/* Prominent Accessibility Badges */}
-        <div className="space-y-2 sm:space-y-3">
-          <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">
+        <div className="space-y-4">
+          <h4 className="text-base font-semibold text-foreground uppercase tracking-wide">
             Accessibility & Coverage
           </h4>
-          <div className="flex flex-wrap gap-1 sm:gap-2">
+          <div className="flex flex-wrap gap-3">
             {getAccessibilityBadges()}
           </div>
         </div>
 
         {/* Featured Service Highlight */}
         {topService && (
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-center gap-2">
-              <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              <span className="text-xs sm:text-sm font-semibold text-primary uppercase tracking-wide">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Heart className="h-6 w-6 text-primary" />
+              <span className="text-base font-semibold text-primary uppercase tracking-wide">
                 Featured Service
               </span>
             </div>
-            <div className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
+            <div className={`p-6 rounded-lg border-2 transition-all ${
               topService.is_free 
                 ? 'bg-green-50 border-green-200' 
                 : topService.is_discounted 
                 ? 'bg-orange-50 border-orange-200' 
                 : 'bg-primary/5 border-primary/20'
             }`}>
-              <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+              <div className="flex items-start justify-between mb-4 gap-4">
                 <div className="flex-1 min-w-0">
-                  <h5 className="text-base sm:text-lg font-semibold text-foreground mb-1 break-words">
+                  <h5 className="text-xl font-semibold text-foreground mb-2 break-words">
                     {topService.name}
                   </h5>
-                  <p className="text-xs sm:text-sm text-muted-foreground">{topService.category}</p>
+                  <p className="text-base text-muted-foreground">{topService.category}</p>
                 </div>
                 
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   {topService.is_free && (
-                    <Badge className="bg-green-600 text-white hover:bg-green-700 border-0 text-xs sm:text-sm font-bold px-2 sm:px-3 py-1">
-                      <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <Badge className="bg-green-600 text-white hover:bg-green-700 border-0 text-base font-bold px-4 py-2">
+                      <DollarSign className="h-5 w-5 mr-2" />
                       FREE
                     </Badge>
                   )}
                   {topService.is_discounted && !topService.is_free && (
-                    <Badge className="bg-orange-600 text-white hover:bg-orange-700 border-0 text-xs sm:text-sm font-bold px-2 sm:px-3 py-1">
-                      <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <Badge className="bg-orange-600 text-white hover:bg-orange-700 border-0 text-base font-bold px-4 py-2">
+                      <DollarSign className="h-5 w-5 mr-2" />
                       DISC
                     </Badge>
                   )}
@@ -403,13 +649,13 @@ export function ProviderCard({
               </div>
               
               {topService.description && (
-                <p className="text-xs sm:text-sm text-foreground/80 mb-2 sm:mb-3 leading-relaxed">
+                <p className="text-base text-foreground/80 mb-4 leading-relaxed">
                   {topService.description}
                 </p>
               )}
               
               {topService.price_info && (
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                <div className="flex items-center gap-3 text-base">
                   <span className="font-medium text-foreground">Pricing:</span>
                   <span className="text-muted-foreground break-words">{topService.price_info}</span>
                 </div>
@@ -420,33 +666,33 @@ export function ProviderCard({
 
         {/* Service Summary */}
         {services.length > 0 && (
-          <div className="space-y-2 sm:space-y-3">
-            <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">
+          <div className="space-y-4">
+            <h4 className="text-base font-semibold text-foreground uppercase tracking-wide">
               Services Available
             </h4>
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 bg-muted/30 rounded-lg">
+            <div className="grid grid-cols-3 gap-6 p-6 bg-muted/30 rounded-lg">
               <div className="text-center">
-                <div className="text-lg sm:text-2xl font-bold text-primary mb-1">
+                <div className="text-3xl font-bold text-primary mb-2">
                   {services.length}
                 </div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide leading-tight">
-                  Total<span className="hidden sm:inline"> Services</span>
+                <div className="text-sm text-muted-foreground uppercase tracking-wide leading-tight">
+                  Total Services
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-lg sm:text-2xl font-bold text-green-600 mb-1">
+                <div className="text-3xl font-bold text-green-600 mb-2">
                   {getFreeServices().length}
                 </div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide leading-tight">
-                  Free<span className="hidden sm:inline"> Services</span>
+                <div className="text-sm text-muted-foreground uppercase tracking-wide leading-tight">
+                  Free Services
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-lg sm:text-2xl font-bold text-orange-600 mb-1">
+                <div className="text-3xl font-bold text-orange-600 mb-2">
                   {getDiscountedServices().length}
                 </div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide leading-tight">
-                  <span className="hidden sm:inline">Discounted</span><span className="sm:hidden">Disc</span>
+                <div className="text-sm text-muted-foreground uppercase tracking-wide leading-tight">
+                  Discounted
                 </div>
               </div>
             </div>
@@ -455,39 +701,39 @@ export function ProviderCard({
 
         {/* Insurance Information */}
         {provider.insurance_providers.length > 0 && (
-          <div className="space-y-2 sm:space-y-3">
-            <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
-              <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+          <div className="space-y-4">
+            <h4 className="text-base font-semibold text-foreground uppercase tracking-wide flex items-center gap-3">
+              <CreditCard className="h-5 w-5 text-blue-600" />
               Insurance Accepted
             </h4>
-            <div className="flex flex-wrap gap-1 sm:gap-2">
-              {provider.insurance_providers.slice(0, 4).map((insurance) => (
-                <Badge key={insurance} variant="outline" className="text-xs sm:text-sm px-2 sm:px-3 py-1">
+            <div className="flex flex-wrap gap-3">
+              {provider.insurance_providers.slice(0, 6).map((insurance) => (
+                <Badge key={insurance} variant="outline" className="text-base px-4 py-2">
                   {insurance}
                 </Badge>
               ))}
-              {provider.insurance_providers.length > 4 && (
-                <Badge variant="outline" className="text-xs sm:text-sm px-2 sm:px-3 py-1">
-                  +{provider.insurance_providers.length - 4} more
+              {provider.insurance_providers.length > 6 && (
+                <Badge variant="outline" className="text-base px-4 py-2">
+                  +{provider.insurance_providers.length - 6} more
                 </Badge>
               )}
             </div>
           </div>
         )}
 
-        <Separator className="my-4 sm:my-6" />
+        <Separator className="my-8" />
 
         {/* Action Buttons */}
-        <div className="space-y-3 sm:space-y-4">
+        <div className="space-y-6">
           {/* Primary Actions */}
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             {provider.phone && (
               <Button
                 size="lg"
                 onClick={() => onCallProvider?.(provider)}
-                className="h-14 text-base font-semibold bg-primary hover:bg-primary/90 transition-colors"
+                className="h-16 text-lg font-semibold bg-primary hover:bg-primary/90 transition-colors"
               >
-                <Phone className="h-5 w-5 mr-2" />
+                <Phone className="h-6 w-6 mr-3" />
                 Call Now
               </Button>
             )}
@@ -496,26 +742,26 @@ export function ProviderCard({
               size="lg"
               variant="outline"
               onClick={() => onGetDirections?.(provider)}
-              className="h-14 text-base font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+              className="h-16 text-lg font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
             >
-              <Navigation className="h-5 w-5 mr-2" />
+              <Navigation className="h-6 w-6 mr-3" />
               Get Directions
             </Button>
           </div>
           
           {/* Secondary Actions */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex gap-4">
             {provider.website && (
               <a
                 href={provider.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center px-4 py-3 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50 min-h-[48px]"
+                className="flex-1 flex items-center justify-center px-6 py-4 text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50 min-h-[56px]"
                 onClick={() => onVisitWebsite?.(provider)}
               >
-                <Globe className="h-4 w-4 mr-2" />
+                <Globe className="h-5 w-5 mr-3" />
                 Visit Website
-                <ExternalLink className="h-3 w-3 ml-2" />
+                <ExternalLink className="h-4 w-4 ml-3" />
               </a>
             )}
             
@@ -523,9 +769,9 @@ export function ProviderCard({
               <Button
                 variant="ghost"
                 onClick={() => window.open(`mailto:${provider.email}`, '_self')}
-                className="flex-1 text-sm hover:bg-muted h-12"
+                className="flex-1 text-base hover:bg-muted h-14"
               >
-                <Mail className="h-4 w-4 mr-2" />
+                <Mail className="h-5 w-5 mr-3" />
                 Send Email
               </Button>
             )}
