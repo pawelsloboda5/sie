@@ -173,32 +173,36 @@ export function ResultsList({
   // Loading State
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="h-full flex flex-col space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-12 w-40" />
         </div>
-        <div className="space-y-6">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i} className="p-4 sm:p-6">
-              <div className="space-y-4">
-                <div className="flex flex-col gap-3">
-                  <Skeleton className="h-7 w-72" />
-                  <Skeleton className="h-5 w-20" />
-                </div>
-                <Skeleton className="h-5 w-60" />
-                <div className="flex flex-wrap gap-2">
-                  <Skeleton className="h-7 w-24" />
-                  <Skeleton className="h-7 w-28" />
-                  <Skeleton className="h-7 w-20" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Skeleton className="h-14 w-full" />
-                  <Skeleton className="h-14 w-full" />
-                </div>
-              </div>
-            </Card>
-          ))}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ScrollArea className="h-full pr-2 sm:pr-4">
+            <div className="space-y-6">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Card key={i} className="p-4 sm:p-6">
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-3">
+                      <Skeleton className="h-7 w-72" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                    <Skeleton className="h-5 w-60" />
+                    <div className="flex flex-wrap gap-2">
+                      <Skeleton className="h-7 w-24" />
+                      <Skeleton className="h-7 w-28" />
+                      <Skeleton className="h-7 w-20" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Skeleton className="h-14 w-full" />
+                      <Skeleton className="h-14 w-full" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
       </div>
     )
@@ -207,35 +211,37 @@ export function ResultsList({
   // Empty State
   if (!results || (results.providers.length === 0 && results.services.length === 0)) {
     return (
-      <Card className="p-8 sm:p-12 text-center">
-        <div className="flex flex-col items-center space-y-6">
-          <Search className="h-16 w-16 sm:h-20 sm:w-20 text-gray-400" />
-          <div className="space-y-3">
-            <h3 className="text-xl sm:text-2xl font-semibold text-gray-900">
-              {!results ? 'Start your search' : 'No results found'}
-            </h3>
-            <p className="text-gray-600 max-w-md text-base sm:text-lg leading-relaxed">
-              {!results 
-                ? 'Enter a service, condition, or location to find healthcare providers near you.'
-                : `We couldn't find any providers matching "${results.query}". Try adjusting your search terms or filters.`
-              }
-            </p>
+      <div className="h-full flex items-center justify-center">
+        <Card className="p-8 sm:p-12 text-center max-w-md w-full">
+          <div className="flex flex-col items-center space-y-6">
+            <Search className="h-16 w-16 sm:h-20 sm:w-20 text-gray-400" />
+            <div className="space-y-3">
+              <h3 className="text-xl sm:text-2xl font-semibold text-gray-900">
+                {!results ? 'Start your search' : 'No results found'}
+              </h3>
+              <p className="text-gray-600 max-w-md text-base sm:text-lg leading-relaxed">
+                {!results 
+                  ? 'Enter a service, condition, or location to find healthcare providers near you.'
+                  : `We couldn't find any providers matching "${results.query}". Try adjusting your search terms or filters.`
+                }
+              </p>
+            </div>
+            {onRetry && results && (
+              <Button onClick={onRetry} variant="outline" className="mt-4 h-12 px-6 text-base font-medium">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            )}
           </div>
-          {onRetry && results && (
-            <Button onClick={onRetry} variant="outline" className="mt-4 h-12 px-6 text-base font-medium">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
-          )}
-        </div>
-      </Card>
+        </Card>
+      </div>
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="h-full flex flex-col space-y-4 sm:space-y-6">
       {/* Results Header */}
-      <div className="flex flex-col gap-4 sm:gap-0 sm:flex-row sm:items-center justify-between">
+      <div className="flex-shrink-0 flex flex-col gap-4 sm:gap-0 sm:flex-row sm:items-center justify-between">
         <div className="space-y-2">
           <h2 className="text-xl sm:text-xl lg:text-2xl font-semibold text-gray-900 break-words">
             {results.isFiltered ? (
@@ -263,7 +269,7 @@ export function ResultsList({
         </div>
         
         {/* Sort Controls */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex-shrink-0 flex items-center gap-2 w-full sm:w-auto">
           <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
             <SelectTrigger className="w-full sm:w-40 h-12">
               <SelectValue placeholder="Sort by" />
@@ -301,24 +307,27 @@ export function ResultsList({
       </div>
 
       {/* Provider Results */}
-          {sortedProviders.length === 0 ? (
-            <Card className="p-6 text-center">
-              <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">No providers found matching your criteria.</p>
-            </Card>
-          ) : (
-            <ScrollArea className="h-[600px] sm:h-[800px] pr-2 sm:pr-4">
-              <div className="space-y-4 sm:space-y-6">
-            {sortedProviders.map((provider) => {
-              const topService = getProviderTopService(provider._id)
-              const allServices = results.services.filter(s => s.provider_id === provider._id)
-              
-              return (
+      {sortedProviders.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Card className="p-6 text-center max-w-md">
+            <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-gray-600">No providers found matching your criteria.</p>
+          </Card>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ScrollArea className="h-full pr-2 sm:pr-4">
+            <div className="space-y-4 sm:space-y-6 pb-4">
+              {sortedProviders.map((provider) => {
+                const topService = getProviderTopService(provider._id)
+                const allServices = results.services.filter(s => s.provider_id === provider._id)
+                
+                return (
                   <ProviderCard
                     key={provider._id}
                     provider={provider}
-                  services={allServices}
-                  topService={topService}
+                    services={allServices}
+                    topService={topService}
                     onGetDirections={(p) => handleProviderAction('directions', p)}
                     onCallProvider={(p) => handleProviderAction('call', p)}
                     onVisitWebsite={(p) => handleProviderAction('website', p)}
@@ -326,11 +335,12 @@ export function ResultsList({
                     showDistance={showDistance}
                     compact={compact}
                   />
-              )
-            })}
-              </div>
-            </ScrollArea>
-          )}
+                )
+              })}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
 
       {/* Provider Details Modal */}
       <ProviderDetailsModal

@@ -313,9 +313,9 @@ export default function FindPage() {
   }, [handleSearch])
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Mobile-optimized Hero Section */}
-      <div className="min-h-[280px] sm:min-h-[320px] lg:min-h-[400px] flex flex-col">
+    <div className="h-screen flex flex-col bg-background">
+      {/* Hero Section - takes natural height */}
+      <div className="flex-shrink-0">
         <HeroSection 
           onSearch={handleSearch}
           isSearching={isLoading}
@@ -329,11 +329,10 @@ export default function FindPage() {
         />
       </div>
       
-      {/* Main Results Area - Mobile-first responsive design */}
-      <main className="flex-1 bg-background">
-        <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-6 lg:py-8">
-          {/* Mobile-optimized Results Container */}
-          <div className="w-full">
+      {/* Main Results Area - takes remaining height */}
+      <main className="flex-1 min-h-0 bg-background">
+        <div className="h-full flex flex-col">
+          <div className="flex-1 min-h-0 container mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-6 lg:py-8">
             {/* Mobile Controls */}
             <div className="lg:hidden mb-4 sm:mb-6 space-y-3">
               {/* View Mode Toggle - Display vs List */}
@@ -423,16 +422,21 @@ export default function FindPage() {
               </div>
             </div>
             
-            {/* Results Display - Mobile-optimized */}
-            <ResultsList
-              results={searchResults}
-              isLoading={isLoading}
-              onRetry={handleRetrySearch}
-              onProviderAction={handleProviderAction}
-              showDistance={!!currentLocation}
-              compact={viewMode === 'list'}
-            />
+            {/* Results Display - takes remaining height */}
+            <div className="flex-1 min-h-0">
+              <ResultsList
+                results={searchResults}
+                isLoading={isLoading}
+                onRetry={handleRetrySearch}
+                onProviderAction={handleProviderAction}
+                showDistance={!!currentLocation}
+                compact={viewMode === 'list'}
+              />
+            </div>
           </div>
+          
+          {/* Bottom padding */}
+          <div className="flex-shrink-0 h-4 sm:h-6"></div>
         </div>
       </main>
     </div>
