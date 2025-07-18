@@ -161,26 +161,26 @@ export function ProviderCard({
   }
 
   return (
-    <Card className={`w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group ${compact ? 'p-3 sm:p-4' : 'p-4 sm:p-8'}`}>
-      <CardHeader className={compact ? 'pb-3 sm:pb-4' : 'pb-4 sm:pb-8'}>
+    <Card className={`w-full hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/30 group ${compact ? 'p-3 sm:p-4' : 'p-3 sm:p-4 lg:p-6'}`}>
+      <CardHeader className={compact ? 'pb-3 sm:pb-4' : 'pb-3 sm:pb-4 lg:pb-6'}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 space-y-3 sm:space-y-4 min-w-0">
             {/* Provider Name and Category */}
             <div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                <CardTitle className={`${compact ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'} font-bold text-foreground leading-tight break-words`}>
+              <div className="flex flex-col gap-2 sm:gap-3 mb-2">
+                <CardTitle className={`${compact ? 'text-lg sm:text-xl' : 'text-lg sm:text-xl lg:text-2xl'} font-bold text-foreground leading-tight break-words`}>
                   {provider.name}
                 </CardTitle>
                 {showDistance && provider.distance && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium w-fit">
-                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                  <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 px-3 py-1.5 text-sm font-medium w-fit">
+                    <MapPin className="h-4 w-4 mr-2" />
                     {formatDistance(provider.distance)}
                   </Badge>
                 )}
               </div>
               
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
-                <Badge variant="outline" className="text-xs sm:text-sm px-2 sm:px-3 py-1 font-medium w-fit">
+              <div className="flex flex-col gap-3 mb-3">
+                <Badge variant="outline" className="text-sm px-3 py-1.5 font-medium w-fit">
                   {provider.category}
                 </Badge>
                 
@@ -189,10 +189,10 @@ export function ProviderCard({
                   <div className="flex items-center gap-1">
                     {renderStars(provider.rating)}
                   </div>
-                  <span className="text-base sm:text-lg font-semibold text-foreground">
+                  <span className="text-lg font-semibold text-foreground">
                     {provider.rating.toFixed(1)}
                   </span>
-                  <span className="text-xs sm:text-sm text-muted-foreground">
+                  <span className="text-sm text-muted-foreground">
                     rating
                   </span>
                 </div>
@@ -354,14 +354,14 @@ export function ProviderCard({
         {/* Action Buttons */}
         <div className="space-y-3 sm:space-y-4">
           {/* Primary Actions */}
-          <div className={`grid gap-2 sm:gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
+          <div className={`grid gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
             {provider.phone && (
               <Button
                 size="lg"
                 onClick={() => onCallProvider?.(provider)}
-                className="h-12 sm:h-12 text-sm sm:text-base font-semibold bg-primary hover:bg-primary/90 transition-colors"
+                className="h-14 text-base font-semibold bg-primary hover:bg-primary/90 transition-colors"
               >
-                <Phone className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                <Phone className="h-5 w-5 mr-2" />
                 Call Now
               </Button>
             )}
@@ -370,22 +370,22 @@ export function ProviderCard({
               size="lg"
               variant="outline"
               onClick={() => onGetDirections?.(provider)}
-              className="h-12 sm:h-12 text-sm sm:text-base font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+              className="h-14 text-base font-semibold border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
             >
-              <Navigation className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              <Navigation className="h-5 w-5 mr-2" />
               Get Directions
             </Button>
           </div>
           
           {/* Secondary Actions */}
           {!compact && (
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               {provider.website && (
                 <a
                   href={provider.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center px-3 py-3 sm:py-2 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50 min-h-[44px] sm:min-h-auto"
+                  className="flex-1 flex items-center justify-center px-4 py-3 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors rounded-md border border-transparent hover:bg-blue-50 min-h-[48px]"
                   onClick={() => onVisitWebsite?.(provider)}
                 >
                   <Globe className="h-4 w-4 mr-2" />
@@ -397,9 +397,8 @@ export function ProviderCard({
               {provider.email && (
                 <Button
                   variant="ghost"
-                  size="sm"
                   onClick={() => window.open(`mailto:${provider.email}`, '_self')}
-                  className="flex-1 text-sm hover:bg-muted h-11 sm:h-auto"
+                  className="flex-1 text-sm hover:bg-muted h-12"
                 >
                   <Mail className="h-4 w-4 mr-2" />
                   Send Email

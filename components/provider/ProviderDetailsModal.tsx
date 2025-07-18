@@ -121,30 +121,31 @@ export function ProviderDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-4xl sm:max-w-4xl max-h-[95vh] sm:max-h-[90vh] p-0 m-2 sm:m-6">
-        <DialogHeader className="p-4 sm:p-6 pb-0">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
+      <DialogContent className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[95vh] md:max-h-[90vh] p-0 m-2 md:m-4 lg:m-6 overflow-hidden">
+        {/* Header Section */}
+        <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-6 pb-4 border-b bg-white/50 backdrop-blur-sm">
+          <div className="space-y-4">
+            <div className="flex flex-col space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight flex-1 min-w-0">
                   {provider.name}
                 </DialogTitle>
                 {showDistance && provider.distance && (
-                  <Badge variant="outline" className="text-sm w-fit">
-                    <MapPin className="h-3 w-3 mr-1" />
+                  <Badge variant="outline" className="text-sm px-3 py-1.5 flex-shrink-0">
+                    <MapPin className="h-4 w-4 mr-1.5" />
                     {formatDistance(provider.distance)}
                   </Badge>
                 )}
               </div>
               
-              <DialogDescription className="text-base sm:text-lg text-gray-600 mb-3">
+              <DialogDescription className="text-base sm:text-lg text-gray-600">
                 {provider.category}
               </DialogDescription>
               
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
                   {renderStars(provider.rating)}
-                  <span className="text-sm text-gray-600 ml-1">
+                  <span className="text-sm sm:text-base text-gray-600 ml-2 font-medium">
                     ({provider.rating.toFixed(1)})
                   </span>
                 </div>
@@ -153,65 +154,69 @@ export function ProviderDetailsModal({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(95vh-160px)] sm:max-h-[calc(90vh-200px)]">
-          <div className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
-            {/* Contact Information */}
-            <div className="space-y-3 sm:space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Info className="h-5 w-5" />
+        {/* Scrollable Content */}
+        <ScrollArea className="flex-1 max-h-[calc(95vh-240px)] md:max-h-[calc(90vh-260px)]">
+          <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+            
+            {/* Contact Information Section */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
+                <Info className="h-5 w-5 text-blue-600" />
                 Contact Information
               </h3>
               
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50">
                     <MapPin className="h-5 w-5 mt-0.5 text-gray-500 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="font-medium">Address</p>
-                      <p className="text-gray-600 break-words">{provider.address}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 mb-1">Address</p>
+                      <p className="text-gray-600 text-sm leading-relaxed break-words">{provider.address}</p>
                     </div>
                   </div>
                   
                   {provider.phone && (
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50">
                       <Phone className="h-5 w-5 mt-0.5 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="font-medium">Phone</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-gray-900 mb-1">Phone</p>
                         <a 
                           href={`tel:${provider.phone}`}
-                          className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                          className="text-blue-600 hover:text-blue-800 hover:underline transition-colors text-sm font-medium"
                         >
                           {provider.phone}
                         </a>
                       </div>
                     </div>
                   )}
-                  
+                </div>
+                
+                <div className="space-y-4">
                   {provider.website && (
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50">
                       <Globe className="h-5 w-5 mt-0.5 text-gray-500 flex-shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium">Website</p>
+                        <p className="font-medium text-gray-900 mb-1">Website</p>
                         <a 
                           href={provider.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 hover:underline break-all transition-colors text-sm"
+                          className="text-blue-600 hover:text-blue-800 hover:underline break-all transition-colors text-sm font-medium"
                         >
-                          {provider.website}
+                          {provider.website.replace(/^https?:\/\//, '')}
                         </a>
                       </div>
                     </div>
                   )}
                   
                   {provider.email && (
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50">
                       <Mail className="h-5 w-5 mt-0.5 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="font-medium">Email</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-gray-900 mb-1">Email</p>
                         <a 
                           href={`mailto:${provider.email}`}
-                          className="text-blue-600 hover:text-blue-800 hover:underline break-all transition-colors text-sm"
+                          className="text-blue-600 hover:text-blue-800 hover:underline break-all transition-colors text-sm font-medium"
                         >
                           {provider.email}
                         </a>
@@ -220,106 +225,100 @@ export function ProviderDetailsModal({
                   )}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <Separator />
+            <Separator className="my-8" />
 
-            {/* Accessibility Information */}
-            <div className="space-y-3 sm:space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Shield className="h-5 w-5" />
+            {/* Accessibility & Requirements Section */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
+                <Shield className="h-5 w-5 text-green-600" />
                 Accessibility & Requirements
               </h3>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    {provider.accepts_uninsured ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    ) : (
-                      <X className="h-5 w-5 text-red-500 flex-shrink-0" />
-                    )}
-                    <span className={`text-sm ${provider.accepts_uninsured ? "text-green-700" : "text-red-600"}`}>
-                      {provider.accepts_uninsured ? "Accepts Uninsured" : "Requires Insurance"}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    {provider.medicaid ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    ) : (
-                      <X className="h-5 w-5 text-red-500 flex-shrink-0" />
-                    )}
-                    <span className={`text-sm ${provider.medicaid ? "text-green-700" : "text-red-600"}`}>
-                      {provider.medicaid ? "Accepts Medicaid" : "No Medicaid"}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    {provider.medicare ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    ) : (
-                      <X className="h-5 w-5 text-red-500 flex-shrink-0" />
-                    )}
-                    <span className={`text-sm ${provider.medicare ? "text-green-700" : "text-red-600"}`}>
-                      {provider.medicare ? "Accepts Medicare" : "No Medicare"}
-                    </span>
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50">
+                  {provider.accepts_uninsured ? (
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  ) : (
+                    <X className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  )}
+                  <span className={`text-sm font-medium ${provider.accepts_uninsured ? "text-green-700" : "text-red-600"}`}>
+                    {provider.accepts_uninsured ? "Accepts Uninsured" : "Requires Insurance"}
+                  </span>
                 </div>
                 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    {!provider.ssn_required ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    ) : (
-                      <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
-                    )}
-                    <span className={`text-sm ${!provider.ssn_required ? "text-green-700" : "text-orange-600"}`}>
-                      {!provider.ssn_required ? "No SSN Required" : "SSN Required"}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    {provider.telehealth_available ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    ) : (
-                      <X className="h-5 w-5 text-red-500 flex-shrink-0" />
-                    )}
-                    <span className={`text-sm ${provider.telehealth_available ? "text-green-700" : "text-red-600"}`}>
-                      {provider.telehealth_available ? "Telehealth Available" : "In-Person Only"}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50">
+                  {provider.medicaid ? (
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  ) : (
+                    <X className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  )}
+                  <span className={`text-sm font-medium ${provider.medicaid ? "text-green-700" : "text-red-600"}`}>
+                    {provider.medicaid ? "Accepts Medicaid" : "No Medicaid"}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50">
+                  {provider.medicare ? (
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  ) : (
+                    <X className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  )}
+                  <span className={`text-sm font-medium ${provider.medicare ? "text-green-700" : "text-red-600"}`}>
+                    {provider.medicare ? "Accepts Medicare" : "No Medicare"}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50">
+                  {!provider.ssn_required ? (
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                  )}
+                  <span className={`text-sm font-medium ${!provider.ssn_required ? "text-green-700" : "text-orange-600"}`}>
+                    {!provider.ssn_required ? "No SSN Required" : "SSN Required"}
+                  </span>
                 </div>
               </div>
-            </div>
-
-            <Separator />
+              
+              {provider.telehealth_available && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm font-medium text-blue-700">
+                    Telehealth Services Available
+                  </span>
+                </div>
+              )}
+            </section>
 
             {/* Insurance Information */}
             {provider.insurance_providers.length > 0 && (
               <>
-                <div className="space-y-3 sm:space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
+                <Separator className="my-8" />
+                <section className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
+                    <CreditCard className="h-5 w-5 text-purple-600" />
                     Insurance Accepted
                   </h3>
                   
                   <div className="flex flex-wrap gap-2">
                     {provider.insurance_providers.map((insurance) => (
-                      <Badge key={insurance} variant="outline" className="text-sm">
+                      <Badge key={insurance} variant="outline" className="text-sm px-3 py-1.5 font-medium">
                         {insurance}
                       </Badge>
                     ))}
                   </div>
-                </div>
-                <Separator />
+                </section>
               </>
             )}
 
-            {/* Services */}
-            <div className="space-y-3 sm:space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Heart className="h-5 w-5" />
+            <Separator className="my-8" />
+
+            {/* Services Section */}
+            <section className="space-y-6">
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
+                <Heart className="h-5 w-5 text-red-500" />
                 Services Offered
               </h3>
               
@@ -330,16 +329,16 @@ export function ProviderDetailsModal({
                     <DollarSign className="h-4 w-4" />
                     Free Services ({getFreeServices().length})
                   </h4>
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {getFreeServices().map((service) => (
-                      <div key={service._id} className="p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div key={service._id} className="p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100/50 transition-colors">
                         <div className="flex items-start justify-between mb-2 gap-2">
-                          <h5 className="font-medium text-green-900 flex-1">{service.name}</h5>
-                          <Badge className="bg-green-100 text-green-800 text-xs flex-shrink-0">FREE</Badge>
+                          <h5 className="font-medium text-green-900 flex-1 leading-tight">{service.name}</h5>
+                          <Badge className="bg-green-100 text-green-800 text-xs flex-shrink-0 font-medium">FREE</Badge>
                         </div>
-                        <p className="text-sm text-green-700 mb-1">{service.category}</p>
+                        <p className="text-sm text-green-700 mb-2 font-medium">{service.category}</p>
                         {service.description && (
-                          <p className="text-sm text-green-600">{service.description}</p>
+                          <p className="text-sm text-green-600 leading-relaxed">{service.description}</p>
                         )}
                       </div>
                     ))}
@@ -354,16 +353,16 @@ export function ProviderDetailsModal({
                     <DollarSign className="h-4 w-4" />
                     Discounted Services ({getDiscountedServices().length})
                   </h4>
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {getDiscountedServices().map((service) => (
-                      <div key={service._id} className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <div key={service._id} className="p-4 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100/50 transition-colors">
                         <div className="flex items-start justify-between mb-2 gap-2">
-                          <h5 className="font-medium text-orange-900 flex-1">{service.name}</h5>
-                          <Badge className="bg-orange-100 text-orange-800 text-xs flex-shrink-0">DISCOUNTED</Badge>
+                          <h5 className="font-medium text-orange-900 flex-1 leading-tight">{service.name}</h5>
+                          <Badge className="bg-orange-100 text-orange-800 text-xs flex-shrink-0 font-medium">DISCOUNTED</Badge>
                         </div>
-                        <p className="text-sm text-orange-700 mb-1">{service.category}</p>
+                        <p className="text-sm text-orange-700 mb-2 font-medium">{service.category}</p>
                         {service.description && (
-                          <p className="text-sm text-orange-600 mb-2">{service.description}</p>
+                          <p className="text-sm text-orange-600 mb-2 leading-relaxed">{service.description}</p>
                         )}
                         {service.price_info && (
                           <p className="text-sm font-medium text-orange-700">
@@ -383,13 +382,13 @@ export function ProviderDetailsModal({
                     <Heart className="h-4 w-4" />
                     Other Services ({getRegularServices().length})
                   </h4>
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {getRegularServices().map((service) => (
-                      <div key={service._id} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <h5 className="font-medium text-blue-900 mb-1">{service.name}</h5>
-                        <p className="text-sm text-blue-700 mb-1">{service.category}</p>
+                      <div key={service._id} className="p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100/50 transition-colors">
+                        <h5 className="font-medium text-blue-900 mb-2 leading-tight">{service.name}</h5>
+                        <p className="text-sm text-blue-700 mb-2 font-medium">{service.category}</p>
                         {service.description && (
-                          <p className="text-sm text-blue-600 mb-2">{service.description}</p>
+                          <p className="text-sm text-blue-600 mb-2 leading-relaxed">{service.description}</p>
                         )}
                         {service.price_info && (
                           <p className="text-sm font-medium text-blue-700">
@@ -403,24 +402,26 @@ export function ProviderDetailsModal({
               )}
 
               {services.length === 0 && (
-                <p className="text-gray-500 text-center py-4">
-                  No detailed service information available
-                </p>
+                <div className="text-center py-8">
+                  <p className="text-gray-500 text-base">
+                    No detailed service information available
+                  </p>
+                </div>
               )}
-            </div>
+            </section>
           </div>
         </ScrollArea>
 
-        {/* Action Buttons */}
-        <div className="p-4 sm:p-6 pt-0 border-t bg-white sticky bottom-0">
+        {/* Action Buttons - Sticky Footer */}
+        <div className="px-4 sm:px-6 lg:px-8 py-4 border-t bg-white/80 backdrop-blur-sm">
           <div className="flex flex-col sm:flex-row gap-3">
             {provider.phone && (
               <Button
                 onClick={() => handleAction('call')}
-                className="w-full sm:flex-1 h-12 text-base font-semibold"
+                className="w-full sm:flex-1 h-12 sm:h-14 text-base font-semibold shadow-sm hover:shadow-md transition-all"
                 size="lg"
               >
-                <Phone className="h-4 w-4 mr-2" />
+                <Phone className="h-5 w-5 mr-2" />
                 Call Now
               </Button>
             )}
@@ -428,10 +429,10 @@ export function ProviderDetailsModal({
             <Button
               onClick={() => handleAction('directions')}
               variant="outline"
-              className="w-full sm:flex-1 h-12 text-base font-semibold"
+              className="w-full sm:flex-1 h-12 sm:h-14 text-base font-semibold border-2 hover:bg-gray-50 transition-all"
               size="lg"
             >
-              <Navigation className="h-4 w-4 mr-2" />
+              <Navigation className="h-5 w-5 mr-2" />
               Get Directions
             </Button>
             
@@ -439,10 +440,10 @@ export function ProviderDetailsModal({
               <Button
                 onClick={() => handleAction('website')}
                 variant="outline"
-                className="w-full sm:flex-1 h-12 text-base font-semibold"
+                className="w-full sm:flex-1 h-12 sm:h-14 text-base font-semibold border-2 hover:bg-gray-50 transition-all"
                 size="lg"
               >
-                <Globe className="h-4 w-4 mr-2" />
+                <Globe className="h-5 w-5 mr-2" />
                 Visit Website
               </Button>
             )}

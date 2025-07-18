@@ -405,7 +405,7 @@ export function CompactFilterPanel({
               <div className="mt-4 pt-4 border-t">
                 <Button 
                   onClick={onFilterOnlySearch}
-                  className="w-full"
+                  className="w-full h-12 text-base font-medium"
                   disabled={isLoading}
                 >
                   {isLoading ? (

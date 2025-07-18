@@ -190,7 +190,7 @@ export function FilterPanel({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Basic Filters */}
+        {/* Basic Filters - Always visible */}
         <Collapsible open={expandedSections.basic} onOpenChange={() => toggleSection('basic')}>
           <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent rounded">
             <div className="flex items-center space-x-2">
@@ -267,7 +267,7 @@ export function FilterPanel({
 
         <Separator />
 
-        {/* Location & Distance */}
+        {/* Location & Distance - Always visible */}
         <Collapsible open={expandedSections.location} onOpenChange={() => toggleSection('location')}>
           <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent rounded">
             <div className="flex items-center space-x-2">
@@ -293,139 +293,142 @@ export function FilterPanel({
           </CollapsibleContent>
         </Collapsible>
 
-        <Separator />
+        {/* Advanced filters - Hidden on mobile screens */}
+        <div className="hidden md:block space-y-4">
+          <Separator />
 
-        {/* Insurance */}
-        <Collapsible open={expandedSections.insurance} onOpenChange={() => toggleSection('insurance')}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent rounded">
-            <div className="flex items-center space-x-2">
-              <CreditCard className="h-4 w-4" />
-              <span className="font-medium">Insurance</span>
-              {filters.insuranceProviders.length > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {filters.insuranceProviders.length}
-                </Badge>
-              )}
-            </div>
-            {expandedSections.insurance ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 pt-3">
-            <div className="max-h-48 overflow-y-auto space-y-2">
-              {insuranceOptions.map((insurance) => (
-                <div key={insurance} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`insurance-${insurance}`}
-                    checked={filters.insuranceProviders.includes(insurance)}
-                    onCheckedChange={() => toggleArrayFilter('insuranceProviders', insurance)}
-                  />
-                  <Label htmlFor={`insurance-${insurance}`} className="text-sm">
-                    {insurance}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+          {/* Insurance */}
+          <Collapsible open={expandedSections.insurance} onOpenChange={() => toggleSection('insurance')}>
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent rounded">
+              <div className="flex items-center space-x-2">
+                <CreditCard className="h-4 w-4" />
+                <span className="font-medium">Insurance</span>
+                {filters.insuranceProviders.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {filters.insuranceProviders.length}
+                  </Badge>
+                )}
+              </div>
+              {expandedSections.insurance ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 pt-3">
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {insuranceOptions.map((insurance) => (
+                  <div key={insurance} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`insurance-${insurance}`}
+                      checked={filters.insuranceProviders.includes(insurance)}
+                      onCheckedChange={() => toggleArrayFilter('insuranceProviders', insurance)}
+                    />
+                    <Label htmlFor={`insurance-${insurance}`} className="text-sm">
+                      {insurance}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-        <Separator />
+          <Separator />
 
-        {/* Service Categories */}
-        <Collapsible open={expandedSections.services} onOpenChange={() => toggleSection('services')}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent rounded">
-            <div className="flex items-center space-x-2">
-              <FileText className="h-4 w-4" />
-              <span className="font-medium">Services</span>
-              {filters.serviceCategories.length > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {filters.serviceCategories.length}
-                </Badge>
-              )}
-            </div>
-            {expandedSections.services ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 pt-3">
-            <div className="max-h-48 overflow-y-auto space-y-2">
-              {serviceCategories.map((category) => (
-                <div key={category} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`service-${category}`}
-                    checked={filters.serviceCategories.includes(category)}
-                    onCheckedChange={() => toggleArrayFilter('serviceCategories', category)}
-                  />
-                  <Label htmlFor={`service-${category}`} className="text-sm">
-                    {category}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+          {/* Service Categories */}
+          <Collapsible open={expandedSections.services} onOpenChange={() => toggleSection('services')}>
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent rounded">
+              <div className="flex items-center space-x-2">
+                <FileText className="h-4 w-4" />
+                <span className="font-medium">Services</span>
+                {filters.serviceCategories.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {filters.serviceCategories.length}
+                  </Badge>
+                )}
+              </div>
+              {expandedSections.services ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 pt-3">
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {serviceCategories.map((category) => (
+                  <div key={category} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`service-${category}`}
+                      checked={filters.serviceCategories.includes(category)}
+                      onCheckedChange={() => toggleArrayFilter('serviceCategories', category)}
+                    />
+                    <Label htmlFor={`service-${category}`} className="text-sm">
+                      {category}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-        <Separator />
+          <Separator />
 
-        {/* Provider Types */}
-        <Collapsible open={expandedSections.providers} onOpenChange={() => toggleSection('providers')}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent rounded">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4" />
-              <span className="font-medium">Provider Types</span>
-              {filters.providerTypes.length > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {filters.providerTypes.length}
-                </Badge>
-              )}
-            </div>
-            {expandedSections.providers ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 pt-3">
-            <div className="max-h-48 overflow-y-auto space-y-2">
-              {providerTypes.map((type) => (
-                <div key={type} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`provider-${type}`}
-                    checked={filters.providerTypes.includes(type)}
-                    onCheckedChange={() => toggleArrayFilter('providerTypes', type)}
-                  />
-                  <Label htmlFor={`provider-${type}`} className="text-sm">
-                    {type}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+          {/* Provider Types */}
+          <Collapsible open={expandedSections.providers} onOpenChange={() => toggleSection('providers')}>
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent rounded">
+              <div className="flex items-center space-x-2">
+                <Clock className="h-4 w-4" />
+                <span className="font-medium">Provider Types</span>
+                {filters.providerTypes.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {filters.providerTypes.length}
+                  </Badge>
+                )}
+              </div>
+              {expandedSections.providers ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 pt-3">
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {providerTypes.map((type) => (
+                  <div key={type} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`provider-${type}`}
+                      checked={filters.providerTypes.includes(type)}
+                      onCheckedChange={() => toggleArrayFilter('providerTypes', type)}
+                    />
+                    <Label htmlFor={`provider-${type}`} className="text-sm">
+                      {type}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-        <Separator />
+          <Separator />
 
-        {/* Rating Filter */}
-        <Collapsible open={expandedSections.rating} onOpenChange={() => toggleSection('rating')}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent rounded">
-            <div className="flex items-center space-x-2">
-              <Star className="h-4 w-4" />
-              <span className="font-medium">Rating</span>
-            </div>
-            {expandedSections.rating ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-3 pt-3">
-            <div>
-              <Label className="text-sm font-medium">
-                Minimum rating: {filters.minRating > 0 ? `${filters.minRating} stars` : 'Any'}
-              </Label>
-              <Slider
-                value={[filters.minRating]}
-                onValueChange={(value) => updateFilter('minRating', value[0])}
-                max={5}
-                min={0}
-                step={0.5}
-                className="mt-2"
-              />
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+          {/* Rating Filter */}
+          <Collapsible open={expandedSections.rating} onOpenChange={() => toggleSection('rating')}>
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent rounded">
+              <div className="flex items-center space-x-2">
+                <Star className="h-4 w-4" />
+                <span className="font-medium">Rating</span>
+              </div>
+              {expandedSections.rating ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 pt-3">
+              <div>
+                <Label className="text-sm font-medium">
+                  Minimum rating: {filters.minRating > 0 ? `${filters.minRating} stars` : 'Any'}
+                </Label>
+                <Slider
+                  value={[filters.minRating]}
+                  onValueChange={(value) => updateFilter('minRating', value[0])}
+                  max={5}
+                  min={0}
+                  step={0.5}
+                  className="mt-2"
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-        <Separator />
+          <Separator />
+        </div>
 
-        {/* Sort Options */}
+        {/* Sort Options - Always visible */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Sort by</Label>
           <Select value={filters.sortBy} onValueChange={(value) => updateFilter('sortBy', value)}>

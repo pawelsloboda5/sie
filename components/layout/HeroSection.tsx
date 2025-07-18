@@ -177,11 +177,11 @@ export function HeroSection({
           </Alert>
         )}
 
-        {/* Main Search Interface */}
-        <div className="space-y-6">
-          {/* Search Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* Search Input */}
+        {/* Main Search Interface - Mobile-first responsive */}
+        <div className="space-y-4 sm:space-y-6">
+          {/* Search Row - Mobile Stacked, Desktop Horizontal */}
+          <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-4">
+            {/* Search Input - Full width on mobile */}
             <div className="lg:col-span-5 relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
               <Input
@@ -193,7 +193,7 @@ export function HeroSection({
                 }}
                 onFocus={() => setShowSuggestions(searchQuery.length > 0)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                className="pl-12 pr-12 py-3 text-base h-12 bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="pl-12 pr-12 py-3 text-base h-14 sm:h-12 bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
               
@@ -265,14 +265,14 @@ export function HeroSection({
               )}
             </div>
 
-            {/* Location Input */}
+            {/* Location Input - Full width on mobile, separate row */}
             <div className="lg:col-span-4 relative">
               <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 placeholder="Enter your location (city, state, or zip code)"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="pl-12 pr-16 py-3 text-base h-12 bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="pl-12 pr-16 py-3 text-base h-14 sm:h-12 bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
               <Button
                 onClick={handleGetLocation}
@@ -292,11 +292,11 @@ export function HeroSection({
               </Button>
             </div>
 
-            {/* Search Button */}
+            {/* Search Button - Full width on mobile */}
             <div className="lg:col-span-3">
               <Button 
                 size="lg" 
-                className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full h-14 sm:h-12 text-base font-semibold bg-primary hover:bg-primary/90 focus:ring-2 focus:ring-primary/20 transition-all"
                 onClick={handleSearch}
                 disabled={isSearching || !searchQuery.trim()}
               >

@@ -173,28 +173,28 @@ export function ResultsList({
   // Loading State
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-10 w-32" />
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-12 w-40" />
         </div>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i} className="p-4">
-              <div className="space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <Skeleton className="h-6 w-64" />
-                  <Skeleton className="h-4 w-16" />
+            <Card key={i} className="p-4 sm:p-6">
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3">
+                  <Skeleton className="h-7 w-72" />
+                  <Skeleton className="h-5 w-20" />
                 </div>
-                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-5 w-60" />
                 <div className="flex flex-wrap gap-2">
-                  <Skeleton className="h-6 w-20" />
-                  <Skeleton className="h-6 w-24" />
-                  <Skeleton className="h-6 w-16" />
+                  <Skeleton className="h-7 w-24" />
+                  <Skeleton className="h-7 w-28" />
+                  <Skeleton className="h-7 w-20" />
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Skeleton className="h-10 w-full sm:w-24" />
-                  <Skeleton className="h-10 w-full sm:w-32" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Skeleton className="h-14 w-full" />
+                  <Skeleton className="h-14 w-full" />
                 </div>
               </div>
             </Card>
@@ -207,14 +207,14 @@ export function ResultsList({
   // Empty State
   if (!results || (results.providers.length === 0 && results.services.length === 0)) {
     return (
-      <Card className="p-6 sm:p-8 text-center">
-        <div className="flex flex-col items-center space-y-4">
-          <Search className="h-12 w-12 text-gray-400" />
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-gray-900">
+      <Card className="p-8 sm:p-12 text-center">
+        <div className="flex flex-col items-center space-y-6">
+          <Search className="h-16 w-16 sm:h-20 sm:w-20 text-gray-400" />
+          <div className="space-y-3">
+            <h3 className="text-xl sm:text-2xl font-semibold text-gray-900">
               {!results ? 'Start your search' : 'No results found'}
             </h3>
-            <p className="text-gray-600 max-w-md text-sm sm:text-base">
+            <p className="text-gray-600 max-w-md text-base sm:text-lg leading-relaxed">
               {!results 
                 ? 'Enter a service, condition, or location to find healthcare providers near you.'
                 : `We couldn't find any providers matching "${results.query}". Try adjusting your search terms or filters.`
@@ -222,7 +222,7 @@ export function ResultsList({
             </p>
           </div>
           {onRetry && results && (
-            <Button onClick={onRetry} variant="outline" className="mt-2">
+            <Button onClick={onRetry} variant="outline" className="mt-4 h-12 px-6 text-base font-medium">
               <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
             </Button>
@@ -235,26 +235,26 @@ export function ResultsList({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Results Header */}
-      <div className="flex flex-col gap-3 sm:gap-0 sm:flex-row sm:items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-lg sm:text-lg font-semibold text-gray-900 break-words">
+      <div className="flex flex-col gap-4 sm:gap-0 sm:flex-row sm:items-center justify-between">
+        <div className="space-y-2">
+          <h2 className="text-xl sm:text-xl lg:text-2xl font-semibold text-gray-900 break-words">
             {results.isFiltered ? (
               <>Found {results.totalResults} filtered results</>
             ) : (
               <>Found {results.totalResults} results for &quot;{results.query}&quot;</>
             )}
           </h2>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
-            <span className="flex items-center gap-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-sm text-gray-600">
+            <span className="flex items-center gap-2">
               <Building className="h-4 w-4" />
               {results.providers.length} Providers
             </span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-2">
               <Heart className="h-4 w-4" />
               {results.services.length} Services Available
             </span>
             {results.isFiltered && (
-              <span className="flex items-center gap-1 text-primary font-medium">
+              <span className="flex items-center gap-2 text-primary font-medium">
                 <Search className="h-4 w-4" />
                 Filter Mode
               </span>
@@ -265,7 +265,7 @@ export function ResultsList({
         {/* Sort Controls */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-            <SelectTrigger className="w-full sm:w-40 h-11">
+            <SelectTrigger className="w-full sm:w-40 h-12">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>

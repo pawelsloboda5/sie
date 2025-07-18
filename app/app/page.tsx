@@ -316,8 +316,8 @@ export default function FindPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Streamlined Hero Section - Responsive Height */}
-      <div className="max-h-[60vh] sm:max-h-[50vh]">
+      {/* Mobile-optimized Hero Section */}
+      <div className="min-h-[320px] sm:min-h-[400px] lg:min-h-[450px] flex flex-col">
         <HeroSection 
           onSearch={handleSearch}
           isSearching={isLoading}
@@ -331,97 +331,99 @@ export default function FindPage() {
         />
       </div>
       
-      {/* Main Results Area - Responsive Min Height */}
-      <main className="min-h-[40vh] sm:min-h-[50vh] bg-background">
-        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-          {/* Enhanced Results Area - Now Full Width */}
+      {/* Main Results Area - Mobile-first responsive design */}
+      <main className="flex-1 bg-background">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-6 lg:py-8">
+          {/* Mobile-optimized Results Container */}
           <div className="w-full">
-              {/* Mobile Controls */}
-              <div className="lg:hidden mb-4 sm:mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0">
-                <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
-                  <SheetTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className="flex items-center justify-center gap-2 h-12 sm:h-auto border-2 font-medium"
-                    >
-                      <Filter className="h-4 w-4" />
-                      <span>Advanced Filters</span>
-                      {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
-                        filters.acceptsMedicare || filters.telehealthAvailable || 
-                        filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
-                        <span className="ml-1 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                          Active
-                        </span>
-                      )}
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-full sm:w-96 p-0">
-                    <div className="p-4">
-                      <FilterPanel
-                        filters={filters}
-                        onFiltersChange={handleFiltersChange}
-                        onClearFilters={handleClearFilters}
-                        resultsCount={searchResults?.totalResults || 0}
-                        isLoading={isLoading}
-                        onFilterOnlySearch={() => {
-                          handleFilterOnlySearch(filters)
-                          setShowMobileFilters(false)
-                        }}
-                      />
-                    </div>
-                  </SheetContent>
-                </Sheet>
-                
-                {/* View Mode Toggle - Better Mobile Layout */}
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 h-12 sm:h-auto"
+            {/* Mobile Controls - Improved touch targets and spacing */}
+            <div className="lg:hidden mb-4 sm:mb-6 space-y-3">
+              {/* Filter Button */}
+              <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
+                <SheetTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full flex items-center justify-center gap-3 h-14 border-2 font-medium text-base bg-background hover:bg-accent transition-colors"
                   >
-                    <List className="h-4 w-4" />
-                    List
+                    <Filter className="h-5 w-5" />
+                    <span>Advanced Filters</span>
+                    {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
+                      filters.acceptsMedicare || filters.telehealthAvailable || 
+                      filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
+                      <span className="ml-2 bg-primary text-primary-foreground text-sm px-3 py-1 rounded-full font-semibold">
+                        Active
+                      </span>
+                    )}
                   </Button>
-                  <Button
-                    variant={viewMode === 'map' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setViewMode('map')}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 h-12 sm:h-auto"
+                </SheetTrigger>
+                <SheetContent side="left" className="w-full sm:w-96 p-0 overflow-y-auto">
+                  <div className="p-4 sm:p-6">
+                    <FilterPanel
+                      filters={filters}
+                      onFiltersChange={handleFiltersChange}
+                      onClearFilters={handleClearFilters}
+                      resultsCount={searchResults?.totalResults || 0}
+                      isLoading={isLoading}
+                      onFilterOnlySearch={() => {
+                        handleFilterOnlySearch(filters)
+                        setShowMobileFilters(false)
+                      }}
+                    />
+                  </div>
+                </SheetContent>
+              </Sheet>
+              
+              {/* View Mode Toggle - Improved mobile layout */}
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'outline'}
+                  onClick={() => setViewMode('list')}
+                  className="h-14 flex items-center justify-center gap-3 text-base font-medium transition-colors"
+                >
+                  <List className="h-5 w-5" />
+                  List View
+                </Button>
+                <Button
+                  variant={viewMode === 'map' ? 'default' : 'outline'}
+                  onClick={() => setViewMode('map')}
+                  className="h-14 flex items-center justify-center gap-3 text-base font-medium transition-colors"
+                >
+                  <MapPin className="h-5 w-5" />
+                  Map View
+                </Button>
+              </div>
+            </div>
+            
+            {/* Results Display - Mobile-optimized */}
+            {viewMode === 'list' ? (
+              <ResultsList
+                results={searchResults}
+                isLoading={isLoading}
+                onRetry={handleRetrySearch}
+                onProviderAction={handleProviderAction}
+                showDistance={!!currentLocation}
+                compact={false}
+              />
+            ) : (
+              <div className="bg-muted/30 rounded-xl p-6 sm:p-8 lg:p-12 h-80 sm:h-96 lg:h-[500px] flex items-center justify-center border border-border">
+                <div className="text-center max-w-md px-4">
+                  <MapPin className="h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground mx-auto mb-6" />
+                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-3">Map View Coming Soon</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground mb-6 leading-relaxed">
+                    Interactive Azure Maps will display here with provider pins and advanced location features
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setViewMode('list')}
+                    className="h-12 px-6 text-base font-medium"
                   >
-                    <MapPin className="h-4 w-4" />
-                    Map
+                    <List className="h-4 w-4 mr-2" />
+                    View as List
                   </Button>
                 </div>
               </div>
-              
-              {/* Results Display */}
-              {viewMode === 'list' ? (
-                <ResultsList
-                  results={searchResults}
-                  isLoading={isLoading}
-                  onRetry={handleRetrySearch}
-                  onProviderAction={handleProviderAction}
-                  showDistance={!!currentLocation}
-                  compact={false}
-                />
-              ) : (
-                <div className="bg-muted/30 rounded-lg p-6 sm:p-8 h-80 sm:h-96 flex items-center justify-center border border-border">
-                  <div className="text-center max-w-sm">
-                    <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-2 font-medium text-sm sm:text-base">Map View - Coming Soon</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-4">Interactive Azure Maps will display here with provider pins</p>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setViewMode('list')}
-                      className="h-10 sm:h-auto"
-                    >
-                      View as List
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

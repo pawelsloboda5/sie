@@ -140,8 +140,8 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
     },
     {
       icon: Bot,
-      text: "Ask for Quick Facts", 
-      key: "quick-facts",
+      text: "Essential Care Options", 
+      key: "essential-care",
       options: [
         "Clinics that don't require Social Security Number",
         "Walk-in clinics accepting new patients",
@@ -153,14 +153,13 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
     },
     {
       icon: Shield,
-      text: "Verify Insurance Coverage",
+      text: "Choose Insurance Coverage",
       key: "insurance",
       options: [
         "Accepts Medicaid patients",
         "Accepts Medicare patients", 
-        "Providers for uninsured patients",
-        "Community health center coverage",
-        "Charity care programs available"
+        "Providers for uninsured patients"
+
       ]
     }
   ]
@@ -177,18 +176,6 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
         "Orthopedic services",
         "Pediatric specialists",
         "Women's health specialists"
-      ]
-    },
-    {
-      icon: HeartHandshake,
-      text: "Community Programs",
-      key: "community",
-      options: [
-        "WIC enrollment assistance",
-        "SNAP benefits help",
-        "Food bank locations",
-        "Patient navigator services",
-        "Transportation assistance"
       ]
     },
     {
