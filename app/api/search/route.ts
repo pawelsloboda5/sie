@@ -32,8 +32,6 @@ const EMBED_RETRIES = 2
 
 // Maximum services to return per provider (vector matched)
 const MAX_VECTOR_SERVICES_PER_PROVIDER = 6
-// Additional top free services per provider (not in vector top) via metadata query
-const MAX_FREE_SERVICES_PER_PROVIDER = 4
 
 // ================== Types ==================
 interface SearchFilters {
@@ -155,7 +153,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
         // LRU trim (simple) if >500 entries
         if (embedCache.size > 500) {
           const first = embedCache.keys().next().value
-            ; (first) && embedCache.delete(first)
+          if (first) embedCache.delete(first)
         }
         return emb
       }
@@ -180,8 +178,8 @@ function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number):
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-function buildProviderFilter(filters: SearchFilters = {}): Record<string, any> {
-  const f: Record<string, any> = {}
+function buildProviderFilter(filters: SearchFilters = {}): Record<string, boolean | { $in: string[] }> {
+  const f: Record<string, boolean | { $in: string[] }> = {}
   if (filters.acceptsUninsured) f.accepts_uninsured = true
   if (filters.acceptsMedicaid) f.medicaid = true
   if (filters.acceptsMedicare) f.medicare = true
@@ -191,15 +189,15 @@ function buildProviderFilter(filters: SearchFilters = {}): Record<string, any> {
   return f
 }
 
-function buildServiceFilter(filters: SearchFilters = {}): Record<string, any> {
-  const f: Record<string, any> = {}
+function buildServiceFilter(filters: SearchFilters = {}): Record<string, boolean | { $in: string[] }> {
+  const f: Record<string, boolean | { $in: string[] }> = {}
   if (filters.freeOnly) f.is_free = true
   if (filters.serviceCategories?.length) f.category = { $in: filters.serviceCategories }
   return f
 }
 
-function cosmosVectorStage(vector: number[], path: 'summary_vector' | 'service_vector', k: number, filter: Record<string, any>, nProbes?: number) {
-  const cs: Record<string, any> = { path, vector, k }
+function cosmosVectorStage(vector: number[], path: 'summary_vector' | 'service_vector', k: number, filter: Record<string, boolean | { $in: string[] }>, nProbes?: number) {
+  const cs: Record<string, number | string | number[] | Record<string, boolean | { $in: string[] }>> = { path, vector, k }
   if (nProbes && nProbes > 0) cs.nProbes = nProbes
   if (Object.keys(filter).length) cs.filter = filter
   return cs
@@ -208,7 +206,7 @@ function cosmosVectorStage(vector: number[], path: 'summary_vector' | 'service_v
 // ================== Core Search ==================
 async function vectorSearchProviders(db: Db, queryVector: number[], filters: SearchFilters, limit: number, location?: { latitude: number, longitude: number }): Promise<ProviderResult[]> {
   const filter = buildProviderFilter(filters)
-  const docs = await db.collection<ProviderDoc>('providers').aggregate<any>([
+  const docs = await db.collection<ProviderDoc>('providers').aggregate<ProviderDoc & { score: number }>([
     { $search: { cosmosSearch: cosmosVectorStage(queryVector, 'summary_vector', PROVIDER_K, filter, PROVIDER_NPROBES), returnStoredSource: true } },
     { $project: {
         _id: 1, name: 1, category: 1, address: 1, phone: 1, website: 1, email: 1, rating: 1, location: 1, state: 1,
@@ -228,7 +226,7 @@ async function vectorSearchProviders(db: Db, queryVector: number[], filters: Sea
 
 async function vectorSearchServices(db: Db, queryVector: number[], filters: SearchFilters): Promise<ServiceResult[]> {
   const filter = buildServiceFilter(filters)
-  const docs = await db.collection<ServiceDoc>('services').aggregate<any>([
+  const docs = await db.collection<ServiceDoc>('services').aggregate<ServiceDoc & { score: number }>([
     { $search: { cosmosSearch: cosmosVectorStage(queryVector, 'service_vector', SERVICE_K, filter, SERVICE_NPROBES), returnStoredSource: true } },
     { $project: { _id: 1, provider_id: 1, name: 1, category: 1, description: 1, is_free: 1, is_discounted: 1, price_info: 1, score: { $meta: 'searchScore' } } },
     { $limit: SERVICE_K }
@@ -254,7 +252,7 @@ async function vectorSearchServices(db: Db, queryVector: number[], filters: Sear
 }
 
 // Fetch ALL services for the returned providers (not just selective ones)
-async function fetchAllServicesForProviders(db: Db, providerIds: ObjectId[], queryVector: number[]): Promise<Record<string, ServiceResult[]>> {
+async function fetchAllServicesForProviders(db: Db, providerIds: ObjectId[]): Promise<Record<string, ServiceResult[]>> {
   if (!providerIds.length) return {}
   
   console.log(`DEBUG: fetchAllServicesForProviders called for ${providerIds.length} providers`)
@@ -405,7 +403,7 @@ async function performSearch(queryVector: number[], filters: SearchFilters, loca
   ])
 
   let providers: ProviderResult[] = provResult.status === 'fulfilled' ? provResult.value : []
-  let vectorServices: ServiceResult[] = svcResult.status === 'fulfilled' ? svcResult.value : []
+  const vectorServices: ServiceResult[] = svcResult.status === 'fulfilled' ? svcResult.value : []
 
   // Group vector services by provider (for semantic scoring)
   const vectorServicesByProvider = new Map<string, ServiceResult[]>()
@@ -429,7 +427,7 @@ async function performSearch(queryVector: number[], filters: SearchFilters, loca
   const providerIds = providers.map(p => p._id)
   console.log(`DEBUG: Fetching ALL services for ${providerIds.length} final providers`)
   
-  const allServicesByProvider = await fetchAllServicesForProviders(db, providerIds, queryVector)
+  const allServicesByProvider = await fetchAllServicesForProviders(db, providerIds)
 
   // Attach services + compute scores
   providers = providers.map(p => {
@@ -536,9 +534,9 @@ export async function POST(req: NextRequest) {
         nprobes: { providers: PROVIDER_NPROBES, services: SERVICE_NPROBES }
       }
     })
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Search error', e)
-    return NextResponse.json({ error: 'Search temporarily unavailable', detail: e?.message }, { status: 500 })
+    return NextResponse.json({ error: 'Search temporarily unavailable', detail: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 })
   }
 }
 
@@ -549,7 +547,7 @@ export async function GET() {
     const prov = await db.collection('providers').estimatedDocumentCount()
     const svc = await db.collection('services').estimatedDocumentCount()
     return NextResponse.json({ status: 'ok', providers: prov, services: svc, nprobes: { providers: PROVIDER_NPROBES, services: SERVICE_NPROBES } })
-  } catch (e: any) {
-    return NextResponse.json({ status: 'error', detail: e?.message }, { status: 500 })
+  } catch (e: unknown) {
+    return NextResponse.json({ status: 'error', detail: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 })
   }
 }

@@ -59,6 +59,21 @@ interface SearchResults {
   isFiltered?: boolean
 }
 
+interface FilterOptions {
+  freeOnly?: boolean
+  acceptsUninsured?: boolean
+  acceptsMedicaid?: boolean
+  acceptsMedicare?: boolean
+  ssnRequired?: boolean
+  telehealthAvailable?: boolean
+  maxDistance?: number
+  insuranceProviders?: string[]
+  serviceCategories?: string[]
+  providerTypes?: string[]
+  minRating?: number
+  sortBy?: 'distance' | 'rating' | 'name' | 'relevance'
+}
+
 interface ResultsListProps {
   results: SearchResults | null
   isLoading: boolean
@@ -66,6 +81,7 @@ interface ResultsListProps {
   onProviderAction?: (action: string, provider: Provider) => void
   showDistance?: boolean
   compact?: boolean
+  activeFilters?: FilterOptions
 }
 
 type SortOption = 'relevance' | 'distance' | 'rating' | 'name'
@@ -76,7 +92,8 @@ export function ResultsList({
   onRetry, 
   onProviderAction,
   showDistance = true,
-  compact = false 
+  compact = false,
+  activeFilters
 }: ResultsListProps) {
   const [sortBy, setSortBy] = useState<SortOption>('relevance')
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null)
@@ -85,7 +102,26 @@ export function ResultsList({
   const sortedProviders = useMemo(() => {
     if (!results?.providers) return []
     
-    const providers = [...results.providers]
+    let providers = [...results.providers]
+    
+    // SAFETY FILTER: If freeOnly is enabled, remove providers with no free services
+    if (activeFilters?.freeOnly && results.services) {
+      const providersWithFreeServices = new Set<string>()
+      results.services.forEach(service => {
+        if (service.is_free) {
+          providersWithFreeServices.add(service.provider_id)
+        }
+      })
+      
+      const originalCount = providers.length
+      providers = providers.filter(provider => 
+        providersWithFreeServices.has(provider._id)
+      )
+      
+      if (originalCount > providers.length) {
+        console.log(`Client-side filter: Removed ${originalCount - providers.length} providers with no free services`)
+      }
+    }
     
     switch (sortBy) {
       case 'distance':
@@ -125,7 +161,7 @@ export function ResultsList({
           return (b.searchScore || 0) - (a.searchScore || 0)
         })
     }
-  }, [results?.providers, sortBy])
+  }, [results?.providers, results?.services, sortBy, activeFilters?.freeOnly])
 
   // Get the most relevant service for each provider
   const getProviderTopService = (providerId: string) => {

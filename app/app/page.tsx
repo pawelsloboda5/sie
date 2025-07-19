@@ -431,6 +431,7 @@ export default function FindPage() {
                 onProviderAction={handleProviderAction}
                 showDistance={!!currentLocation}
                 compact={viewMode === 'list'}
+                activeFilters={filters}
               />
             </div>
           </div>

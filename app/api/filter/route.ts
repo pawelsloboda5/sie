@@ -412,6 +412,31 @@ async function performFilterSearch(
         }))
 
         console.log(`Fetched ${services.length} total services for all providers`)
+
+        // CRITICAL: If freeOnly filter is enabled, remove providers that have NO free services
+        if (filters.freeOnly) {
+          const providersWithFreeServices = new Set<string>()
+          services.forEach(service => {
+            if (service.is_free) {
+              providersWithFreeServices.add(service.provider_id)
+            }
+          })
+          
+          // Filter out providers that have no free services
+          const originalProviderCount = providers.length
+          providers = providers.filter(provider => 
+            providersWithFreeServices.has(provider._id.toString())
+          )
+          
+          // Also filter services to only include those from remaining providers
+          const remainingProviderIds = new Set(providers.map(p => p._id.toString()))
+          services = services.filter(service => 
+            remainingProviderIds.has(service.provider_id)
+          )
+          
+          console.log(`FreeOnly filter: Removed ${originalProviderCount - providers.length} providers with no free services`)
+          console.log(`Final results: ${providers.length} providers, ${services.filter(s => s.is_free).length} free services`)
+        }
       } catch (error) {
         console.error('Error fetching all services for providers:', error)
         // Fallback to empty services array
