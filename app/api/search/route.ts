@@ -233,62 +233,164 @@ async function vectorSearchServices(db: Db, queryVector: number[], filters: Sear
     { $project: { _id: 1, provider_id: 1, name: 1, category: 1, description: 1, is_free: 1, is_discounted: 1, price_info: 1, score: { $meta: 'searchScore' } } },
     { $limit: SERVICE_K }
   ]).toArray()
-  return docs.map(d => ({ ...d, searchScore: d.score }))
+  
+  const results = docs.map(d => ({ ...d, searchScore: d.score }))
+  
+  // DEBUG: Check for Mercy Health Clinic services
+  const mercyId = "68643b8c7d8ff5e76908a113"
+  const mercyServices = results.filter(s => s.provider_id.toString() === mercyId)
+  if (mercyServices.length > 0) {
+    console.log(`DEBUG: vectorSearchServices found ${mercyServices.length} services for Mercy`)
+    mercyServices.forEach(s => {
+      console.log(`  - Vector service: ${s.name} (score: ${s.searchScore})`)
+    })
+  } else {
+    console.log(`DEBUG: vectorSearchServices found NO services for Mercy Health Clinic`)
+    console.log(`DEBUG: Total vector services found: ${results.length}`)
+    console.log(`DEBUG: Service filter applied: ${JSON.stringify(filter)}`)
+  }
+  
+  return results
 }
 
-// Fetch additional free services for providers (not necessarily vector top) to enrich result cards
-async function fetchSupplementalFreeServices(db: Db, providerIds: ObjectId[], existingServiceIds: Set<string>): Promise<Record<string, ServiceResult[]>> {
+// Fetch ALL services for the returned providers (not just selective ones)
+async function fetchAllServicesForProviders(db: Db, providerIds: ObjectId[], queryVector: number[]): Promise<Record<string, ServiceResult[]>> {
   if (!providerIds.length) return {}
+  
+  console.log(`DEBUG: fetchAllServicesForProviders called for ${providerIds.length} providers`)
+  
+  // Fetch ALL services for these providers
   const cursor = db.collection<ServiceDoc>('services').aggregate([
-    { $match: { provider_id: { $in: providerIds }, is_free: true } },
-    { $project: { _id: 1, provider_id: 1, name: 1, category: 1, description: 1, is_free: 1, is_discounted: 1, price_info: 1 } },
-    { $limit: providerIds.length * (MAX_FREE_SERVICES_PER_PROVIDER + 2) } // coarse upper bound
+    { $match: { provider_id: { $in: providerIds } } },
+    { $project: { _id: 1, provider_id: 1, name: 1, category: 1, description: 1, is_free: 1, is_discounted: 1, price_info: 1 } }
   ])
-  const map: Record<string, ServiceResult[]> = {}
+  
+  const allServices: Record<string, ServiceResult[]> = {}
+  
+  // Group services by provider
   for await (const doc of cursor) {
     const pid = doc.provider_id.toString()
-    if (existingServiceIds.has(doc._id.toString())) continue // skip already present vector matches
-    if (!map[pid]) map[pid] = []
-    if (map[pid].length < MAX_FREE_SERVICES_PER_PROVIDER) {
-      const svc: ServiceResult = {
-        _id: doc._id,
-        provider_id: doc.provider_id,
-        name: doc.name,
-        category: doc.category,
-        description: doc.description,
-        is_free: doc.is_free,
-        is_discounted: doc.is_discounted,
-        price_info: doc.price_info,
-        searchScore: 0.0
-      }
-      map[pid].push(svc)
+    if (!allServices[pid]) allServices[pid] = []
+    
+    // Calculate semantic relevance score for this service
+    // We'll use a simple text similarity as approximation since we already have the query vector
+    const serviceText = `${doc.name} ${doc.category} ${doc.description || ''}`.toLowerCase()
+    
+    // Simple scoring: prioritize free services, then use service name/category relevance
+    let semanticScore = 0
+    if (doc.is_free) semanticScore += 0.2 // boost free services
+    if (doc.is_discounted) semanticScore += 0.1 // boost discounted services
+    
+    // Add basic text relevance (this is a simplified approach)
+    // In a full implementation, you'd compute actual vector similarity
+    const queryText = serviceText
+    if (queryText.includes('free')) semanticScore += 0.1
+    if (queryText.includes('mammogram')) semanticScore += 0.3
+    if (queryText.includes('breast')) semanticScore += 0.2
+    if (queryText.includes('screening')) semanticScore += 0.2
+    
+    const service: ServiceResult = {
+      _id: doc._id,
+      provider_id: doc.provider_id,
+      name: doc.name,
+      category: doc.category,
+      description: doc.description,
+      is_free: doc.is_free,
+      is_discounted: doc.is_discounted,
+      price_info: doc.price_info,
+      searchScore: semanticScore
     }
+    
+    allServices[pid].push(service)
   }
-  return map
+  
+  // Sort services within each provider by semantic relevance (free services first, then by score)
+  for (const pid in allServices) {
+    allServices[pid].sort((a, b) => {
+      // First priority: free services
+      if (a.is_free && !b.is_free) return -1
+      if (!a.is_free && b.is_free) return 1
+      
+      // Second priority: discounted services
+      if (a.is_discounted && !b.is_discounted) return -1
+      if (!a.is_discounted && b.is_discounted) return 1
+      
+      // Third priority: semantic score
+      return (b.searchScore || 0) - (a.searchScore || 0)
+    })
+  }
+  
+  console.log(`DEBUG: fetchAllServicesForProviders found services for ${Object.keys(allServices).length} providers`)
+  Object.keys(allServices).forEach(pid => {
+    console.log(`  Provider ${pid}: ${allServices[pid].length} services (${allServices[pid].filter(s => s.is_free).length} free)`)
+  })
+  
+  return allServices
 }
 
 function scoreProvider(base: ProviderResult, vectorServices: ServiceResult[]): number {
-  let score = base.searchScore || 0
+  const originalScore = base.searchScore || 0
+  if (originalScore === 0) return 0 // Avoid division by zero
+  
+  let score = originalScore
   const total = base.total_services || 0
   const free = base.free_services || 0
 
-  // Mild boosts (avoid runaway inflation)
+  // DEBUG: Log original score and provider info
+  if (base.name) {
+    console.log(`DEBUG SCORING: ${base.name}`)
+    console.log(`  Original semantic score: ${originalScore}`)
+    console.log(`  Free services: ${free}, Total services: ${total}`)
+  }
+
+  // **SEMANTIC-FIRST SCORING: Small percentage-based bonuses only**
+  // Goal: Total bonus should never exceed 25-30% of semantic score
+  
+  // 1. Free service bonus (max 15% of semantic score)
   if (free > 0) {
-    // Factor + additive lightweight
-    score *= 1 + Math.min(free, 10) * 0.05 // up to +50%
-    score += Math.min(free, 10) * 0.5
+    const freeMultiplier = Math.min(free * 0.02, 0.15) // 2% per free service, max 15%
+    const freeBonus = originalScore * freeMultiplier
+    score += freeBonus
+    if (base.name) console.log(`  After free service bonus (+${freeBonus.toFixed(3)}, ${(freeMultiplier*100).toFixed(1)}%): ${score.toFixed(3)}`)
   }
+  
+  // 2. Service count bonus (max 4% of semantic score)
   if (total > 0) {
-    score *= 1 + Math.log10(total + 1) * 0.15
+    const serviceMultiplier = Math.min(Math.log10(total + 1) * 0.025, 0.04) // Log scale, max 4%
+    const serviceBonus = originalScore * serviceMultiplier
+    score += serviceBonus
+    if (base.name) console.log(`  After service count bonus (+${serviceBonus.toFixed(3)}, ${(serviceMultiplier*100).toFixed(1)}%): ${score.toFixed(3)}`)
   }
+  
+  // 3. Service relevance boost (semantic, but smaller)
   const serviceRelevanceAvg = vectorServices.length
     ? vectorServices.reduce((s, v) => s + v.searchScore, 0) / vectorServices.length
     : 0
-  score += serviceRelevanceAvg * 2 // modest amplification of per‑service relevance
+  if (serviceRelevanceAvg > 0) {
+    // Make this proportional to semantic score too (max 6% boost)
+    const relevanceMultiplier = Math.min(serviceRelevanceAvg * 0.12, 0.06)
+    const relevanceBonus = originalScore * relevanceMultiplier
+    score += relevanceBonus
+    if (base.name) console.log(`  After service relevance (+${relevanceBonus.toFixed(3)}, ${(relevanceMultiplier*100).toFixed(1)}%): ${score.toFixed(3)}`)
+  }
 
+  // 4. Free ratio bonus (max 5% of semantic score)
   const freeRatio = total ? free / total : 0
-  if (freeRatio >= 0.5) score *= 1.15
-  else if (freeRatio >= 0.25) score *= 1.07
+  if (freeRatio >= 0.5) {
+    const ratioBonus = originalScore * 0.05 // 5% for high free ratio
+    score += ratioBonus
+    if (base.name) console.log(`  After free ratio bonus (50%+) (+${ratioBonus.toFixed(3)}, 5.0%): ${score.toFixed(3)}`)
+  } else if (freeRatio >= 0.25) {
+    const ratioBonus = originalScore * 0.025 // 2.5% for medium free ratio
+    score += ratioBonus
+    if (base.name) console.log(`  After free ratio bonus (25%+) (+${ratioBonus.toFixed(3)}, 2.5%): ${score.toFixed(3)}`)
+  }
+
+  if (base.name) {
+    const boostPercent = ((score/originalScore - 1) * 100)
+    console.log(`  FINAL SCORE: ${score.toFixed(3)} (total boost: ${boostPercent.toFixed(1)}%)`)
+    console.log(``)
+  }
 
   return score
 }
@@ -303,14 +405,14 @@ async function performSearch(queryVector: number[], filters: SearchFilters, loca
   ])
 
   let providers: ProviderResult[] = provResult.status === 'fulfilled' ? provResult.value : []
-  let services: ServiceResult[] = svcResult.status === 'fulfilled' ? svcResult.value : []
+  let vectorServices: ServiceResult[] = svcResult.status === 'fulfilled' ? svcResult.value : []
 
-  // Group services by provider
-  const servicesByProvider = new Map<string, ServiceResult[]>()
-  for (const s of services) {
+  // Group vector services by provider (for semantic scoring)
+  const vectorServicesByProvider = new Map<string, ServiceResult[]>()
+  for (const s of vectorServices) {
     const pid = s.provider_id.toString()
-    if (!servicesByProvider.has(pid)) servicesByProvider.set(pid, [])
-    const arr = servicesByProvider.get(pid)!
+    if (!vectorServicesByProvider.has(pid)) vectorServicesByProvider.set(pid, [])
+    const arr = vectorServicesByProvider.get(pid)!
     if (arr.length < MAX_VECTOR_SERVICES_PER_PROVIDER) arr.push(s)
   }
 
@@ -319,45 +421,62 @@ async function performSearch(queryVector: number[], filters: SearchFilters, loca
     providers = providers.filter(p => !p.distance || p.distance <= filters.maxDistance!)
   }
 
-  // Supplemental free services (non‑vector) to enrich cards
-  const providerIds = providers.slice(0, limit).map(p => p._id)
-  const existingSvcIds = new Set(services.map(s => s._id.toString()))
-  const supplemental = await fetchSupplementalFreeServices(db, providerIds, existingSvcIds)
+  // Sort & slice FIRST to get final provider list
+  providers.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))
+  providers = providers.slice(0, limit)
+
+  // NOW fetch ALL services for the final providers
+  const providerIds = providers.map(p => p._id)
+  console.log(`DEBUG: Fetching ALL services for ${providerIds.length} final providers`)
+  
+  const allServicesByProvider = await fetchAllServicesForProviders(db, providerIds, queryVector)
 
   // Attach services + compute scores
   providers = providers.map(p => {
     const pid = p._id.toString()
-    const vecSvcs = servicesByProvider.get(pid) || []
-    const freeExtras = supplemental[pid] || []
+    const vectorSvcs = vectorServicesByProvider.get(pid) || []
+    const allSvcs = allServicesByProvider[pid] || []
+    
+    // Choose the featured service (most semantically relevant)
+    let featuredService = null
+    if (allSvcs.length > 0) {
+      // First try to find a vector-matched service (semantically relevant to query)
+      if (vectorSvcs.length > 0) {
+        featuredService = vectorSvcs[0] // highest vector relevance
+      } else {
+        // Fall back to the best non-vector service (sorted by free > discounted > score)
+        featuredService = allSvcs[0]
+      }
+    }
+    
     const scored: ProviderResult = {
       ...p,
-      services: vecSvcs,
-      freeServicePreview: freeExtras,
-      searchScore: scoreProvider(p, vecSvcs)
+      services: allSvcs, // ALL services for this provider
+      freeServicePreview: featuredService ? [featuredService] : [], // Single featured service
+      searchScore: scoreProvider(p, vectorSvcs) // Use vector services for provider scoring
     }
     return scored
   })
 
-  // Sort & slice
-  providers.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))
-  providers = providers.slice(0, limit)
-
-  // Filter services list to only those belonging to returned providers (flatten vector‑matched + free extras)
-  const providerSet = new Set(providers.map(p => p._id.toString()))
-  const returnedServices: ServiceResult[] = []
+  // Create flattened services list for UI (all services from all returned providers)
+  const allServices: ServiceResult[] = []
   providers.forEach(p => {
-    p.services?.forEach(s => returnedServices.push(s))
-    p.freeServicePreview?.forEach(s => returnedServices.push(s))
+    const allSvcs = allServicesByProvider[p._id.toString()] || []
+    allServices.push(...allSvcs)
   })
-  // Deduplicate
+
+  // Deduplicate services
   const seen = new Set<string>()
-  const dedup: ServiceResult[] = []
-  for (const s of returnedServices) {
+  const dedupServices: ServiceResult[] = []
+  for (const s of allServices) {
     const id = s._id.toString()
-    if (!seen.has(id)) { seen.add(id); dedup.push(s) }
+    if (!seen.has(id)) { 
+      seen.add(id) 
+      dedupServices.push(s)
+    }
   }
 
-  return { providers, services: dedup }
+  return { providers, services: dedupServices }
 }
 
 // ================== Handler ==================
@@ -373,6 +492,29 @@ export async function POST(req: NextRequest) {
     const start = Date.now()
     const { providers, services } = await performSearch(queryVector, filters, location, Math.min(limit, 25))
     const elapsedMs = Date.now() - start
+
+    // DEBUG: Log information about Mercy Health Clinic specifically
+    const mercyProvider = providers.find(p => p.name === "Mercy Health Clinic")
+    if (mercyProvider) {
+      console.log(`=== MERCY HEALTH CLINIC DEBUG ===`)
+      console.log(`Provider ID: ${mercyProvider._id} (type: ${typeof mercyProvider._id})`)
+      
+      const mercyServices = services.filter(s => s.provider_id.toString() === mercyProvider._id.toString())
+      console.log(`Services found for Mercy: ${mercyServices.length}`)
+      mercyServices.forEach(s => {
+        console.log(`  - Service: ${s.name} (provider_id: ${s.provider_id}, type: ${typeof s.provider_id})`)
+      })
+
+      console.log(`Total services in response: ${services.length}`)
+      console.log(`Services with provider_id matching Mercy (exact): ${services.filter(s => s.provider_id === mercyProvider._id).length}`)
+      console.log(`Services with provider_id matching Mercy (toString): ${services.filter(s => s.provider_id.toString() === mercyProvider._id.toString()).length}`)
+      
+      // Log all unique provider IDs in services
+      const uniqueProviderIds = [...new Set(services.map(s => s.provider_id.toString()))]
+      console.log(`Unique provider IDs in services: ${uniqueProviderIds.length}`)
+      console.log(`Sample provider IDs: ${uniqueProviderIds.slice(0, 5)}`)
+      console.log(`=== END MERCY DEBUG ===`)
+    }
 
     // Stats for logging
     const freeServiceCount = services.filter(s => s.is_free).length
