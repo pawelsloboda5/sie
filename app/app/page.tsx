@@ -6,6 +6,7 @@ import { ResultsList } from "@/components/results/ResultsList"
 import { Button } from "@/components/ui/button"
 import { List, Search } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { parseLocationString, type Coordinates } from "@/lib/utils"
  
 interface FilterOptions {
   freeOnly: boolean
@@ -80,7 +81,7 @@ export default function FindPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [filters, setFilters] = useState<FilterOptions>(defaultFilters)
   const [currentQuery, setCurrentQuery] = useState("")
-  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | undefined>(undefined)
+  const [currentLocation, setCurrentLocation] = useState<Coordinates | undefined>(undefined)
   const [viewMode, setViewMode] = useState<'display' | 'list'>('list')
   
   // State for initial values from URL parameters
@@ -129,7 +130,7 @@ export default function FindPage() {
     }
   }, [currentLocation])
 
-  const handleSearch = useCallback(async (query: string, location?: {latitude: number, longitude: number}, searchFilters?: Partial<FilterOptions>) => {
+  const handleSearch = useCallback(async (query: string, location?: Coordinates, searchFilters?: Partial<FilterOptions>) => {
     const filtersToUse = searchFilters || filters
     setIsLoading(true)
     setCurrentQuery(query)
@@ -262,54 +263,44 @@ export default function FindPage() {
     console.log(`Action: ${action}`, provider)
   }
 
-  // Utility function to parse location string (coordinates or text)
-  const parseLocationString = (locationString: string): {latitude: number, longitude: number} | undefined => {
-    // Check if it's coordinates (latitude, longitude)
-    const coordMatch = locationString.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
-    if (coordMatch) {
-      return {
-        latitude: parseFloat(coordMatch[1]),
-        longitude: parseFloat(coordMatch[2])
-      }
-    }
-    
-    // For text addresses, we don't have geocoding yet, so return undefined
-    // TODO: Implement geocoding for text addresses
-    return undefined
-  }
+
 
   // Handle URL parameters on mount to auto-execute search from homepage
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const query = urlParams.get('q')
-    const location = urlParams.get('location')
-    
-    // Set initial values for HeroSection pre-population
-    setInitialQuery(query || "")
-    setInitialLocation(location || "")
-    
-    if (query && query.trim()) {
-      console.log('Auto-executing search from URL params:', { query, location })
+    const handleUrlParams = async () => {
+      const urlParams = new URLSearchParams(window.location.search)
+      const query = urlParams.get('q')
+      const location = urlParams.get('location')
       
-      try {
-        // Parse location if provided
-        let locationCoords: {latitude: number, longitude: number} | undefined = undefined
-        if (location) {
-          locationCoords = parseLocationString(location)
-        }
+      // Set initial values for HeroSection pre-population
+      setInitialQuery(query || "")
+      setInitialLocation(location || "")
+      
+      if (query && query.trim()) {
+        console.log('Auto-executing search from URL params:', { query, location })
         
-        // Auto-execute search with URL parameters
-        handleSearch(query, locationCoords).catch((error) => {
-          console.error('Auto-search failed:', error)
-          // Search will fail gracefully in handleSearch, so no additional action needed
-          // The user can still manually search using the pre-populated fields
-        })
-      } catch (error) {
-        console.error('Error processing URL parameters:', error)
-        // Even if parsing fails, the search fields will still be pre-populated
-        // so the user can manually trigger the search
+        try {
+          // Parse location if provided
+          let locationCoords: {latitude: number, longitude: number} | undefined = undefined
+          if (location) {
+            locationCoords = await parseLocationString(location)
+          }
+          
+          // Auto-execute search with URL parameters
+          handleSearch(query, locationCoords).catch((error) => {
+            console.error('Auto-search failed:', error)
+            // Search will fail gracefully in handleSearch, so no additional action needed
+            // The user can still manually search using the pre-populated fields
+          })
+        } catch (error) {
+          console.error('Error processing URL parameters:', error)
+          // Even if parsing fails, the search fields will still be pre-populated
+          // so the user can manually trigger the search
+        }
       }
     }
+
+    handleUrlParams()
   }, [handleSearch])
 
   return (

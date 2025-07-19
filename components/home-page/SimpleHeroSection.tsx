@@ -12,6 +12,7 @@ import { Search, MapPin, Loader2, ChevronDown, Clock, FileText, Bot, Shield, Use
 import type { RecentSearch } from "@/lib/db"
 import * as db from "@/lib/db"
 import Link from "next/link"
+import { reverseGeocode } from "@/lib/utils"
 
 interface SimpleHeroSectionProps {
   showRecentSearches?: boolean
@@ -61,8 +62,12 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
     try {
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setLocation(`${position.coords.latitude}, ${position.coords.longitude}`)
+          async (position) => {
+            const { latitude, longitude } = position.coords
+            
+            // Convert coordinates to address
+            const address = await reverseGeocode(latitude, longitude)
+            setLocation(address)
             setIsGettingLocation(false)
           },
           (error) => {

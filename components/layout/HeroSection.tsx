@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CompactFilterPanel } from "@/components/search/CompactFilterPanel"
 import { Search, MapPin, Loader2, ChevronDown } from "lucide-react"
+import { reverseGeocode, parseLocationString, type Coordinates } from "@/lib/utils"
 
 // Types for our search functionality
 interface SearchFilters {
@@ -26,7 +27,7 @@ interface SearchFilters {
 }
 
 interface HeroSectionProps {
-  onSearch?: (query: string, location?: {latitude: number, longitude: number}, filters?: SearchFilters) => void
+  onSearch?: (query: string, location?: Coordinates, filters?: SearchFilters) => void
   isSearching?: boolean
   filters?: SearchFilters
   onFiltersChange?: (filters: SearchFilters) => void
@@ -94,8 +95,12 @@ export function HeroSection({
     try {
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setLocation(`${position.coords.latitude}, ${position.coords.longitude}`)
+          async (position) => {
+            const { latitude, longitude } = position.coords
+            
+            // Convert coordinates to address
+            const address = await reverseGeocode(latitude, longitude)
+            setLocation(address)
             setIsGettingLocation(false)
           },
           (error) => {
@@ -130,20 +135,6 @@ export function HeroSection({
     }
   }, [initialLocation, hasAutoRequestedLocation, handleGetLocation])
 
-  const parseLocation = (locationString: string) => {
-    // Check if it's coordinates (latitude, longitude)
-    const coordMatch = locationString.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
-    if (coordMatch) {
-      return {
-        latitude: parseFloat(coordMatch[1]),
-        longitude: parseFloat(coordMatch[2])
-      }
-    }
-    
-    // For now, return null for text addresses - we'd need geocoding API
-    return null
-  }
-
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       setSearchError("Please enter a search query")
@@ -151,7 +142,7 @@ export function HeroSection({
     }
 
     setSearchError(null)
-    const locationCoords = location ? parseLocation(location) : undefined
+    const locationCoords = location ? await parseLocationString(location) : undefined
     
     // Call parent component's search handler with current filters
     if (onSearch) {
