@@ -280,14 +280,14 @@ export function HeroSection({
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 disabled={isGettingLocation}
-                className="pl-10 md:pl-12 pr-12 md:pr-14 py-2 md:py-3 text-sm md:text-base h-11 md:h-14 bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="pl-10 md:pl-12 pr-16 md:pr-20 py-2 md:py-3 text-sm md:text-base h-11 md:h-14 bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all truncate"
               />
               <Button
                 onClick={handleGetLocation}
                 disabled={isGettingLocation}
                 variant="ghost"
                 size="sm"
-                className="absolute right-1 md:right-2 top-1/2 transform -translate-y-1/2 h-8 md:h-9 px-2 md:px-3 hover:bg-muted text-xs md:text-sm"
+                className="absolute right-1 md:right-2 top-1/2 transform -translate-y-1/2 h-8 md:h-9 px-2 md:px-2 hover:bg-muted text-xs md:text-xs whitespace-nowrap"
               >
                 {isGettingLocation ? (
                   <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
@@ -295,7 +295,7 @@ export function HeroSection({
                   <MapPin className="h-3 w-3 md:h-4 md:w-4" />
                 )}
                 <span className="ml-1 hidden md:inline">
-                  {isGettingLocation ? "Getting..." : "Use GPS"}
+                  {isGettingLocation ? "Getting..." : "GPS"}
                 </span>
                 <span className="sr-only">
                   {isGettingLocation ? "Getting location..." : "Use my location"}
