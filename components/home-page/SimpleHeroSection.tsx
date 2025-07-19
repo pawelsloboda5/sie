@@ -93,6 +93,11 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
       return
     }
 
+    // Prevent double execution
+    if (isSearching) {
+      return
+    }
+
     setSearchError(null)
     setIsSearching(true)
 

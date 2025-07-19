@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { HeroSection } from "@/components/layout/HeroSection"
 import { ResultsList } from "@/components/results/ResultsList"
 import { Button } from "@/components/ui/button"
@@ -87,6 +87,8 @@ export default function FindPage() {
   // State for initial values from URL parameters
   const [initialQuery, setInitialQuery] = useState("")
   const [initialLocation, setInitialLocation] = useState("")
+  const [hasExecutedUrlSearch, setHasExecutedUrlSearch] = useState(false)
+  const searchExecutionRef = useRef(false)
 
 
   const handleFilterOnlySearch = useCallback(async (searchFilters: FilterOptions) => {
@@ -267,6 +269,11 @@ export default function FindPage() {
 
   // Handle URL parameters on mount to auto-execute search from homepage
   useEffect(() => {
+    // Prevent double execution
+    if (hasExecutedUrlSearch || searchExecutionRef.current) {
+      return
+    }
+
     const handleUrlParams = async () => {
       const urlParams = new URLSearchParams(window.location.search)
       const query = urlParams.get('q')
@@ -277,31 +284,98 @@ export default function FindPage() {
       setInitialLocation(location || "")
       
       if (query && query.trim()) {
-        console.log('Auto-executing search from URL params:', { query, location })
+        // Final check before execution
+        if (searchExecutionRef.current) {
+          return
+        }
+        
+        searchExecutionRef.current = true
+        setHasExecutedUrlSearch(true)
         
         try {
           // Parse location if provided
-          let locationCoords: {latitude: number, longitude: number} | undefined = undefined
+          let locationCoords: Coordinates | undefined = undefined
           if (location) {
             locationCoords = await parseLocationString(location)
           }
           
-          // Auto-execute search with URL parameters
-          handleSearch(query, locationCoords).catch((error) => {
-            console.error('Auto-search failed:', error)
-            // Search will fail gracefully in handleSearch, so no additional action needed
-            // The user can still manually search using the pre-populated fields
+          // Auto-execute search with URL parameters using default filters
+          setIsLoading(true)
+          setCurrentQuery(query)
+          setCurrentLocation(locationCoords)
+          
+          const response = await fetch('/api/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              query,
+              location: locationCoords,
+              filters: {
+                freeOnly: defaultFilters.freeOnly,
+                acceptsUninsured: defaultFilters.acceptsUninsured,
+                acceptsMedicaid: defaultFilters.acceptsMedicaid,
+                acceptsMedicare: defaultFilters.acceptsMedicare,
+                ssnRequired: defaultFilters.ssnRequired,
+                telehealthAvailable: defaultFilters.telehealthAvailable,
+                maxDistance: defaultFilters.maxDistance,
+                insuranceProviders: defaultFilters.insuranceProviders,
+                serviceCategories: defaultFilters.serviceCategories,
+              },
+              limit: 20
+            }),
           })
+
+          if (!response.ok) {
+            throw new Error('Search failed')
+          }
+
+          const results = await response.json()
+          
+          // Sort providers to prioritize those with free services
+          if (results.providers && results.services) {
+            results.providers.sort((a: Provider, b: Provider) => {
+              // Check if providers have free services
+              const aHasFree = results.services.some((service: Service) => 
+                service.provider_id === a._id && service.is_free
+              )
+              const bHasFree = results.services.some((service: Service) => 
+                service.provider_id === b._id && service.is_free
+              )
+              
+              // Prioritize providers with free services
+              if (aHasFree && !bHasFree) return -1
+              if (!aHasFree && bHasFree) return 1
+              
+              // If both have free services, count them
+              if (aHasFree && bHasFree) {
+                const aFreeCount = results.services.filter((service: Service) => 
+                  service.provider_id === a._id && service.is_free
+                ).length
+                const bFreeCount = results.services.filter((service: Service) => 
+                  service.provider_id === b._id && service.is_free
+                ).length
+                if (aFreeCount !== bFreeCount) return bFreeCount - aFreeCount
+              }
+              
+              // Then sort by search relevance score
+              return (b.searchScore || 0) - (a.searchScore || 0)
+            })
+          }
+          
+          setSearchResults(results)
         } catch (error) {
-          console.error('Error processing URL parameters:', error)
-          // Even if parsing fails, the search fields will still be pre-populated
-          // so the user can manually trigger the search
+          console.error('Auto-search failed:', error)
+          setSearchResults(null)
+        } finally {
+          setIsLoading(false)
         }
       }
     }
 
     handleUrlParams()
-  }, [handleSearch])
+  }, [hasExecutedUrlSearch])
 
   return (
     <div className="h-screen flex flex-col bg-background">
