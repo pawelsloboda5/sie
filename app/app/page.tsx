@@ -81,7 +81,7 @@ export default function FindPage() {
   const [filters, setFilters] = useState<FilterOptions>(defaultFilters)
   const [currentQuery, setCurrentQuery] = useState("")
   const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | undefined>(undefined)
-  const [viewMode, setViewMode] = useState<'display' | 'list'>('display')
+  const [viewMode, setViewMode] = useState<'display' | 'list'>('list')
   
   // State for initial values from URL parameters
   const [initialQuery, setInitialQuery] = useState("")

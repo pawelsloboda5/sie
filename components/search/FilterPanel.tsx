@@ -284,7 +284,7 @@ export function FilterPanel({
               <Slider
                 value={[filters.maxDistance]}
                 onValueChange={(value) => updateFilter('maxDistance', value[0])}
-                max={50}
+                max={250}
                 min={1}
                 step={1}
                 className="mt-2"
