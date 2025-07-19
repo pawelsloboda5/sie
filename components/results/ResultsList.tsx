@@ -27,7 +27,7 @@ interface Provider {
   phone?: string
   website?: string
   email?: string
-  rating: number
+  rating?: number
   accepts_uninsured: boolean
   medicaid: boolean
   medicare: boolean
@@ -101,8 +101,10 @@ export function ResultsList({
         })
       case 'rating':
         return providers.sort((a, b) => {
-          // Primary sort by rating
-          if (a.rating !== b.rating) return b.rating - a.rating
+          // Primary sort by rating (handle undefined ratings)
+          const aRating = a.rating || 0
+          const bRating = b.rating || 0
+          if (aRating !== bRating) return bRating - aRating
           
           // Secondary sort by relevance score (which already includes free service bonuses)
           return (b.searchScore || 0) - (a.searchScore || 0)

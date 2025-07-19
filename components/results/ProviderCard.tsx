@@ -29,7 +29,7 @@ interface Provider {
   phone?: string
   website?: string
   email?: string
-  rating: number
+  rating?: number
   accepts_uninsured: boolean
   medicaid: boolean
   medicare: boolean
@@ -86,10 +86,11 @@ export function ProviderCard({
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number | null | undefined) => {
     const stars = []
-    const fullStars = Math.floor(rating)
-    const hasHalfStar = rating % 1 !== 0
+    const safeRating = rating || 0
+    const fullStars = Math.floor(safeRating)
+    const hasHalfStar = safeRating % 1 !== 0
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(<Star key={i} className="h-4 w-4 sm:h-5 sm:w-5 fill-yellow-400 text-yellow-400" />)
@@ -99,7 +100,7 @@ export function ProviderCard({
       stars.push(<Star key="half" className="h-4 w-4 sm:h-5 sm:w-5 fill-yellow-400/50 text-yellow-400" />)
     }
 
-    const remainingStars = 5 - Math.ceil(rating)
+    const remainingStars = 5 - Math.ceil(safeRating)
     for (let i = 0; i < remainingStars; i++) {
       stars.push(<Star key={`empty-${i}`} className="h-4 w-4 sm:h-5 sm:w-5 text-gray-300" />)
     }
@@ -188,7 +189,7 @@ export function ProviderCard({
             </p>
             <div className="flex items-center gap-1">
               <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm font-medium">{provider.rating.toFixed(1)}</span>
+                              <span className="text-sm font-medium">{(provider.rating || 0).toFixed(1)}</span>
               {showDistance && provider.distance && (
                 <>
                   <span className="text-muted-foreground mx-1">•</span>
@@ -331,7 +332,7 @@ export function ProviderCard({
                   {renderStars(provider.rating)}
                 </div>
                 <span className="text-lg font-semibold text-foreground">
-                  {provider.rating.toFixed(1)}
+                  {(provider.rating || 0).toFixed(1)}
                 </span>
                 <span className="text-sm text-muted-foreground">rating</span>
               </div>
@@ -568,7 +569,7 @@ export function ProviderCard({
                   {renderStars(provider.rating)}
                 </div>
                 <span className="text-base sm:text-lg lg:text-xl font-semibold text-foreground">
-                  {provider.rating.toFixed(1)}
+                  {(provider.rating || 0).toFixed(1)}
                 </span>
                 <span className="text-sm sm:text-base text-muted-foreground">
                   rating

@@ -29,7 +29,7 @@ interface Provider {
   phone?: string
   website?: string
   email?: string
-  rating: number
+  rating?: number
   accepts_uninsured: boolean
   medicaid: boolean
   medicare: boolean
@@ -73,10 +73,11 @@ export function ProviderDetailsModal({
 }: ProviderDetailsModalProps) {
   if (!provider) return null
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number | null | undefined) => {
     const stars = []
-    const fullStars = Math.floor(rating)
-    const hasHalfStar = rating % 1 !== 0
+    const safeRating = rating || 0
+    const fullStars = Math.floor(safeRating)
+    const hasHalfStar = safeRating % 1 !== 0
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(<Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />)
@@ -86,7 +87,7 @@ export function ProviderDetailsModal({
       stars.push(<Star key="half" className="h-4 w-4 fill-yellow-400/50 text-yellow-400" />)
     }
 
-    const remainingStars = 5 - Math.ceil(rating)
+    const remainingStars = 5 - Math.ceil(safeRating)
     for (let i = 0; i < remainingStars; i++) {
       stars.push(<Star key={`empty-${i}`} className="h-4 w-4 text-gray-300" />)
     }
@@ -146,7 +147,7 @@ export function ProviderDetailsModal({
                 <div className="flex items-center gap-1">
                   {renderStars(provider.rating)}
                   <span className="text-sm sm:text-base text-gray-600 ml-2 font-medium">
-                    ({provider.rating.toFixed(1)})
+                    ({(provider.rating || 0).toFixed(1)})
                   </span>
                 </div>
               </div>

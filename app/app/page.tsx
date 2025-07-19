@@ -30,7 +30,7 @@ interface Provider {
   phone?: string
   website?: string
   email?: string
-  rating: number
+  rating?: number
   accepts_uninsured: boolean
   medicaid: boolean
   medicare: boolean
