@@ -144,7 +144,7 @@ export default function Landing() {
         <div className="container text-center space-y-content">
           <div className="space-y-element max-w-4xl mx-auto">
             <h3 className="text-h1">
-              Meet Your AI Healthcare Team
+              How It Works
             </h3>
             <div className="space-y-4">
               <p className="text-lead">
