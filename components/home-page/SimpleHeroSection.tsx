@@ -243,7 +243,7 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
         )}
 
         {/* Main Search Interface */}
-        <div className="w-full max-w-6xl mx-auto space-y-content px-4 sm:px-0 md:px-8">
+        <div className="w-[90vw] md:w-full md:max-w-6xl mx-auto space-y-content px-4 sm:px-0 md:px-8">
           {/* Search Bar */}
           <div className="relative">
             <div className="flex flex-col md:flex-row items-stretch md:items-center glass rounded-2xl md:rounded-3xl shadow-xl card-shadow-lg hover:shadow-2xl transition-slow overflow-hidden">
