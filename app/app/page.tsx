@@ -399,26 +399,103 @@ export default function FindPage() {
         <div className="h-full flex flex-col">
           <div className="flex-1 min-h-0 container mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-6 lg:py-8">
             {/* Mobile Controls */}
-            <div className="lg:hidden mb-4 sm:mb-6 space-y-3">
-              {/* View Mode Toggle - Display vs List */}
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant={viewMode === 'display' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('display')}
-                  className="h-14 flex items-center justify-center gap-3 text-base font-medium transition-colors"
-                >
-                  <Search className="h-5 w-5" />
-                  Card View
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('list')}
-                  className="h-14 flex items-center justify-center gap-3 text-base font-medium transition-colors"
-                >
-                  <List className="h-5 w-5" />
-                  List View
-                </Button>
+            <div className="lg:hidden mb-6 space-y-4">
+              {/* Results Summary */}
+              {searchResults?.totalResults && (
+                <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-bold text-foreground">
+                        {searchResults.totalResults} Results Found
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {currentQuery && `for "${currentQuery}"`}
+                      </p>
+                    </div>
+                    {/* Active Filters Indicator */}
+                    {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
+                      filters.acceptsMedicare || filters.telehealthAvailable || 
+                      filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
+                      <Badge variant="secondary" className="text-xs px-3 py-1">
+                        Filters Active
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* View Mode Toggle - Larger and more touch-friendly */}
+              <div className="bg-white dark:bg-gray-900 rounded-2xl p-2 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant={viewMode === 'display' ? 'default' : 'ghost'}
+                    onClick={() => setViewMode('display')}
+                    className={`h-12 flex items-center justify-center gap-3 text-base font-semibold rounded-xl transition-all ${
+                      viewMode === 'display' 
+                        ? 'bg-[#068282] text-white shadow-md' 
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <Search className="h-5 w-5" />
+                    Card View
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    onClick={() => setViewMode('list')}
+                    className={`h-12 flex items-center justify-center gap-3 text-base font-semibold rounded-xl transition-all ${
+                      viewMode === 'list' 
+                        ? 'bg-[#068282] text-white shadow-md' 
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <List className="h-5 w-5" />
+                    List View
+                  </Button>
+                </div>
               </div>
+
+              {/* Active Filters Display */}
+              {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
+                filters.acceptsMedicare || filters.telehealthAvailable || 
+                filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                      Active Filters
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/50 h-8 px-3 rounded-lg"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {filters.freeOnly && (
+                      <Badge className="bg-green-600 text-white text-sm px-3 py-1">Free Only</Badge>
+                    )}
+                    {filters.acceptsUninsured && (
+                      <Badge className="bg-blue-600 text-white text-sm px-3 py-1">Uninsured</Badge>
+                    )}
+                    {filters.acceptsMedicaid && (
+                      <Badge className="bg-green-600 text-white text-sm px-3 py-1">Medicaid</Badge>
+                    )}
+                    {filters.acceptsMedicare && (
+                      <Badge className="bg-green-600 text-white text-sm px-3 py-1">Medicare</Badge>
+                    )}
+                    {filters.telehealthAvailable && (
+                      <Badge className="bg-indigo-600 text-white text-sm px-3 py-1">Telehealth</Badge>
+                    )}
+                    {(filters.insuranceProviders.length + filters.serviceCategories.length) > 0 && (
+                      <Badge className="bg-gray-600 text-white text-sm px-3 py-1">
+                        +{filters.insuranceProviders.length + filters.serviceCategories.length} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Desktop Controls */}
