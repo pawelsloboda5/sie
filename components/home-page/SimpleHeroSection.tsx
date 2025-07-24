@@ -140,12 +140,16 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
     setIsSearching(true)
 
     try {
-      // Save search to IndexedDB
+      // Strip "I want" from the beginning for better search results
+      const cleanQuery = searchQuery.replace(/^I want\s+/i, '').trim()
+      const searchTerms = cleanQuery || searchQuery
+
+      // Save original search to IndexedDB (with "I want" for history)
       await db.saveRecentSearch(searchQuery, location)
 
-      // Redirect to app page with search parameters
+      // Redirect to app page with cleaned search parameters
       const params = new URLSearchParams()
-      params.set('q', searchQuery)
+      params.set('q', searchTerms)
       if (location) {
         params.set('location', location)
       }
