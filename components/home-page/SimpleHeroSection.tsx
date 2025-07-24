@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Search, MapPin, Loader2, ChevronDown, Clock, FileText, Bot, Shield, Users, ArrowRight, Stethoscope } from "lucide-react"
+import { Search, MapPin, Loader2, ChevronDown, Clock, FileText, Bot, Shield, Users, Stethoscope } from "lucide-react"
 import type { RecentSearch } from "@/lib/db"
 import * as db from "@/lib/db"
 import Link from "next/link"
@@ -317,7 +317,7 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
                       <div className="mt-4 space-y-3">
                         <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Popular searches:</p>
                         <div className="flex flex-wrap gap-2">
-                          {featuredServices.slice(0, 8).map((service, index) => (
+                          {featuredServices.slice(0, 8).map((service) => (
                             <button
                               key={service}
                               onClick={() => setSearchQuery(`I want ${service}`)}
