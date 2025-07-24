@@ -274,9 +274,6 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
                   SIE Wellness
                 </h1>
-                <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mt-4 font-light">
-                  AI-Powered Healthcare Discovery
-                </p>
               </div>
             </Link>
           </div>
