@@ -409,14 +409,6 @@ async with NPILookupClient() as client:
               </div>
             </div>
             <div>
-              <h5 className="text-h6 mb-3">Resources</h5>
-              <div className="space-y-2 text-body-sm text-muted-foreground">
-                <Link href="/docs" className="block hover:underline">Documentation</Link>
-                <Link href="/api" className="block hover:underline">API Access</Link>
-                <Link href="/support" className="block hover:underline">Support</Link>
-              </div>
-            </div>
-            <div>
               <h5 className="text-h6 mb-3">Emergency</h5>
               <div className="space-y-2 text-body-sm">
                 <Link href="tel:911" className="block text-destructive font-semibold hover:underline">Emergency 911</Link>
