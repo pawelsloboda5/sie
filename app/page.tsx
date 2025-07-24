@@ -15,33 +15,34 @@ export default function Landing() {
       <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container max-w-screen-xl mx-auto flex h-20 items-center justify-between px-4">
           <Link href="#" className="flex items-center gap-4 group">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-105 group-hover:from-primary/20 group-hover:to-primary/10">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 transition-all duration-300 group-hover:scale-105">
               <Image
                 src="/logo_560x560.png"
                 alt="SIE Wellness Logo"
-                width={56}
-                height={56}
+                width={48}
+                height={48}
                 className="rounded-xl transition-transform duration-300 group-hover:scale-105"
               />
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-medium text-muted-foreground">AI‑Powered Healthcare Discovery</p>
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">SIE Wellness</span>
+              <p className="text-sm text-gray-600 dark:text-gray-400">AI-Powered Healthcare Discovery</p>
             </div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-            <Link href="#agents" className="text-muted-foreground hover:text-primary transition-colors duration-300 relative group">
+            <Link href="#agents" className="text-gray-600 dark:text-gray-400 hover:text-[#068282] dark:hover:text-teal-400 transition-colors duration-300 relative group">
               How It Works
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#068282] transition-all duration-300 group-hover:w-full"></span>
             </Link>
-            <Link href="#who-we-help" className="text-muted-foreground hover:text-primary transition-colors duration-300 relative group">
+            <Link href="#who-we-help" className="text-gray-600 dark:text-gray-400 hover:text-[#068282] dark:hover:text-teal-400 transition-colors duration-300 relative group">
               Who We Help
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#068282] transition-all duration-300 group-hover:w-full"></span>
             </Link>
           </nav>
 
           <div className="flex items-center gap-4">
-            <Button asChild className="hidden md:inline-flex bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <Button asChild className="hidden md:inline-flex bg-[#068282] hover:bg-[#0f766e] text-white transition-all duration-300 shadow-lg hover:shadow-xl rounded-full px-6">
               <Link href="/app">
                 Launch App <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -54,26 +55,26 @@ export default function Landing() {
       <SimpleHeroSection />
 
       {/* ---------- Preventive Care Service ---------- */}
-      <section className="section-padding bg-gradient-to-br from-muted/20 via-background to-muted/30">
+      <section className="section-padding bg-gradient-to-br from-teal-50/30 via-white to-teal-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-teal-900/10">
         <div className="container space-y-content">
           <div className="text-center space-y-element max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-              <HeartHandshake className="h-4 w-4 text-primary" />
-              <span className="text-body-sm font-semibold text-primary">Coming Soon</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
+              <HeartHandshake className="h-4 w-4 text-[#068282] dark:text-teal-400" />
+              <span className="text-sm font-semibold text-[#068282] dark:text-teal-400">Coming Soon</span>
             </div>
             
-            <h2 className="text-h1">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100">
               SIE Wellness Preventative Healthcare Coverage
             </h2>
             
             <div className="space-y-4">
-              <p className="text-lead">
+              <p className="text-xl text-gray-700 dark:text-gray-300">
                 We&apos;re excited to announce the upcoming launch of SIE Wellness Preventative Healthcare Coverage, 
                 designed to proactively support your wellness with annual physicals, dental cleanings, essential 
                 lab tests, and personalized add-on services.
               </p>
               
-              <p className="text-body-base text-muted-foreground">
+              <p className="text-base text-gray-600 dark:text-gray-400">
                 Our plans are highly affordable with flexible payment options to fit your budget. 
                 Sign up today to receive updates, exclusive early access opportunities, and news about our official start date!
               </p>
@@ -82,20 +83,20 @@ export default function Landing() {
 
           {/* Email Signup */}
           <div className="max-w-lg mx-auto">
-            <div className="flex gap-3 p-2 glass rounded-2xl card-shadow-lg">
+            <div className="flex gap-3 p-2 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
               <Input
                 type="email"
                 placeholder="Enter your email address"
-                className="flex-1 border-0 bg-transparent input-lg rounded-l-2xl focus-ring-visible"
+                className="flex-1 border-0 bg-transparent text-base py-4 px-4 focus:outline-none focus:ring-0 placeholder:text-gray-400"
               />
               <Button 
                 size="lg" 
-                className="btn-lg rounded-r-2xl bg-primary hover:bg-primary/90 transition-smooth"
+                className="px-6 py-4 bg-[#068282] hover:bg-[#0f766e] text-white rounded-xl transition-all duration-300"
               >
                 Join Waitlist
               </Button>
             </div>
-            <p className="text-body-sm text-muted-foreground mt-3 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 text-center">
               We respect your privacy. Unsubscribe at any time.
             </p>
           </div>
@@ -103,34 +104,34 @@ export default function Landing() {
           {/* Feature Highlights */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 max-w-3xl mx-auto">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 mb-4">
-                <Stethoscope className="h-6 w-6 text-primary" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-4">
+                <Stethoscope className="h-8 w-8 text-[#068282] dark:text-teal-400" />
               </div>
-              <h4 className="text-h5 mb-2">Annual Physicals</h4>
-              <p className="text-body-sm text-muted-foreground">Comprehensive yearly checkups</p>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Annual Physicals</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Comprehensive yearly checkups</p>
             </div>
             
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 mb-4">
-                <HeartHandshake className="h-6 w-6 text-primary" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-4">
+                <HeartHandshake className="h-8 w-8 text-[#068282] dark:text-teal-400" />
               </div>
-              <h4 className="text-h5 mb-2">Dental Care</h4>
-              <p className="text-body-sm text-muted-foreground">Regular cleanings and checkups</p>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Dental Care</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Regular cleanings and checkups</p>
             </div>
             
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 mb-4">
-                <Users className="h-6 w-6 text-primary" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-4">
+                <Users className="h-8 w-8 text-[#068282] dark:text-teal-400" />
               </div>
-              <h4 className="text-h5 mb-2">Lab Tests</h4>
-              <p className="text-body-sm text-muted-foreground">Essential health screenings</p>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Lab Tests</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Essential health screenings</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* ---------- Quick Stats ---------- */}
-      <section className="section-padding-sm border-y bg-muted/40">
+      <section className="py-16 border-y bg-teal-50/30 dark:bg-gray-900/50">
         <div className="container grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           <Stat number="2,300+" label="Healthcare Providers" icon={Building} />
           <Stat number="68,000+" label="Verified Services" icon={Stethoscope} />
@@ -140,14 +141,14 @@ export default function Landing() {
       </section>
 
       {/* ---------- AI Agents Section ---------- */}
-      <section id="agents" className="section-padding">
+      <section id="agents" className="py-24 bg-white dark:bg-gray-900">
         <div className="container text-center space-y-content">
           <div className="space-y-element max-w-4xl mx-auto">
-            <h3 className="text-h1">
+            <h3 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100">
               How It Works
             </h3>
             <div className="space-y-4">
-              <p className="text-lead">
+              <p className="text-xl text-gray-700 dark:text-gray-300">
                 Six specialized AI agents work around the clock, each one a digital expert that
                 never sleeps, never takes breaks, and never stops helping you find the care you need.
               </p>
@@ -202,13 +203,13 @@ export default function Landing() {
       </section>
 
       {/* ---------- Who We Help ---------- */}
-      <section id="who-we-help" className="section-padding bg-muted/40">
+      <section id="who-we-help" className="py-24 bg-gray-50/50 dark:bg-gray-900/50">
         <div className="container text-center mb-16">
-          <h3 className="text-h1 mb-6">
+          <h3 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-6">
             Built for Real People with Real Needs
           </h3>
           <div className="space-y-2 max-w-3xl mx-auto">
-            <p className="text-lead">
+            <p className="text-xl text-gray-700 dark:text-gray-300">
               From individuals seeking care to organizations serving communities, 
               our AI makes healthcare accessible for everyone.
             </p>
@@ -313,9 +314,11 @@ export default function Landing() {
 function Stat({ number, label, icon: Icon }: { number: string; label: string; icon: typeof MapPin }) {
   return (
     <div className="space-y-3 text-center">
-      <Icon className="h-8 w-8 text-primary mx-auto" />
-      <div className="text-display-sm text-primary">{number}</div>
-      <p className="text-body-sm text-muted-foreground">{label}</p>
+      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-2">
+        <Icon className="h-8 w-8 text-[#068282] dark:text-teal-400" />
+      </div>
+      <div className="text-3xl font-bold text-[#068282] dark:text-teal-400">{number}</div>
+      <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
     </div>
   );
 }
@@ -334,23 +337,23 @@ function AgentCard({
   capabilities: string[];
 }) {
   return (
-    <Card className="h-full card-shadow hover:card-shadow-lg transition-slow hover-lift-sm group">
-      <CardContent className="p-8 space-y-element">
+    <Card className="h-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group rounded-2xl">
+      <CardContent className="p-8 space-y-6">
         <div className="flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-smooth">
-            <Icon className="h-6 w-6 text-primary" />
+          <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-900/20 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/30 transition-all duration-300">
+            <Icon className="h-8 w-8 text-[#068282] dark:text-teal-400" />
           </div>
           <div>
-            <h4 className="text-h5">{title}</h4>
-            <p className="text-body-sm text-muted-foreground italic">{nickname}</p>
+            <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100">{title}</h4>
+            <p className="text-sm text-[#068282] dark:text-teal-400 italic font-medium">{nickname}</p>
           </div>
         </div>
-        <p className="text-body-base text-muted-foreground">{desc}</p>
-        <div className="space-y-2">
+        <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">{desc}</p>
+        <div className="space-y-3">
           {capabilities.map((capability, index) => (
-            <div key={index} className="flex items-center gap-3 text-body-sm">
-              <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
-              <span className="text-muted-foreground">{capability}</span>
+            <div key={index} className="flex items-center gap-3 text-sm">
+              <div className="w-2 h-2 rounded-full bg-[#068282] dark:bg-teal-400 flex-shrink-0"></div>
+              <span className="text-gray-600 dark:text-gray-400">{capability}</span>
             </div>
           ))}
         </div>
@@ -371,16 +374,18 @@ function UserGroup({
   benefits: string[];
 }) {
   return (
-    <Card className="h-full">
-      <CardContent className="p-6 text-center">
-        <Icon className="h-12 w-12 text-primary mx-auto mb-4" />
-        <h4 className="text-h5 mb-3">{title}</h4>
-        <p className="text-body-sm text-muted-foreground mb-4">{desc}</p>
-        <div className="space-y-2">
+    <Card className="h-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+      <CardContent className="p-8 text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-6">
+          <Icon className="h-8 w-8 text-[#068282] dark:text-teal-400" />
+        </div>
+        <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{title}</h4>
+        <p className="text-base text-gray-600 dark:text-gray-400 mb-6">{desc}</p>
+        <div className="space-y-3">
           {benefits.map((benefit, index) => (
-            <div key={index} className="flex items-center gap-2 text-body-xs">
-              <span className="text-green-600">✓</span>
-              <span className="text-muted-foreground">{benefit}</span>
+            <div key={index} className="flex items-center gap-3 text-sm">
+              <span className="text-[#14b8a6]">✓</span>
+              <span className="text-gray-600 dark:text-gray-400">{benefit}</span>
             </div>
           ))}
         </div>

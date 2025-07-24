@@ -51,18 +51,18 @@
   --card-foreground: oklch(0.129 0.042 264.695);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.376 0.142 179.885); /* #068282 converted to oklch */
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --secondary-foreground: oklch(0.376 0.142 179.885);
   --muted: oklch(0.968 0.007 247.896);
   --muted-foreground: oklch(0.554 0.046 257.417);
   --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+  --accent-foreground: oklch(0.376 0.142 179.885);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.929 0.013 255.508);
   --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --ring: oklch(0.376 0.142 179.885);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -70,12 +70,25 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary: oklch(0.376 0.142 179.885);
   --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
   --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-accent-foreground: oklch(0.376 0.142 179.885);
   --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --sidebar-ring: oklch(0.376 0.142 179.885);
+  
+  /* Brand Green Color Variations - Based on #068282 */
+  --brand-green-50: #f0fdfc;
+  --brand-green-100: #ccfbf1;
+  --brand-green-200: #99f6e4;
+  --brand-green-300: #5eead4;
+  --brand-green-400: #2dd4bf;
+  --brand-green-500: #14b8a6;
+  --brand-green-600: #068282; /* Primary brand color */
+  --brand-green-700: #0f766e;
+  --brand-green-800: #115e59;
+  --brand-green-900: #134e4a;
+  --brand-green-950: #042f2e;
   
   /* Typography Scale Variables */
   --font-size-xs: 0.75rem;    /* 12px */
@@ -106,8 +119,8 @@
   --card-foreground: oklch(0.984 0.003 247.858);
   --popover: oklch(0.208 0.042 265.755);
   --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.484 0.142 179.885); /* Lighter green for dark mode */
+  --primary-foreground: oklch(0.042 0.142 179.885);
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
   --muted: oklch(0.279 0.041 260.031);
@@ -117,7 +130,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  --ring: oklch(0.484 0.142 179.885);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -125,12 +138,12 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.208 0.042 265.755);
   --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: oklch(0.484 0.142 179.885);
   --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
   --sidebar-accent: oklch(0.279 0.041 260.031);
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --sidebar-ring: oklch(0.484 0.142 179.885);
 }
 
 @layer base {
@@ -353,6 +366,13 @@
     max-width: 1600px;
   }
   
+  /* Full Width Search Container */
+  .search-container-full {
+    width: 90vw;
+    max-width: none;
+    margin: 0 auto;
+  }
+  
   /* Section Padding */
   .section-padding {
     @apply py-16 lg:py-24;
@@ -409,6 +429,12 @@
   .btn-base {
     @apply h-10 px-4 text-sm font-medium;
     font-size: var(--font-size-sm);
+  }
+  
+  /* Large capability buttons */
+  .btn-capability {
+    @apply h-auto py-4 px-6 text-base font-medium min-w-fit;
+    white-space: nowrap;
   }
   
   /* Focus Improvements - More subtle and border-following */
@@ -468,7 +494,9 @@
   
   /* Hero-specific styles */
   .hero-search-container {
-    @apply w-full max-w-4xl mx-auto;
+    width: 90vw;
+    max-width: none;
+    margin: 0 auto;
   }
   
   .hero-search-bar {

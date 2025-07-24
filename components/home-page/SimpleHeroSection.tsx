@@ -137,7 +137,7 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
   const capabilities = [
     {
       icon: FileText,
-      text: "Find Free Healthcare Resources",
+      text: "Find Free & Low-Cost Care",
       key: "free-resources",
       options: [
         "Free STI testing and sexual health",
@@ -151,7 +151,7 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
     },
     {
       icon: Bot,
-      text: "Essential Care Options", 
+      text: "Accessible Care Services", 
       key: "essential-care",
       options: [
         "Clinics that don't require Social Security Number",
@@ -164,7 +164,7 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
     },
     {
       icon: Shield,
-      text: "Choose Insurance Coverage",
+      text: "Insurance & Payment Options",
       key: "insurance",
       options: [
         "Accepts Medicaid patients",
@@ -183,7 +183,8 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
       key: "specialty",
       options: [
         "Cardiology specialists",
-        "Dermatology clinics",
+        "Limb Loss/Difference Care specialists",
+        "Dental Services and oral health",
         "Orthopedic services",
         "Pediatric specialists",
         "Women's health specialists"
@@ -208,171 +209,202 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
     : capabilities
 
   return (
-    <section className="min-h-screen-75 flex flex-col justify-center items-center bg-gradient-to-b from-background via-background to-muted/30 relative">
+    <section className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-white via-gray-50/50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 relative">
       {/* Background decoration */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
+      <div className="absolute inset-0 opacity-5 pointer-events-none" />
       
-      <div className="container-xl relative z-10">
-        <div className="max-w-5xl mx-auto text-center space-y-12">
+      <div className="container max-w-6xl mx-auto relative z-10 px-4">
+        <div className="text-center space-y-16">
           
           {/* Brand and Logo */}
-          <div className="space-y-6 flex flex-col items-center justify-center">
-            <Link href="/" className="flex items-center gap-6 group">
+          <div className="space-y-8 flex flex-col items-center justify-center">
+            <Link href="/" className="flex flex-col items-center gap-6 group">
               <div className="flex items-center justify-center transition-transform group-hover:scale-105">
                 <Image
                   src="/logo_560x560.png"
                   alt="SIE Wellness Logo"
-                  width={120}
-                  height={120}
-                  className="rounded-xl w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40"
+                  width={100}
+                  height={100}
+                  className="rounded-2xl"
                 />
               </div>
               <div className="text-center">
-                <h1 className="text-4xl md:text-4xl lg:text-7xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent leading-tight">
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
                   SIE Wellness
                 </h1>
+                <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mt-4 font-light">
+                  AI-Powered Healthcare Discovery
+                </p>
               </div>
             </Link>
           </div>
 
         {/* Search Error Alert */}
         {searchError && (
-          <Alert className="mb-6 md:mb-8 border-destructive/50 bg-destructive/5 max-w-2xl mx-auto">
-            <AlertDescription className="text-body-sm">{searchError}</AlertDescription>
+          <Alert className="mb-8 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20 max-w-2xl mx-auto rounded-2xl">
+            <AlertDescription className="text-sm text-red-700 dark:text-red-400">{searchError}</AlertDescription>
           </Alert>
         )}
 
         {/* Main Search Interface */}
-        <div className="w-[90vw] md:w-full md:max-w-6xl mx-auto space-y-content px-4 sm:px-0 md:px-8">
-          {/* Search Bar */}
-          <div className="relative">
-            <div className="flex flex-col md:flex-row items-stretch md:items-center glass rounded-2xl md:rounded-3xl shadow-xl card-shadow-lg hover:shadow-2xl transition-slow overflow-hidden">
-              {/* Search Input with dropdown trigger */}
-              <div className="flex-1 relative">
-                <div className="flex items-center h-16 md:h-20">
-                  <Search className="ml-4 md:ml-6 lg:ml-8 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
-                  <Input
-                    placeholder="Describe your healthcare need..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 border-0 bg-transparent text-base md:text-lg rounded-l-2xl md:rounded-l-3xl focus:outline-none focus:ring-0 pl-3 md:pl-4 pr-2 h-full"
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  />
-                  <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mr-2 md:mr-3 h-10 w-10 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
-                        onClick={() => setIsSearchOpen(!isSearchOpen)}
-                      >
-                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[320px] md:w-[600px] p-0 card-shadow-lg" align="start">
-                      <Command>
-                        <CommandList>
-                          <CommandEmpty>No suggestions found.</CommandEmpty>
-                          
-                          {/* Recent Searches */}
-                          {showRecentSearches && recentSearches.length > 0 && (
-                            <CommandGroup heading="Recent Searches">
-                              {recentSearches.map((search, index) => (
-                                <CommandItem
-                                  key={`recent-${index}`}
-                                  onSelect={() => {
-                                    handleRecentSearchClick(search)
-                                    setIsSearchOpen(false)
-                                  }}
-                                  className="cursor-pointer transition-smooth"
-                                >
-                                  <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                                  <div>
-                                    <div className="text-body-sm">{search.query}</div>
-                                    {search.location && (
-                                      <div className="text-xs text-muted-foreground">{search.location}</div>
-                                    )}
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          )}
-
-                          {/* Popular Searches */}
-                          <CommandGroup heading="Popular Healthcare Searches">
-                            {searchSuggestions.map((suggestion, index) => (
+        <div className="w-full max-w-none px-2 sm:px-4 space-y-6">
+          {/* Search Bar - Google-like design with full responsiveness */}
+          <div className="relative w-full">
+            <div className="flex flex-col sm:flex-row items-stretch bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden min-h-[3.5rem]">
+              {/* Search Input - Takes most space */}
+              <div className="flex-1 flex items-center min-w-0">
+                <Search className="ml-4 sm:ml-6 h-5 w-5 sm:h-6 sm:w-6 text-gray-400 flex-shrink-0" />
+                <Input
+                  placeholder="Search for healthcare services..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 border-0 bg-transparent text-base sm:text-lg focus:outline-none focus:ring-0 px-3 sm:px-4 py-4 sm:py-6 placeholder:text-gray-400 min-w-0"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+                
+                {/* Search suggestions dropdown */}
+                <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mr-2 h-8 w-8 sm:h-10 sm:w-10 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full flex-shrink-0"
+                      onClick={() => setIsSearchOpen(!isSearchOpen)}
+                    >
+                      <ChevronDown className={`h-4 w-4 sm:h-5 sm:w-5 text-gray-400 transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[90vw] sm:w-[500px] p-0 shadow-xl border-0 rounded-2xl" align="center">
+                    <Command className="rounded-2xl">
+                      <CommandList>
+                        <CommandEmpty>No suggestions found.</CommandEmpty>
+                        
+                        {/* Recent Searches */}
+                        {showRecentSearches && recentSearches.length > 0 && (
+                          <CommandGroup heading="Recent Searches">
+                            {recentSearches.map((search, index) => (
                               <CommandItem
-                                key={`suggestion-${index}`}
+                                key={`recent-${index}`}
                                 onSelect={() => {
-                                  setSearchQuery(suggestion)
+                                  handleRecentSearchClick(search)
                                   setIsSearchOpen(false)
                                 }}
-                                className="cursor-pointer transition-smooth"
+                                className="cursor-pointer py-3 px-4 hover:bg-teal-50 dark:hover:bg-teal-900/20"
                               >
-                                <Search className="mr-2 h-4 w-4" />
-                                <span className="text-body-sm">{suggestion}</span>
+                                <Clock className="mr-3 h-4 w-4 text-gray-400" />
+                                <div className="min-w-0">
+                                  <div className="text-sm text-gray-900 dark:text-gray-100 truncate">{search.query}</div>
+                                  {search.location && (
+                                    <div className="text-xs text-gray-500 truncate">{search.location}</div>
+                                  )}
+                                </div>
                               </CommandItem>
                             ))}
                           </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                        )}
+
+                        {/* Popular Searches */}
+                        <CommandGroup heading="Popular Healthcare Searches">
+                          {searchSuggestions.map((suggestion, index) => (
+                            <CommandItem
+                              key={`suggestion-${index}`}
+                              onSelect={() => {
+                                setSearchQuery(suggestion)
+                                setIsSearchOpen(false)
+                              }}
+                              className="cursor-pointer py-3 px-4 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                            >
+                              <Search className="mr-3 h-4 w-4 text-gray-400" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{suggestion}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              {/* Location Input */}
-              <div className="flex-1 md:flex-[0.6] relative border-t md:border-t-0 md:border-l border-border/50">
-                <div className="flex items-center h-16 md:h-20">
-                  <MapPin className="ml-4 md:ml-6 lg:ml-8 h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
-                  <Input
-                    placeholder="ZIP code, city, or address"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="flex-1 border-0 bg-transparent rounded-none focus:outline-none focus:ring-0 text-base md:text-lg pl-3 md:pl-4 pr-2 h-full"
-                  />
-                  <Button
-                    onClick={handleGetLocation}
-                    disabled={isGettingLocation}
-                    variant="ghost"
-                    size="sm"
-                    className="mr-2 md:mr-3 h-10 w-10 p-0 hover:bg-muted/50 rounded-full flex-shrink-0 transition-smooth"
-                  >
-                    {isGettingLocation ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <MapPin className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
+              {/* Location Input - Compact on mobile */}
+              <div className="flex items-center border-t sm:border-t-0 sm:border-l border-gray-200 dark:border-gray-700 px-3 sm:px-4 min-w-0">
+                <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-2 flex-shrink-0" />
+                <Input
+                  placeholder="Location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full sm:w-32 lg:w-40 border-0 bg-transparent text-sm sm:text-base focus:outline-none focus:ring-0 placeholder:text-gray-400 py-3 sm:py-0 min-w-0"
+                />
+                <Button
+                  onClick={handleGetLocation}
+                  disabled={isGettingLocation}
+                  variant="ghost"
+                  size="sm"
+                  className="ml-1 h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full flex-shrink-0"
+                >
+                  {isGettingLocation ? (
+                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-gray-400" />
+                  ) : (
+                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+                  )}
+                </Button>
               </div>
 
-              {/* Search Button */}
-              <Button 
-                size="lg" 
-                className="h-16 md:h-20 rounded-b-2xl md:rounded-r-3xl md:rounded-b-3xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-smooth flex-shrink-0 px-6 md:px-8 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl"
-                onClick={handleSearch}
-                disabled={isSearching || !searchQuery.trim()}
-              >
-                {isSearching ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    <span className="hidden sm:inline">Searching...</span>
-                    <span className="sm:hidden">Search</span>
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="h-5 w-5 sm:mr-2" />
-                    <span className="hidden sm:inline">Search</span>
-                    <span className="sm:hidden">Go</span>
-                  </>
-                )}
-              </Button>
+              {/* Search Button - Full width on mobile, compact on desktop */}
+              <div className="p-2">
+                <Button 
+                  size="lg" 
+                  className="w-full sm:w-auto h-12 sm:h-14 px-6 sm:px-8 bg-[#068282] hover:bg-[#0f766e] text-white rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 shadow-md hover:shadow-lg"
+                  onClick={handleSearch}
+                  disabled={isSearching || !searchQuery.trim()}
+                >
+                  {isSearching ? (
+                    <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+                  ) : (
+                    "Search"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Capability Buttons */}
-          <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 max-w-5xl mx-auto transition-all duration-300 ${showAllCapabilities ? 'grid-cols-1 md:grid-cols-3' : ''}`}>
+          {/* Quick Action Buttons */}
+          <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap max-w-5xl mx-auto px-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-xs sm:text-sm px-3 sm:px-4 py-2"
+              onClick={() => setSearchQuery("Free STI testing")}
+            >
+              Free STI Testing
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-xs sm:text-sm px-3 sm:px-4 py-2"
+              onClick={() => setSearchQuery("Urgent care near me")}
+            >
+              Urgent Care
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-xs sm:text-sm px-3 sm:px-4 py-2"
+              onClick={() => setSearchQuery("Mental health services")}
+            >
+              Mental Health
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-xs sm:text-sm px-3 sm:px-4 py-2"
+              onClick={() => setSearchQuery("Free dental care")}
+            >
+              Free Dental
+            </Button>
+          </div>
+
+          {/* Capability Categories */}
+          <div className={`grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto transition-all duration-500 px-2`}>
             {displayedCapabilities.map((capability) => {
               const Icon = capability.icon
               return (
@@ -384,28 +416,33 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
                   <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="h-auto p-4 md:p-5 text-left justify-start hover:bg-muted/50 transition-smooth group relative glass hover-lift-sm"
+                      className="h-auto p-4 sm:p-6 text-left justify-start hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all duration-300 group bg-white dark:bg-gray-900 rounded-2xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-800"
                     >
-                      <div className="flex items-center gap-3 w-full min-w-0">
-                        <Icon className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground group-hover:text-primary transition-smooth flex-shrink-0" />
-                        <span className="text-body-md text-muted-foreground group-hover:text-foreground transition-smooth truncate font-medium">
-                          {capability.text}
-                        </span>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto flex-shrink-0 group-hover:text-primary transition-smooth" />
+                      <div className="flex items-center gap-3 sm:gap-4 w-full min-w-0">
+                        <div className="p-2 sm:p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/30 transition-all duration-300 flex-shrink-0">
+                          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-[#068282] dark:text-teal-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 group-hover:text-[#068282] dark:group-hover:text-teal-400 transition-colors duration-300 block leading-tight">
+                            {capability.text}
+                          </span>
+                        </div>
+                        <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 group-hover:text-[#068282] dark:group-hover:text-teal-400 transition-all duration-300 flex-shrink-0" />
                       </div>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0 card-shadow-lg" align="start">
-                    <div className="p-4">
-                      <div className="text-body-md font-semibold text-foreground mb-3 px-2 py-1">
-                        {capability.text}
+                  <PopoverContent className="w-[90vw] sm:w-80 p-0 shadow-xl border-0 rounded-2xl" align="start">
+                    <div className="p-4 sm:p-6">
+                      <div className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-[#068282] dark:text-teal-400" />
+                        <span className="truncate">{capability.text}</span>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1 sm:space-y-2">
                         {capability.options.map((option, optionIndex) => (
                           <button
                             key={optionIndex}
                             onClick={() => handleCapabilitySelect(option)}
-                            className="w-full text-left px-3 py-3 text-body-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground rounded-md transition-smooth"
+                            className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:text-[#068282] dark:hover:text-teal-400 rounded-xl transition-all duration-300"
                           >
                             {option}
                           </button>
@@ -420,13 +457,13 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
         </div>
 
         {/* Explore More */}
-        <div className="mt-8 md:mt-12 text-center">
+        <div className="mt-12 text-center">
           <Button 
             variant="ghost" 
-            className="text-muted-foreground hover:text-foreground text-body-sm transition-smooth"
+            className="text-gray-600 dark:text-gray-400 hover:text-[#068282] dark:hover:text-teal-400 text-sm transition-all duration-300 rounded-full px-6 py-3"
             onClick={() => setShowAllCapabilities(!showAllCapabilities)}
           >
-            {showAllCapabilities ? 'Show Less' : 'Explore More Capabilities'}
+            {showAllCapabilities ? 'Show Less' : 'Explore More Options'}
             <ChevronDown className={`ml-2 h-4 w-4 transition-transform duration-200 ${showAllCapabilities ? 'rotate-180' : ''}`} />
           </Button>
         </div>
