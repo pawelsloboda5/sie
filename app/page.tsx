@@ -341,17 +341,6 @@ async with NPILookupClient() as client:
                 </Link>
               </Button>
               
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="border-white/30 text-white hover:bg-white/10 font-semibold px-8 py-4 rounded-full transition-all duration-300"
-                asChild
-              >
-                <Link href="https://github.com/pawelsloboda5/NPI_Lookup_MCP_Server#quick-start" target="_blank" rel="noopener noreferrer">
-                  Quick Start Guide
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
             </div>
 
             {/* Stats */}
