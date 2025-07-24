@@ -67,14 +67,14 @@ export default function Landing() {
               SIE Wellness Preventative Healthcare Coverage
             </h2>
             
-            <div className="space-y-4">
-              <p className="text-xl text-gray-700 dark:text-gray-300">
+            <div className="space-y-6 mt-8">
+              <p className="text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
                 We&apos;re excited to announce the upcoming launch of SIE Wellness Preventative Healthcare Coverage, 
                 designed to proactively support your wellness with annual physicals, dental cleanings, essential 
                 lab tests, and personalized add-on services.
               </p>
               
-              <p className="text-base text-gray-600 dark:text-gray-400">
+              <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
                 Our plans are highly affordable with flexible payment options to fit your budget. 
                 Sign up today to receive updates, exclusive early access opportunities, and news about our official start date!
               </p>
@@ -82,7 +82,7 @@ export default function Landing() {
           </div>
 
           {/* Email Signup */}
-          <div className="max-w-lg mx-auto">
+          <div className="max-w-lg mx-auto mt-12">
             <div className="flex gap-3 p-2 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
               <Input
                 type="email"
@@ -102,28 +102,28 @@ export default function Landing() {
           </div>
 
           {/* Feature Highlights */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20 max-w-3xl mx-auto">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-6">
                 <Stethoscope className="h-8 w-8 text-[#068282] dark:text-teal-400" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Annual Physicals</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Annual Physicals</h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">Comprehensive yearly checkups</p>
             </div>
             
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-6">
                 <HeartHandshake className="h-8 w-8 text-[#068282] dark:text-teal-400" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Dental Care</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Dental Care</h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">Regular cleanings and checkups</p>
             </div>
             
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-6">
                 <Users className="h-8 w-8 text-[#068282] dark:text-teal-400" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Lab Tests</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Lab Tests</h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">Essential health screenings</p>
             </div>
           </div>
