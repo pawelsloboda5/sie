@@ -29,6 +29,36 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [showAllCapabilities, setShowAllCapabilities] = useState(false)
+  const [currentPlaceholder, setCurrentPlaceholder] = useState(0)
+
+  // Featured healthcare services from our 400+ categories database
+  const featuredServices = [
+    "free clinic near me",
+    "mental health services", 
+    "STD testing center",
+    "dental clinic",
+    "women's health clinic",
+    "family planning center", 
+    "community health center",
+    "blood donation center",
+    "HIV testing center",
+    "urgent care center",
+    "walk-in clinic",
+    "pregnancy care center",
+    "addiction treatment center",
+    "crisis center support",
+    "food bank assistance",
+    "homeless shelter",
+    "emergency care service",
+    "abortion clinic",
+    "birth center",
+    "cancer treatment center",
+    "diabetes center",
+    "eye care center",
+    "pain management clinic",
+    "rehabilitation center",
+    "weight loss service"
+  ]
 
   // Popular search suggestions
   const searchSuggestions = [
@@ -49,6 +79,14 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
     "HIV testing",
     "Substance abuse treatment"
   ]
+
+  // Rotate placeholder text every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentPlaceholder((prev) => (prev + 1) % featuredServices.length)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [featuredServices.length])
 
   // Load recent searches on component mount
   useEffect(() => {
@@ -247,157 +285,205 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
         )}
 
         {/* Main Search Interface */}
-        <div className="w-full max-w-none px-2 sm:px-4 space-y-6">
-          {/* Search Bar - Google-like design with full responsiveness */}
+        <div className="w-full max-w-none px-2 sm:px-4 space-y-8">
+          {/* Search Bar - Conversational speech bubble design */}
           <div className="relative w-full">
-            <div className="flex flex-col sm:flex-row items-stretch bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden min-h-[3.5rem]">
-              {/* Search Input - Takes most space */}
-              <div className="flex-1 flex items-center min-w-0">
-                <Search className="ml-4 sm:ml-6 h-5 w-5 sm:h-6 sm:w-6 text-gray-400 flex-shrink-0" />
-                <Input
-                  placeholder="Search for healthcare services..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 border-0 bg-transparent text-base sm:text-lg focus:outline-none focus:ring-0 px-3 sm:px-4 py-4 sm:py-6 placeholder:text-gray-400 min-w-0"
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-                
-                {/* Search suggestions dropdown */}
-                <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mr-2 h-8 w-8 sm:h-10 sm:w-10 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full flex-shrink-0"
-                      onClick={() => setIsSearchOpen(!isSearchOpen)}
-                    >
-                      <ChevronDown className={`h-4 w-4 sm:h-5 sm:w-5 text-gray-400 transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[90vw] sm:w-[500px] p-0 shadow-xl border-0 rounded-2xl" align="center">
-                    <Command className="rounded-2xl">
-                      <CommandList>
-                        <CommandEmpty>No suggestions found.</CommandEmpty>
-                        
-                        {/* Recent Searches */}
-                        {showRecentSearches && recentSearches.length > 0 && (
-                          <CommandGroup heading="Recent Searches">
-                            {recentSearches.map((search, index) => (
+            <div className="flex flex-col bg-white dark:bg-gray-900 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Main Search Input - Tall and conversational */}
+              <div className="flex flex-col sm:flex-row min-h-[5rem] sm:min-h-[6rem]">
+                <div className="flex-1 flex items-start min-w-0 p-6 sm:p-8">
+                  <Search className="mt-2 mr-4 h-6 w-6 text-gray-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <textarea
+                      placeholder={`I want ${featuredServices[currentPlaceholder]}...`}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          handleSearch()
+                        }
+                      }}
+                      className="w-full border-0 bg-transparent text-lg sm:text-xl focus:outline-none focus:ring-0 placeholder:text-gray-400 resize-none overflow-hidden min-h-[3rem] sm:min-h-[4rem] leading-relaxed"
+                      rows={2}
+                      style={{ 
+                        lineHeight: '1.6',
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                    
+                    {/* Service categories showcase when empty */}
+                    {!searchQuery && (
+                      <div className="mt-4 space-y-3">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Popular searches:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {featuredServices.slice(0, 8).map((service, index) => (
+                            <button
+                              key={service}
+                              onClick={() => setSearchQuery(`I want ${service}`)}
+                              className="inline-flex items-center gap-1 text-xs bg-gray-50 dark:bg-gray-800 hover:bg-teal-50 dark:hover:bg-teal-900/20 text-gray-600 dark:text-gray-300 hover:text-teal-700 dark:hover:text-teal-300 px-3 py-1.5 rounded-full transition-all duration-200 border border-gray-200 dark:border-gray-700 hover:border-teal-200 dark:hover:border-teal-700"
+                            >
+                              <div className="w-1 h-1 bg-[#068282] rounded-full opacity-60"></div>
+                              {service}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="text-center pt-2">
+                          <span className="text-xs text-gray-400">400+ healthcare services available</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Search suggestions dropdown */}
+                  <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-1 h-10 w-10 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full flex-shrink-0"
+                        onClick={() => setIsSearchOpen(!isSearchOpen)}
+                      >
+                        <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[90vw] sm:w-[500px] p-0 shadow-xl border-0 rounded-2xl" align="center">
+                      <Command className="rounded-2xl">
+                        <CommandList>
+                          <CommandEmpty>No suggestions found.</CommandEmpty>
+                          
+                          {/* Recent Searches */}
+                          {showRecentSearches && recentSearches.length > 0 && (
+                            <CommandGroup heading="Recent Searches">
+                              {recentSearches.map((search, index) => (
+                                <CommandItem
+                                  key={`recent-${index}`}
+                                  onSelect={() => {
+                                    handleRecentSearchClick(search)
+                                    setIsSearchOpen(false)
+                                  }}
+                                  className="cursor-pointer py-3 px-4 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                                >
+                                  <Clock className="mr-3 h-4 w-4 text-gray-400" />
+                                  <div className="min-w-0">
+                                    <div className="text-sm text-gray-900 dark:text-gray-100 truncate">{search.query}</div>
+                                    {search.location && (
+                                      <div className="text-xs text-gray-500 truncate">{search.location}</div>
+                                    )}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
+
+                          {/* Popular Searches */}
+                          <CommandGroup heading="Try asking for:">
+                            {searchSuggestions.map((suggestion, index) => (
                               <CommandItem
-                                key={`recent-${index}`}
+                                key={`suggestion-${index}`}
                                 onSelect={() => {
-                                  handleRecentSearchClick(search)
+                                  setSearchQuery(`I want ${suggestion.toLowerCase()}`)
                                   setIsSearchOpen(false)
                                 }}
                                 className="cursor-pointer py-3 px-4 hover:bg-teal-50 dark:hover:bg-teal-900/20"
                               >
-                                <Clock className="mr-3 h-4 w-4 text-gray-400" />
-                                <div className="min-w-0">
-                                  <div className="text-sm text-gray-900 dark:text-gray-100 truncate">{search.query}</div>
-                                  {search.location && (
-                                    <div className="text-xs text-gray-500 truncate">{search.location}</div>
-                                  )}
-                                </div>
+                                <Search className="mr-3 h-4 w-4 text-gray-400" />
+                                <span className="text-sm text-gray-700 dark:text-gray-300 truncate">I want {suggestion.toLowerCase()}</span>
                               </CommandItem>
                             ))}
                           </CommandGroup>
-                        )}
-
-                        {/* Popular Searches */}
-                        <CommandGroup heading="Popular Healthcare Searches">
-                          {searchSuggestions.map((suggestion, index) => (
-                            <CommandItem
-                              key={`suggestion-${index}`}
-                              onSelect={() => {
-                                setSearchQuery(suggestion)
-                                setIsSearchOpen(false)
-                              }}
-                              className="cursor-pointer py-3 px-4 hover:bg-teal-50 dark:hover:bg-teal-900/20"
-                            >
-                              <Search className="mr-3 h-4 w-4 text-gray-400" />
-                              <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{suggestion}</span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
-              {/* Location Input - Compact on mobile */}
-              <div className="flex items-center border-t sm:border-t-0 sm:border-l border-gray-200 dark:border-gray-700 px-3 sm:px-4 min-w-0">
-                <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-2 flex-shrink-0" />
-                <Input
-                  placeholder="Location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full sm:w-32 lg:w-40 border-0 bg-transparent text-sm sm:text-base focus:outline-none focus:ring-0 placeholder:text-gray-400 py-3 sm:py-0 min-w-0"
-                />
-                <Button
-                  onClick={handleGetLocation}
-                  disabled={isGettingLocation}
-                  variant="ghost"
-                  size="sm"
-                  className="ml-1 h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full flex-shrink-0"
-                >
-                  {isGettingLocation ? (
-                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-gray-400" />
-                  ) : (
-                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
-                  )}
-                </Button>
-              </div>
+              {/* Bottom section with location and search */}
+              <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
+                <div className="flex flex-col sm:flex-row items-stretch">
+                  {/* Location Input */}
+                  <div className="flex-1 flex items-center px-6 sm:px-8 py-4 sm:py-5 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-700">
+                    <MapPin className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
+                    <Input
+                      placeholder="Near me or enter location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="flex-1 border-0 bg-transparent text-base focus:outline-none focus:ring-0 placeholder:text-gray-400 min-w-0"
+                    />
+                    <Button
+                      onClick={handleGetLocation}
+                      disabled={isGettingLocation}
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2 h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full flex-shrink-0"
+                    >
+                      {isGettingLocation ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                      ) : (
+                        <MapPin className="h-4 w-4 text-gray-400" />
+                      )}
+                    </Button>
+                  </div>
 
-              {/* Search Button - Full width on mobile, compact on desktop */}
-              <div className="p-2">
-                <Button 
-                  size="lg" 
-                  className="w-full sm:w-auto h-12 sm:h-14 px-6 sm:px-8 bg-[#068282] hover:bg-[#0f766e] text-white rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 shadow-md hover:shadow-lg"
-                  onClick={handleSearch}
-                  disabled={isSearching || !searchQuery.trim()}
-                >
-                  {isSearching ? (
-                    <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
-                  ) : (
-                    "Search"
-                  )}
-                </Button>
+                  {/* Search Button */}
+                  <div className="p-4 sm:p-5">
+                    <Button 
+                      size="lg" 
+                      className="w-full sm:w-auto h-14 sm:h-16 px-10 sm:px-16 bg-[#068282] hover:bg-[#0f766e] text-white rounded-2xl font-semibold text-lg sm:text-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+                      onClick={handleSearch}
+                      disabled={isSearching || !searchQuery.trim()}
+                    >
+                      {isSearching ? (
+                        <>
+                          <Loader2 className="h-6 w-6 animate-spin mr-3" />
+                          <span className="hidden sm:inline">Finding care...</span>
+                          <span className="sm:hidden">Finding...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-6 w-6 mr-3" />
+                          <span>Find Care</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap max-w-5xl mx-auto px-2">
+          {/* Quick Action Buttons - More focused */}
+          <div className="flex items-center justify-center gap-3 flex-wrap max-w-4xl mx-auto">
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-xs sm:text-sm px-3 sm:px-4 py-2"
-              onClick={() => setSearchQuery("Free STI testing")}
+              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-sm px-4 py-2"
+              onClick={() => setSearchQuery("I want free STI testing")}
             >
               Free STI Testing
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-xs sm:text-sm px-3 sm:px-4 py-2"
-              onClick={() => setSearchQuery("Urgent care near me")}
+              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-sm px-4 py-2"
+              onClick={() => setSearchQuery("I want urgent care near me")}
             >
               Urgent Care
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-xs sm:text-sm px-3 sm:px-4 py-2"
-              onClick={() => setSearchQuery("Mental health services")}
+              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-sm px-4 py-2"
+              onClick={() => setSearchQuery("I want mental health services")}
             >
               Mental Health
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-xs sm:text-sm px-3 sm:px-4 py-2"
-              onClick={() => setSearchQuery("Free dental care")}
+              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-sm px-4 py-2"
+              onClick={() => setSearchQuery("I want free dental care")}
             >
               Free Dental
             </Button>
