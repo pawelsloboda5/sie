@@ -103,8 +103,8 @@ let globalDb: Db | null = null
 
 async function getDb(): Promise<Db> {
   if (globalDb && globalClient) return globalDb
-  const uri = process.env.MONGODB_URI
-  if (!uri) throw new Error('MONGODB_URI not set')
+  const uri = process.env.COSMOS_DB_CONNECTION_STRING || process.env.MONGODB_URI
+  if (!uri) throw new Error('COSMOS_DB_CONNECTION_STRING or MONGODB_URI not set')
   globalClient = new MongoClient(uri, {
     maxPoolSize: 10,
     serverSelectionTimeoutMS: 8000,
