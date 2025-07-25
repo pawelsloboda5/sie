@@ -37,10 +37,10 @@ export function Header() {
         <div className="hidden md:flex items-center space-x-6">
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link 
-              href="#agents" 
+              href="/providers" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              How It Works
+              Providers
             </Link>
             <Link 
               href="#who-we-help" 
@@ -48,7 +48,6 @@ export function Header() {
             >
               Who We Help
             </Link>
-  
           </nav>
 
           {/* Language Switcher */}
@@ -111,11 +110,11 @@ export function Header() {
                 {/* Navigation */}
                 <nav className="flex-1 p-6 space-y-1">
                   <Link 
-                    href="#agents"
+                    href="/providers"
                     className="block px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
-                    AI Agents
+                    Providers
                   </Link>
                   <Link 
                     href="#who-we-help"
@@ -123,20 +122,6 @@ export function Header() {
                     onClick={() => setIsOpen(false)}
                   >
                     Who We Help
-                  </Link>
-                  <Link 
-                    href="#how-it-works"
-                    className="block px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    How It Works
-                  </Link>
-                  <Link 
-                    href="#impact"
-                    className="block px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Impact
                   </Link>
                 </nav>
 
