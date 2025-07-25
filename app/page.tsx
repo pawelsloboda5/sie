@@ -74,10 +74,10 @@ export default function Landing() {
           {/* Video Container */}
           <div className="max-w-4xl mx-auto mt-12" ref={videoRef}>
             <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
-              <div className="relative w-full" style={{ height: "450px" }}>
+              <div className="relative w-full aspect-video">
                 {!shouldLoadVideo ? (
                   // Skeleton loader while waiting to load
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                  <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
                     <div className="text-center space-y-4">
                       <div className="w-16 h-16 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
                       <p className="text-gray-500 dark:text-gray-400">Video demo loading...</p>
@@ -100,18 +100,18 @@ export default function Landing() {
                       loop
                       muted
                       playsInline
-                      className="w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-cover object-center"
                       poster="/sie-video-poster.jpg" // Add a poster image for loading state
                       onLoadedData={() => setVideoLoaded(true)}
                     >
-                      <source src="/Sie_video.mp4" type="video/mp4" />
-                      <source src="/Sie_video.webm" type="video/webm" />
+                      <source src="/Sie_video_high.mp4" type="video/mp4" />
+                      <source src="/Sie_video_compressed.webm" type="video/webm" />
                       {/* Fallback to GIF for browsers that don't support video */}
                       <Image
-                        src="/Sie_video.gif"
+                        src="/sie-video-poster.jpg"
                         alt="SIE Wellness platform demonstration showing healthcare provider search and filtering capabilities"
                         fill
-                        className="object-cover"
+                        className="object-cover object-center"
                         priority
                         unoptimized
                       />
