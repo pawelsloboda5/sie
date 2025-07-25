@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Menu, Globe } from "lucide-react"
 import Link from "next/link"
@@ -102,7 +102,7 @@ export function Header() {
                     />
                   </div>
                   <div>
-                    <h2 className="text-base font-semibold">SIE Wellness</h2>
+                    <SheetTitle className="text-base font-semibold">SIE Wellness</SheetTitle>
                     <p className="text-xs text-muted-foreground">Healthcare Discovery</p>
                   </div>
                 </div>

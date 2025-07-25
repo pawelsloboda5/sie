@@ -259,18 +259,19 @@ export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSecti
         <div className="text-center space-y-16">
           
           {/* Brand and Logo */}
-          <div className="space-y-8 flex flex-col items-center justify-center">
-            <Link href="/" className="flex flex-col items-center gap-6 group">
+          <div className="flex items-center justify-center mb-4 md:mb-12">
+            <Link href="/" className="flex items-center group">
               <div className="flex items-center justify-center transition-transform group-hover:scale-105">
                 <Image
                   src="/logo_560x560.png"
                   alt="SIE Wellness Logo"
-                  width={100}
-                  height={100}
+                  width={230}
+                  height={230}
                   className="rounded-2xl"
                 />
               </div>
-              <div className="text-center">
+              {/* Hide h1 on mobile, show on md+ */}
+              <div className="text-center hidden md:block">
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
                   SIE Wellness
                 </h1>
