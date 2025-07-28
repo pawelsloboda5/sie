@@ -19,7 +19,8 @@ import {
   CreditCard, 
   MapPin,
   FileText,
-  Star
+  Star,
+  Zap
 } from "lucide-react"
 
 interface FilterOptions {
@@ -44,7 +45,8 @@ interface CompactFilterPanelProps {
   resultsCount?: number
   isLoading?: boolean
   className?: string
-  onFilterOnlySearch?: () => void
+  isLocalFiltering?: boolean // NEW: Indicate local vs server filtering
+  hasCachedData?: boolean    // NEW: Indicate if we have cached data
 }
 
 // Predefined filter options
@@ -71,7 +73,8 @@ export function CompactFilterPanel({
   onFiltersChange, 
   isLoading = false,
   className = "",
-  onFilterOnlySearch
+  isLocalFiltering = false,
+  hasCachedData = false
 }: CompactFilterPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -124,6 +127,12 @@ export function CompactFilterPanel({
               {activeFiltersCount > 0 && (
                 <Badge variant="default" className="ml-1 px-2">
                   {activeFiltersCount}
+                </Badge>
+              )}
+              {/* NEW: Local filtering indicator */}
+              {hasCachedData && (
+                <Badge variant="outline" className="ml-1 text-xs text-green-600 border-green-600">
+                  <Zap className="h-3 w-3" />
                 </Badge>
               )}
               <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -377,34 +386,13 @@ export function CompactFilterPanel({
               </TabsContent>
             </Tabs>
 
-            {/* Filter-only search button */}
-            {onFilterOnlySearch && activeFiltersCount > 0 && (
-              <div className="mt-4 pt-4 border-t">
-                <Button 
-                  onClick={onFilterOnlySearch}
-                  className="w-full h-12 text-base font-medium"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
-                      Searching...
-                    </>
-                  ) : (
-                    <>
-                      <Filter className="h-4 w-4 mr-2" />
-                      Search by Filters
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {/* Loading Indicator */}
-            {isLoading && !onFilterOnlySearch && (
+            {/* Loading/Filtering Indicator */}
+            {(isLoading || isLocalFiltering) && (
               <div className="flex items-center justify-center py-4 mt-4 border-t">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
-                <span className="text-sm text-muted-foreground">Updating results...</span>
+                <span className="text-sm text-muted-foreground">
+                  {isLocalFiltering ? 'Filtering locally...' : 'Updating results...'}
+                </span>
               </div>
             )}
           </div>

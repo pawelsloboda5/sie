@@ -8,6 +8,19 @@ import { List, Search } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { parseLocationString, type Coordinates } from "@/lib/utils"
 import { AppHeader } from "./header"
+import { 
+  saveCachedSearchResult, 
+  getCachedSearchResult, 
+  clearOldCachedResults,
+  type CachedSearchResult 
+} from "@/lib/db"
+import { 
+  applyLocalFilters, 
+  sortProvidersLocally, 
+  hasActiveFilters,
+  getFilterSummary,
+  type LocalFilterOptions 
+} from "@/lib/localFilters"
  
 interface FilterOptions {
   freeOnly: boolean
@@ -60,6 +73,7 @@ interface SearchResults {
   services: Service[]
   query: string
   totalResults: number
+  isFiltered?: boolean
 }
 
 const defaultFilters: FilterOptions = {
@@ -85,12 +99,21 @@ export default function FindPage() {
   const [currentLocation, setCurrentLocation] = useState<Coordinates | undefined>(undefined)
   const [viewMode, setViewMode] = useState<'display' | 'list'>('list')
   
+  // NEW: Local caching state
+  const [hasCachedData, setHasCachedData] = useState(false)
+  const [originalSearchData, setOriginalSearchData] = useState<CachedSearchResult | null>(null)
+  const [isLocalFiltering, setIsLocalFiltering] = useState(false)
+  
   // State for initial values from URL parameters
   const [initialQuery, setInitialQuery] = useState("")
   const [initialLocation, setInitialLocation] = useState("")
   const [hasExecutedUrlSearch, setHasExecutedUrlSearch] = useState(false)
   const searchExecutionRef = useRef(false)
 
+  // Clear old cached results on component mount
+  useEffect(() => {
+    clearOldCachedResults().catch(console.error)
+  }, [])
 
   const handleFilterOnlySearch = useCallback(async (searchFilters: FilterOptions) => {
     setIsLoading(true)
@@ -125,6 +148,9 @@ export default function FindPage() {
 
       const results = await response.json()
       setSearchResults(results)
+      // Reset cache state since this is a server-filtered result
+      setHasCachedData(false)
+      setOriginalSearchData(null)
     } catch (error) {
       console.error('Filter search error:', error)
       setSearchResults(null)
@@ -139,7 +165,57 @@ export default function FindPage() {
     setCurrentQuery(query)
     setCurrentLocation(location)
     
+    // Reset local filtering state for new search
+    setHasCachedData(false)
+    setOriginalSearchData(null)
+    setIsLocalFiltering(false)
+    
     try {
+      // Check for cached result first
+      const locationString = location ? `${location.latitude}, ${location.longitude}` : undefined
+      const cachedResult = await getCachedSearchResult(query, locationString)
+      
+      if (cachedResult) {
+        console.log('Using cached search result for:', query)
+        
+        // Apply current filters to cached data locally
+        const localFilterOptions: LocalFilterOptions = {
+          freeOnly: filtersToUse.freeOnly,
+          acceptsUninsured: filtersToUse.acceptsUninsured,
+          acceptsMedicaid: filtersToUse.acceptsMedicaid,
+          acceptsMedicare: filtersToUse.acceptsMedicare,
+          ssnRequired: filtersToUse.ssnRequired,
+          telehealthAvailable: filtersToUse.telehealthAvailable,
+          maxDistance: filtersToUse.maxDistance,
+          insuranceProviders: filtersToUse.insuranceProviders,
+          serviceCategories: filtersToUse.serviceCategories,
+          providerTypes: filtersToUse.providerTypes,
+          minRating: filtersToUse.minRating
+        }
+        
+        const filteredResults = applyLocalFilters(cachedResult, localFilterOptions, location)
+        const sortedProviders = sortProvidersLocally(
+          filteredResults.providers,
+          filteredResults.services,
+          filtersToUse.sortBy || 'relevance',
+          localFilterOptions
+        )
+        
+        setSearchResults({
+          providers: sortedProviders,
+          services: filteredResults.services,
+          query: cachedResult.query,
+          totalResults: sortedProviders.length + filteredResults.services.length,
+          isFiltered: hasActiveFilters(localFilterOptions)
+        })
+        
+        setOriginalSearchData(cachedResult)
+        setHasCachedData(true)
+        setIsLoading(false)
+        return
+      }
+
+      // No cached result, make server call
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
@@ -202,8 +278,44 @@ export default function FindPage() {
       
       setSearchResults(results)
       
-      // Remove the automatic filter-after-search logic to prevent infinite loops
-      // Users can manually apply filters if needed
+      // NEW: Cache the search result
+      const cacheData: CachedSearchResult = {
+        query,
+        location: locationString,
+        coordinates: location,
+        providers: results.providers,
+        services: results.services,
+        timestamp: new Date(),
+        totalResults: results.totalResults
+      }
+      
+      console.log('💾 Attempting to cache search result:', {
+        query: cacheData.query,
+        location: cacheData.location,
+        providerCount: cacheData.providers.length,
+        serviceCount: cacheData.services.length,
+        totalResults: cacheData.totalResults
+      })
+      
+      try {
+        await saveCachedSearchResult(cacheData)
+        setOriginalSearchData(cacheData)
+        setHasCachedData(true)
+        
+        console.log('✅ Search result cached successfully:', query)
+        console.log('✅ Cache state updated:', {
+          hasCachedData: true,
+          originalSearchDataSet: true
+        })
+      } catch (cacheError) {
+        console.error('❌ Failed to cache search result:', cacheError)
+        // Continue without caching - don't break the user experience
+        setHasCachedData(false)
+        setOriginalSearchData(null)
+      }
+      
+      console.log('🔍 Search completed and cached:', query)
+      
     } catch (error) {
       console.error('Search error:', error)
       setSearchResults(null)
@@ -228,7 +340,79 @@ export default function FindPage() {
       sortBy: newFilters.sortBy || 'relevance'
     }
     setFilters(convertedFilters)
-    // Check if any advanced filters are active
+    
+    // 🔍 DEBUG: Log cache state when filters change
+    console.log('🔍 FILTER CHANGE DEBUG:', {
+      hasCachedData,
+      hasOriginalSearchData: !!originalSearchData,
+      originalSearchDataQuery: originalSearchData?.query,
+      originalSearchDataProviderCount: originalSearchData?.providers?.length,
+      originalSearchDataServiceCount: originalSearchData?.services?.length,
+      newFilters: convertedFilters
+    })
+    
+    // NEW: Use local filtering if we have cached data
+    if (hasCachedData && originalSearchData) {
+      console.log('✅ Using LOCAL FILTERING with cached data')
+      setIsLocalFiltering(true)
+      
+      console.log('Applying local filters:', getFilterSummary(convertedFilters))
+      
+      try {
+        const localFilterOptions: LocalFilterOptions = {
+          freeOnly: convertedFilters.freeOnly,
+          acceptsUninsured: convertedFilters.acceptsUninsured,
+          acceptsMedicaid: convertedFilters.acceptsMedicaid,
+          acceptsMedicare: convertedFilters.acceptsMedicare,
+          ssnRequired: convertedFilters.ssnRequired,
+          telehealthAvailable: convertedFilters.telehealthAvailable,
+          maxDistance: convertedFilters.maxDistance,
+          insuranceProviders: convertedFilters.insuranceProviders,
+          serviceCategories: convertedFilters.serviceCategories,
+          providerTypes: convertedFilters.providerTypes,
+          minRating: convertedFilters.minRating
+        }
+        
+        const filteredResults = applyLocalFilters(
+          originalSearchData, 
+          localFilterOptions, 
+          currentLocation
+        )
+        
+        const sortedProviders = sortProvidersLocally(
+          filteredResults.providers,
+          filteredResults.services,
+          convertedFilters.sortBy,
+          localFilterOptions
+        )
+        
+        setSearchResults({
+          providers: sortedProviders,
+          services: filteredResults.services,
+          query: originalSearchData.query,
+          totalResults: sortedProviders.length + filteredResults.services.length,
+          isFiltered: hasActiveFilters(localFilterOptions)
+        })
+        
+        console.log(`✅ Local filtering completed: ${sortedProviders.length} providers, ${filteredResults.services.length} services`)
+      } catch (error) {
+        console.error('❌ Local filtering failed, falling back to server:', error)
+        // Fallback to server call if local filtering fails
+        handleFilterOnlySearch(convertedFilters)
+      } finally {
+        setIsLocalFiltering(false)
+      }
+      return
+    }
+    
+    // 🔍 DEBUG: Log why we're falling back to server filtering
+    console.log('❌ FALLING BACK TO SERVER FILTERING because:', {
+      hasCachedData: hasCachedData,
+      hasOriginalSearchData: !!originalSearchData,
+      reason: !hasCachedData ? 'hasCachedData is false' : 'originalSearchData is null'
+    })
+    
+    // Check if any advanced filters are active and we don't have cached data
     const hasAdvancedFilters = convertedFilters.freeOnly || 
       convertedFilters.acceptsUninsured || 
       convertedFilters.acceptsMedicaid || 
@@ -238,14 +422,44 @@ export default function FindPage() {
       convertedFilters.insuranceProviders.length > 0 || 
       convertedFilters.serviceCategories.length > 0
     
-    // Use filter API if advanced filters are active
+    // Use filter API if advanced filters are active but no cached data
     if (hasAdvancedFilters) {
+      console.log('🔧 Calling server filter API as fallback')
       handleFilterOnlySearch(convertedFilters)
     }
   }
 
   const handleClearFilters = () => {
     setFilters(defaultFilters)
+    
+    // If we have cached data, apply cleared filters locally
+    if (hasCachedData && originalSearchData) {
+      console.log('Clearing filters locally')
+      
+      const filteredResults = applyLocalFilters(
+        originalSearchData, 
+        {}, // Empty filters
+        currentLocation
+      )
+      
+      const sortedProviders = sortProvidersLocally(
+        filteredResults.providers,
+        filteredResults.services,
+        'relevance',
+        {}
+      )
+      
+      setSearchResults({
+        providers: sortedProviders,
+        services: filteredResults.services,
+        query: originalSearchData.query,
+        totalResults: sortedProviders.length + filteredResults.services.length,
+        isFiltered: false
+      })
+      return
+    }
+    
+    // Fallback behavior for when no cached data
     if (currentQuery && currentQuery !== "Filtered Results") {
       handleSearch(currentQuery, currentLocation, defaultFilters)
     } else if (currentQuery === "Filtered Results") {
@@ -265,8 +479,6 @@ export default function FindPage() {
     // Handle provider actions like call, directions, etc.
     console.log(`Action: ${action}`, provider)
   }
-
-
 
   // Handle URL parameters on mount to auto-execute search from homepage
   useEffect(() => {
@@ -301,82 +513,15 @@ export default function FindPage() {
           }
           
           // Auto-execute search with URL parameters using default filters
-          setIsLoading(true)
-          setCurrentQuery(query)
-          setCurrentLocation(locationCoords)
-          
-          const response = await fetch('/api/search', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              query,
-              location: locationCoords,
-              filters: {
-                freeOnly: defaultFilters.freeOnly,
-                acceptsUninsured: defaultFilters.acceptsUninsured,
-                acceptsMedicaid: defaultFilters.acceptsMedicaid,
-                acceptsMedicare: defaultFilters.acceptsMedicare,
-                ssnRequired: defaultFilters.ssnRequired,
-                telehealthAvailable: defaultFilters.telehealthAvailable,
-                maxDistance: defaultFilters.maxDistance,
-                insuranceProviders: defaultFilters.insuranceProviders,
-                serviceCategories: defaultFilters.serviceCategories,
-              },
-              limit: 20
-            }),
-          })
-
-          if (!response.ok) {
-            throw new Error('Search failed')
-          }
-
-          const results = await response.json()
-          
-          // Sort providers to prioritize those with free services
-          if (results.providers && results.services) {
-            results.providers.sort((a: Provider, b: Provider) => {
-              // Check if providers have free services
-              const aHasFree = results.services.some((service: Service) => 
-                service.provider_id === a._id && service.is_free
-              )
-              const bHasFree = results.services.some((service: Service) => 
-                service.provider_id === b._id && service.is_free
-              )
-              
-              // Prioritize providers with free services
-              if (aHasFree && !bHasFree) return -1
-              if (!aHasFree && bHasFree) return 1
-              
-              // If both have free services, count them
-              if (aHasFree && bHasFree) {
-                const aFreeCount = results.services.filter((service: Service) => 
-                  service.provider_id === a._id && service.is_free
-                ).length
-                const bFreeCount = results.services.filter((service: Service) => 
-                  service.provider_id === b._id && service.is_free
-                ).length
-                if (aFreeCount !== bFreeCount) return bFreeCount - aFreeCount
-              }
-              
-              // Then sort by search relevance score
-              return (b.searchScore || 0) - (a.searchScore || 0)
-            })
-          }
-          
-          setSearchResults(results)
+          await handleSearch(query, locationCoords, defaultFilters)
         } catch (error) {
           console.error('Auto-search failed:', error)
-          setSearchResults(null)
-        } finally {
-          setIsLoading(false)
         }
       }
     }
 
     handleUrlParams()
-  }, [hasExecutedUrlSearch])
+  }, [hasExecutedUrlSearch, handleSearch])
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -392,7 +537,8 @@ export default function FindPage() {
           resultsCount={searchResults?.totalResults || 0}
           initialQuery={initialQuery}
           initialLocation={initialLocation}
-          onFilterOnlySearch={() => handleFilterOnlySearch(filters)}
+          isLocalFiltering={isLocalFiltering}
+          hasCachedData={hasCachedData}
         />
       </div>
       
@@ -412,6 +558,11 @@ export default function FindPage() {
                       </h2>
                       <p className="text-sm text-muted-foreground">
                         {currentQuery && `for "${currentQuery}"`}
+                        {hasCachedData && (
+                          <span className="ml-2 text-xs text-green-600 font-medium">
+                            {isLocalFiltering ? '⚡ Filtering...' : '⚡ Instant'}
+                          </span>
+                        )}
                       </p>
                     </div>
                     {/* Active Filters Indicator */}
@@ -464,6 +615,9 @@ export default function FindPage() {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
                       Active Filters
+                      {hasCachedData && (
+                        <span className="ml-2 text-xs text-green-600 font-medium">⚡ Instant</span>
+                      )}
                     </h3>
                     <Button
                       variant="ghost"
@@ -553,6 +707,11 @@ export default function FindPage() {
                         </Badge>
                       )}
                     </div>
+                    {hasCachedData && (
+                      <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                        ⚡ Instant
+                      </Badge>
+                    )}
                   </div>
                 )}
               </div>
@@ -561,6 +720,11 @@ export default function FindPage() {
                 {searchResults?.totalResults && (
                   <span className="text-sm text-muted-foreground">
                     {searchResults.totalResults} results found
+                    {hasCachedData && (
+                      <span className="ml-2 text-xs text-green-600 font-medium">
+                        {isLocalFiltering ? '⚡ Filtering...' : '⚡ Cached'}
+                      </span>
+                    )}
                   </span>
                 )}
               </div>
@@ -570,7 +734,7 @@ export default function FindPage() {
             <div className="flex-1 min-h-0">
               <ResultsList
                 results={searchResults}
-                isLoading={isLoading}
+                isLoading={isLoading || isLocalFiltering}
                 onRetry={handleRetrySearch}
                 onProviderAction={handleProviderAction}
                 showDistance={!!currentLocation}

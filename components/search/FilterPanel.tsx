@@ -23,7 +23,8 @@ import {
   Phone, 
   Clock,
   Star,
-  FileText
+  FileText,
+  Zap
 } from "lucide-react"
 
 interface FilterOptions {
@@ -60,7 +61,8 @@ interface FilterPanelProps {
   onClearFilters: () => void
   resultsCount?: number
   isLoading?: boolean
-  onFilterOnlySearch?: () => void
+  isLocalFiltering?: boolean // NEW: Indicate local vs server filtering
+  hasCachedData?: boolean    // NEW: Indicate if we have cached data
 }
 
 const insuranceOptions = [
@@ -110,7 +112,8 @@ export function FilterPanel({
   onClearFilters, 
   resultsCount = 0,
   isLoading = false,
-  onFilterOnlySearch
+  isLocalFiltering = false,
+  hasCachedData = false
 }: FilterPanelProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     basic: true,
@@ -186,6 +189,11 @@ export function FilterPanel({
         </div>
         <CardDescription>
           {resultsCount > 0 && `${resultsCount} results found`}
+          {hasCachedData && (
+            <span className="block mt-1 text-xs text-green-600 font-medium">
+              {isLocalFiltering ? "⚡ Filtering locally..." : "⚡ Instant filtering enabled"}
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
 
@@ -444,32 +452,24 @@ export function FilterPanel({
           </Select>
         </div>
 
-        {/* Filter-only search button */}
-        {onFilterOnlySearch && activeFiltersCount > 0 && (
-          <Button 
-            onClick={onFilterOnlySearch}
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
-                Searching...
-              </>
-            ) : (
-              <>
-                <Filter className="h-4 w-4 mr-2" />
-                Search by Filters
-              </>
-            )}
-          </Button>
-        )}
-
-        {/* Real-time filtering indicator */}
-        {isLoading && !onFilterOnlySearch && (
+        {/* Loading/Filtering indicator */}
+        {(isLoading || isLocalFiltering) && (
           <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
-            Updating results...
+            {isLocalFiltering ? 'Filtering locally...' : 'Updating results...'}
+          </div>
+        )}
+
+        {/* Performance indicator */}
+        {hasCachedData && !isLoading && !isLocalFiltering && (
+          <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+            <div className="flex items-center justify-center space-x-2 text-green-700 dark:text-green-400">
+              <Zap className="h-4 w-4" />
+              <span className="text-sm font-medium">Instant filtering enabled</span>
+            </div>
+            <p className="text-xs text-green-600 dark:text-green-500 mt-1">
+              Changes apply immediately using cached data
+            </p>
           </div>
         )}
       </CardContent>
