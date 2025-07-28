@@ -1,8 +1,8 @@
 'use client'
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
-import { HeartHandshake, MapPin, Stethoscope, Users, Shield, Clock, Building, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
+import { HeartHandshake, MapPin, Stethoscope, Users, Shield, Building, Phone, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -12,32 +12,7 @@ import { Header } from "@/components/layout/Header";
 
 export default function Landing() {
   const [isOpenSourceOpen, setIsOpenSourceOpen] = useState(false);
-  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  const videoRef = useRef<HTMLDivElement>(null);
 
-  // Lazy load video when it's about to enter viewport
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setShouldLoadVideo(true);
-            observer.disconnect();
-          }
-        });
-      },
-      {
-        rootMargin: '100px', // Start loading 100px before entering viewport
-      }
-    );
-
-    if (videoRef.current) {
-      observer.observe(videoRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -287,18 +262,6 @@ async with NPILookupClient() as client:
 }
 
 /* ---------- Helper Components ---------- */
-
-function Stat({ number, label, icon: Icon }: { number: string; label: string; icon: typeof MapPin }) {
-  return (
-    <div className="space-y-3 text-center">
-      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-900/20 mb-2">
-        <Icon className="h-8 w-8 text-[#068282] dark:text-teal-400" />
-      </div>
-      <div className="text-3xl font-bold text-[#068282] dark:text-teal-400">{number}</div>
-      <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
-    </div>
-  );
-}
 
 function UserGroup({ 
   icon: Icon, 
