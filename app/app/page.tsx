@@ -18,7 +18,6 @@ import {
   applyLocalFilters, 
   sortProvidersLocally, 
   hasActiveFilters,
-  getFilterSummary,
   type LocalFilterOptions 
 } from "@/lib/localFilters"
  
@@ -197,8 +196,7 @@ export default function FindPage() {
         const sortedProviders = sortProvidersLocally(
           filteredResults.providers,
           filteredResults.services,
-          filtersToUse.sortBy || 'relevance',
-          localFilterOptions
+          filtersToUse.sortBy || 'relevance'
         )
         
         setSearchResults({
@@ -278,7 +276,7 @@ export default function FindPage() {
       
       setSearchResults(results)
       
-      // NEW: Cache the search result
+      // Cache the search result
       const cacheData: CachedSearchResult = {
         query,
         location: locationString,
@@ -289,32 +287,16 @@ export default function FindPage() {
         totalResults: results.totalResults
       }
       
-      console.log('💾 Attempting to cache search result:', {
-        query: cacheData.query,
-        location: cacheData.location,
-        providerCount: cacheData.providers.length,
-        serviceCount: cacheData.services.length,
-        totalResults: cacheData.totalResults
-      })
-      
       try {
         await saveCachedSearchResult(cacheData)
         setOriginalSearchData(cacheData)
         setHasCachedData(true)
-        
-        console.log('✅ Search result cached successfully:', query)
-        console.log('✅ Cache state updated:', {
-          hasCachedData: true,
-          originalSearchDataSet: true
-        })
       } catch (cacheError) {
-        console.error('❌ Failed to cache search result:', cacheError)
+        console.error('Failed to cache search result:', cacheError)
         // Continue without caching - don't break the user experience
         setHasCachedData(false)
         setOriginalSearchData(null)
       }
-      
-      console.log('🔍 Search completed and cached:', query)
       
     } catch (error) {
       console.error('Search error:', error)
@@ -341,22 +323,9 @@ export default function FindPage() {
     }
     setFilters(convertedFilters)
     
-    // 🔍 DEBUG: Log cache state when filters change
-    console.log('🔍 FILTER CHANGE DEBUG:', {
-      hasCachedData,
-      hasOriginalSearchData: !!originalSearchData,
-      originalSearchDataQuery: originalSearchData?.query,
-      originalSearchDataProviderCount: originalSearchData?.providers?.length,
-      originalSearchDataServiceCount: originalSearchData?.services?.length,
-      newFilters: convertedFilters
-    })
-    
-    // NEW: Use local filtering if we have cached data
+    // Use local filtering if we have cached data
     if (hasCachedData && originalSearchData) {
-      console.log('✅ Using LOCAL FILTERING with cached data')
       setIsLocalFiltering(true)
-      
-      console.log('Applying local filters:', getFilterSummary(convertedFilters))
       
       try {
         const localFilterOptions: LocalFilterOptions = {
@@ -382,8 +351,7 @@ export default function FindPage() {
         const sortedProviders = sortProvidersLocally(
           filteredResults.providers,
           filteredResults.services,
-          convertedFilters.sortBy,
-          localFilterOptions
+          convertedFilters.sortBy
         )
         
         setSearchResults({
@@ -393,24 +361,14 @@ export default function FindPage() {
           totalResults: sortedProviders.length + filteredResults.services.length,
           isFiltered: hasActiveFilters(localFilterOptions)
         })
-        
-        console.log(`✅ Local filtering completed: ${sortedProviders.length} providers, ${filteredResults.services.length} services`)
       } catch (error) {
-        console.error('❌ Local filtering failed, falling back to server:', error)
-        // Fallback to server call if local filtering fails
+        console.error('Local filtering failed, falling back to server:', error)
         handleFilterOnlySearch(convertedFilters)
       } finally {
         setIsLocalFiltering(false)
       }
       return
     }
-    
-    // 🔍 DEBUG: Log why we're falling back to server filtering
-    console.log('❌ FALLING BACK TO SERVER FILTERING because:', {
-      hasCachedData: hasCachedData,
-      hasOriginalSearchData: !!originalSearchData,
-      reason: !hasCachedData ? 'hasCachedData is false' : 'originalSearchData is null'
-    })
     
     // Check if any advanced filters are active and we don't have cached data
     const hasAdvancedFilters = convertedFilters.freeOnly || 
@@ -424,7 +382,6 @@ export default function FindPage() {
     
     // Use filter API if advanced filters are active but no cached data
     if (hasAdvancedFilters) {
-      console.log('🔧 Calling server filter API as fallback')
       handleFilterOnlySearch(convertedFilters)
     }
   }
@@ -434,8 +391,6 @@ export default function FindPage() {
     
     // If we have cached data, apply cleared filters locally
     if (hasCachedData && originalSearchData) {
-      console.log('Clearing filters locally')
-      
       const filteredResults = applyLocalFilters(
         originalSearchData, 
         {}, // Empty filters
@@ -445,8 +400,7 @@ export default function FindPage() {
       const sortedProviders = sortProvidersLocally(
         filteredResults.providers,
         filteredResults.services,
-        'relevance',
-        {}
+        'relevance'
       )
       
       setSearchResults({
@@ -538,7 +492,6 @@ export default function FindPage() {
           initialQuery={initialQuery}
           initialLocation={initialLocation}
           isLocalFiltering={isLocalFiltering}
-          hasCachedData={hasCachedData}
         />
       </div>
       
@@ -558,11 +511,6 @@ export default function FindPage() {
                       </h2>
                       <p className="text-sm text-muted-foreground">
                         {currentQuery && `for "${currentQuery}"`}
-                        {hasCachedData && (
-                          <span className="ml-2 text-xs text-green-600 font-medium">
-                            {isLocalFiltering ? '⚡ Filtering...' : '⚡ Instant'}
-                          </span>
-                        )}
                       </p>
                     </div>
                     {/* Active Filters Indicator */}
@@ -615,9 +563,6 @@ export default function FindPage() {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
                       Active Filters
-                      {hasCachedData && (
-                        <span className="ml-2 text-xs text-green-600 font-medium">⚡ Instant</span>
-                      )}
                     </h3>
                     <Button
                       variant="ghost"
@@ -641,12 +586,35 @@ export default function FindPage() {
                     {filters.acceptsMedicare && (
                       <Badge className="bg-green-600 text-white text-sm px-3 py-1">Medicare</Badge>
                     )}
+                    {filters.ssnRequired === false && (
+                      <Badge className="bg-purple-600 text-white text-sm px-3 py-1">No SSN Required</Badge>
+                    )}
                     {filters.telehealthAvailable && (
                       <Badge className="bg-indigo-600 text-white text-sm px-3 py-1">Telehealth</Badge>
                     )}
-                    {(filters.insuranceProviders.length + filters.serviceCategories.length) > 0 && (
-                      <Badge className="bg-gray-600 text-white text-sm px-3 py-1">
-                        +{filters.insuranceProviders.length + filters.serviceCategories.length} more
+                    {filters.insuranceProviders.map((insurance) => (
+                      <Badge key={insurance} className="bg-orange-600 text-white text-sm px-3 py-1">
+                        {insurance}
+                      </Badge>
+                    ))}
+                    {filters.serviceCategories.map((category) => (
+                      <Badge key={category} className="bg-teal-600 text-white text-sm px-3 py-1">
+                        {category}
+                      </Badge>
+                    ))}
+                    {filters.providerTypes.map((type) => (
+                      <Badge key={type} className="bg-gray-600 text-white text-sm px-3 py-1">
+                        {type}
+                      </Badge>
+                    ))}
+                    {filters.minRating > 0 && (
+                      <Badge className="bg-yellow-600 text-white text-sm px-3 py-1">
+                        {filters.minRating}+ Stars
+                      </Badge>
+                    )}
+                    {filters.maxDistance < 50 && (
+                      <Badge className="bg-red-600 text-white text-sm px-3 py-1">
+                        Within {filters.maxDistance}mi
                       </Badge>
                     )}
                   </div>
@@ -698,20 +666,38 @@ export default function FindPage() {
                       {filters.acceptsMedicare && (
                         <Badge variant="secondary" className="text-xs">Medicare</Badge>
                       )}
+                      {filters.ssnRequired === false && (
+                        <Badge variant="secondary" className="text-xs">No SSN Required</Badge>
+                      )}
                       {filters.telehealthAvailable && (
                         <Badge variant="secondary" className="text-xs">Telehealth</Badge>
                       )}
-                      {(filters.insuranceProviders.length + filters.serviceCategories.length) > 0 && (
+                      {filters.insuranceProviders.map((insurance) => (
+                        <Badge key={insurance} variant="secondary" className="text-xs">
+                          {insurance}
+                        </Badge>
+                      ))}
+                      {filters.serviceCategories.map((category) => (
+                        <Badge key={category} variant="secondary" className="text-xs">
+                          {category}
+                        </Badge>
+                      ))}
+                      {filters.providerTypes.map((type) => (
+                        <Badge key={type} variant="secondary" className="text-xs">
+                          {type}
+                        </Badge>
+                      ))}
+                      {filters.minRating > 0 && (
                         <Badge variant="secondary" className="text-xs">
-                          +{filters.insuranceProviders.length + filters.serviceCategories.length} more
+                          {filters.minRating}+ Stars
+                        </Badge>
+                      )}
+                      {filters.maxDistance < 50 && (
+                        <Badge variant="secondary" className="text-xs">
+                          Within {filters.maxDistance}mi
                         </Badge>
                       )}
                     </div>
-                    {hasCachedData && (
-                      <Badge variant="outline" className="text-xs text-green-600 border-green-600">
-                        ⚡ Instant
-                      </Badge>
-                    )}
                   </div>
                 )}
               </div>
@@ -720,11 +706,6 @@ export default function FindPage() {
                 {searchResults?.totalResults && (
                   <span className="text-sm text-muted-foreground">
                     {searchResults.totalResults} results found
-                    {hasCachedData && (
-                      <span className="ml-2 text-xs text-green-600 font-medium">
-                        {isLocalFiltering ? '⚡ Filtering...' : '⚡ Cached'}
-                      </span>
-                    )}
                   </span>
                 )}
               </div>

@@ -19,8 +19,7 @@ import {
   CreditCard, 
   MapPin,
   FileText,
-  Star,
-  Zap
+  Star
 } from "lucide-react"
 
 interface FilterOptions {
@@ -46,7 +45,6 @@ interface CompactFilterPanelProps {
   isLoading?: boolean
   className?: string
   isLocalFiltering?: boolean // NEW: Indicate local vs server filtering
-  hasCachedData?: boolean    // NEW: Indicate if we have cached data
 }
 
 // Predefined filter options
@@ -73,8 +71,7 @@ export function CompactFilterPanel({
   onFiltersChange, 
   isLoading = false,
   className = "",
-  isLocalFiltering = false,
-  hasCachedData = false
+  isLocalFiltering = false
 }: CompactFilterPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -127,12 +124,6 @@ export function CompactFilterPanel({
               {activeFiltersCount > 0 && (
                 <Badge variant="default" className="ml-1 px-2">
                   {activeFiltersCount}
-                </Badge>
-              )}
-              {/* NEW: Local filtering indicator */}
-              {hasCachedData && (
-                <Badge variant="outline" className="ml-1 text-xs text-green-600 border-green-600">
-                  <Zap className="h-3 w-3" />
                 </Badge>
               )}
               <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />

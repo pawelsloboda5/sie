@@ -36,7 +36,6 @@ interface HeroSectionProps {
   initialQuery?: string
   initialLocation?: string
   isLocalFiltering?: boolean  // NEW: Indicate local filtering status
-  hasCachedData?: boolean     // NEW: Indicate if we have cached data
 }
 
 export function HeroSection({ 
@@ -61,8 +60,7 @@ export function HeroSection({
   resultsCount = 0,
   initialQuery = "",
   initialLocation = "",
-  isLocalFiltering = false,
-  hasCachedData = false
+  isLocalFiltering = false
 }: HeroSectionProps) {
   const [searchQuery, setSearchQuery] = useState(initialQuery)
   const [location, setLocation] = useState(initialLocation)
@@ -352,7 +350,6 @@ export function HeroSection({
               resultsCount={resultsCount}
               isLoading={isSearching}
               isLocalFiltering={isLocalFiltering}
-              hasCachedData={hasCachedData}
             />
           </div>
         </div>

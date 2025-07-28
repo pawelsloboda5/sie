@@ -176,8 +176,7 @@ export function filterServicesLocally(
 // Enhanced scoring for providers based on free services
 function calculateEnhancedProviderScore(
   provider: Provider,
-  providerServices: Service[],
-  filters: LocalFilterOptions
+  providerServices: Service[]
 ): number {
   let enhancedScore = provider.searchScore || 0
 
@@ -219,12 +218,11 @@ function calculateEnhancedProviderScore(
 export function sortProvidersLocally(
   providers: Provider[],
   services: Service[],
-  sortBy: 'distance' | 'rating' | 'name' | 'relevance',
-  filters: LocalFilterOptions
+  sortBy: 'distance' | 'rating' | 'name' | 'relevance'
 ): Provider[] {
   const providersWithScores = providers.map(provider => {
     const providerServices = services.filter(s => s.provider_id === provider._id)
-    const enhancedScore = calculateEnhancedProviderScore(provider, providerServices, filters)
+    const enhancedScore = calculateEnhancedProviderScore(provider, providerServices)
     
     return {
       ...provider,
@@ -282,9 +280,9 @@ export function applyLocalFilters(
   userLocation?: Coordinates
 ): { providers: Provider[], services: Service[] } {
   try {
-    // Start with original data from cache
-    const originalProviders = cachedResult.providers as Provider[]
-    const originalServices = cachedResult.services as Service[]
+    // Start with original data from cache - cast through unknown for type safety
+    const originalProviders = cachedResult.providers as unknown as Provider[]
+    const originalServices = cachedResult.services as unknown as Service[]
 
     // Apply filters to services first
     const filteredServices = filterServicesLocally(originalServices, filters)
@@ -314,10 +312,10 @@ export function applyLocalFilters(
     }
   } catch (error) {
     console.error('Error applying local filters:', error)
-    // Return original data on error
+    // Return original data on error - cast through unknown for type safety
     return {
-      providers: cachedResult.providers as Provider[],
-      services: cachedResult.services as Service[]
+      providers: cachedResult.providers as unknown as Provider[],
+      services: cachedResult.services as unknown as Service[]
     }
   }
 }

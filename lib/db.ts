@@ -33,8 +33,8 @@ export interface CachedSearchResult {
   query: string
   location?: string
   coordinates?: { latitude: number, longitude: number }
-  providers: any[] // Using any to avoid circular dependencies with Provider type
-  services: any[]  // Using any to avoid circular dependencies with Service type
+  providers: Record<string, unknown>[] // Replace any with generic object type
+  services: Record<string, unknown>[]  // Replace any with generic object type
   timestamp: Date
   totalResults: number
 }
@@ -70,7 +70,6 @@ let dbInstance: HealthcareDB | null = null
 
 function getDB(): HealthcareDB {
   if (!dbInstance) {
-    console.log('🔧 Initializing new HealthcareDB instance')
     dbInstance = new HealthcareDB()
   }
   return dbInstance
@@ -152,13 +151,10 @@ export const getUserPreference = async (key: string, defaultValue?: string | num
 // New caching helper functions
 export const saveCachedSearchResult = async (searchData: CachedSearchResult) => {
   try {
-    console.log('💾 saveCachedSearchResult: Starting cache operation')
     const database = getDB()
-    console.log('💾 saveCachedSearchResult: Got database instance')
     
     // Keep only the most recent 5 search results to avoid storage bloat
     const count = await database.cachedSearchResults.count()
-    console.log('💾 saveCachedSearchResult: Current cache count:', count)
     
     if (count >= 5) {
       const oldestResults = await database.cachedSearchResults
@@ -167,7 +163,6 @@ export const saveCachedSearchResult = async (searchData: CachedSearchResult) => 
         .toArray()
       
       await database.cachedSearchResults.bulkDelete(oldestResults.map(r => r.id!))
-      console.log('💾 saveCachedSearchResult: Cleaned up old cache entries:', oldestResults.length)
     }
 
     // Remove any existing result with the same query+location to avoid duplicates
@@ -176,33 +171,27 @@ export const saveCachedSearchResult = async (searchData: CachedSearchResult) => 
         .where('[query+location]')
         .equals([searchData.query, searchData.location])
         .delete()
-      console.log('💾 saveCachedSearchResult: Removed duplicate with location')
     } else {
       await database.cachedSearchResults
         .where('query')
         .equals(searchData.query)
         .and(result => !result.location)
         .delete()
-      console.log('💾 saveCachedSearchResult: Removed duplicate without location')
     }
 
     // Add new cached result
-    const newId = await database.cachedSearchResults.add({
+    await database.cachedSearchResults.add({
       ...searchData,
       timestamp: new Date()
     })
-    
-    console.log('✅ saveCachedSearchResult: Successfully cached with ID:', newId)
-    console.log('✅ Cached search result saved:', searchData.query)
   } catch (error) {
-    console.error('❌ saveCachedSearchResult: Error saving cached search result:', error)
+    console.error('Error saving cached search result:', error)
     throw error // Re-throw so the caller can handle it
   }
 }
 
 export const getCachedSearchResult = async (query: string, location?: string): Promise<CachedSearchResult | null> => {
   try {
-    console.log('🔍 getCachedSearchResult: Looking for cached result:', { query, location })
     const database = getDB()
     
     // Look for exact match with query and location
@@ -213,18 +202,15 @@ export const getCachedSearchResult = async (query: string, location?: string): P
         .where('[query+location]')
         .equals([query, location])
         .first()
-      console.log('🔍 getCachedSearchResult: Searched with location, found:', !!result)
     } else {
       result = await database.cachedSearchResults
         .where('query')
         .equals(query)
         .and(r => !r.location)
         .first()
-      console.log('🔍 getCachedSearchResult: Searched without location, found:', !!result)
     }
 
     if (!result) {
-      console.log('🔍 getCachedSearchResult: No cached result found')
       return null
     }
 
@@ -233,19 +219,12 @@ export const getCachedSearchResult = async (query: string, location?: string): P
     if (result.timestamp < oneHourAgo) {
       // Result is stale, remove it
       await database.cachedSearchResults.delete(result.id!)
-      console.log('🔍 getCachedSearchResult: Cached result was stale, removed')
       return null
     }
 
-    console.log('✅ getCachedSearchResult: Found fresh cached result:', {
-      query: result.query,
-      providerCount: result.providers.length,
-      serviceCount: result.services.length,
-      age: Math.round((Date.now() - result.timestamp.getTime()) / 1000 / 60) + ' minutes'
-    })
     return result
   } catch (error) {
-    console.error('❌ getCachedSearchResult: Error getting cached search result:', error)
+    console.error('Error getting cached search result:', error)
     return null
   }
 }
@@ -274,67 +253,4 @@ export const clearAllCachedResults = async () => {
   } catch (error) {
     console.error('Error clearing all cached results:', error)
   }
-}
-
-// 🔧 DEBUG UTILITIES - Can be called from browser console
-export const debugCache = {
-  // Check all cached results
-  listAll: async () => {
-    try {
-      const database = getDB()
-      const results = await database.cachedSearchResults.toArray()
-      console.log('📋 All cached results:', results)
-      return results
-    } catch (error) {
-      console.error('❌ Error listing cached results:', error)
-      return []
-    }
-  },
-  
-  // Check cache for specific query
-  check: async (query: string, location?: string) => {
-    try {
-      const result = await getCachedSearchResult(query, location)
-      console.log('🔍 Cache check result:', result)
-      return result
-    } catch (error) {
-      console.error('❌ Error checking cache:', error)
-      return null
-    }
-  },
-  
-  // Get database info
-  info: async () => {
-    try {
-      const database = getDB()
-      const count = await database.cachedSearchResults.count()
-      const tables = database.tables.map(t => t.name)
-      console.log('ℹ️ Database info:', { 
-        name: database.name, 
-        version: database.verno, 
-        tables,
-        cachedResultsCount: count 
-      })
-      return { name: database.name, version: database.verno, tables, cachedResultsCount: count }
-    } catch (error) {
-      console.error('❌ Error getting database info:', error)
-      return null
-    }
-  },
-  
-  // Clear all cache
-  clear: async () => {
-    try {
-      await clearAllCachedResults()
-      console.log('✅ Cache cleared')
-    } catch (error) {
-      console.error('❌ Error clearing cache:', error)
-    }
-  }
-}
-
-// Make debugging available globally in development
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  (window as any).debugCache = debugCache
-  console.log('🔧 Cache debugging available: window.debugCache')
 }
