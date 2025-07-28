@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { List, Search } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { parseLocationString, type Coordinates } from "@/lib/utils"
+import { AppHeader } from "./header"
  
 interface FilterOptions {
   freeOnly: boolean
@@ -379,6 +380,7 @@ export default function FindPage() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
+      <AppHeader />
       {/* Hero Section - takes natural height */}
       <div className="flex-shrink-0">
         <HeroSection 
