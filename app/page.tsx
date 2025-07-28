@@ -2,7 +2,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { HeartHandshake, MapPin, Stethoscope, Users, Shield, Building, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import { HeartHandshake, Stethoscope, Users, Shield, Building, Phone, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
