@@ -42,10 +42,16 @@ export function AppHeader() {
             Home
           </Link>
           <Link
-            href="/providers"
+            href="/app"
             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 transition-colors"
           >
-            Providers
+            Search
+          </Link>
+          <Link
+            href="/voice-agent"
+            className="text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-3 py-1.5 rounded-lg transition-all shadow-md hover:shadow-lg"
+          >
+            AI Scheduler
           </Link>
         </nav>
 
@@ -63,27 +69,34 @@ export function AppHeader() {
         </button>
       </div>
 
-      {/* Mobile Navigation Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg">
-          <nav className="container px-4 py-4 space-y-3">
-            <Link
-              href="/"
-              onClick={closeMobileMenu}
-              className="block py-3 px-4 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              Home
-            </Link>
-            <Link
-              href="/providers"
-              onClick={closeMobileMenu}
-              className="block py-3 px-4 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              Providers
-            </Link>
-          </nav>
-        </div>
-      )}
+              {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg">
+            <nav className="container px-4 py-4 space-y-3">
+              <Link
+                href="/"
+                onClick={closeMobileMenu}
+                className="block py-3 px-4 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                Home
+              </Link>
+              <Link
+                href="/app"
+                onClick={closeMobileMenu}
+                className="block py-3 px-4 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                Search
+              </Link>
+              <Link
+                href="/voice-agent"
+                onClick={closeMobileMenu}
+                className="block py-3 px-4 text-base font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg transition-all shadow-md"
+              >
+                🤖 AI Scheduler
+              </Link>
+            </nav>
+          </div>
+        )}
     </header>
   )
 }

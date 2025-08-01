@@ -370,6 +370,10 @@ export function ResultsList({
                     onCallProvider={(p) => handleProviderAction('call', p)}
                     onVisitWebsite={(p) => handleProviderAction('website', p)}
                     onViewDetails={(p) => handleProviderAction('details', p)}
+                    onScheduleWithAI={(p) => handleProviderAction('voice-agent', p)}
+                    onFavoriteToggle={(p, isFavorited) => {
+                      console.log(`Provider ${p.name} ${isFavorited ? 'added to' : 'removed from'} favorites`)
+                    }}
                     showDistance={showDistance}
                     compact={compact}
                   />

@@ -20,6 +20,11 @@ import {
   Info,
   ExternalLink
 } from "lucide-react"
+import { 
+  toggleFavoriteProvider, 
+  isProviderFavorited, 
+  type FavoriteProvider 
+} from '@/lib/voiceAgent'
 
 interface Provider {
   _id: string
@@ -58,6 +63,8 @@ interface ProviderCardProps {
   onCallProvider?: (provider: Provider) => void
   onVisitWebsite?: (provider: Provider) => void
   onViewDetails?: (provider: Provider) => void
+  onScheduleWithAI?: (provider: Provider) => void
+  onFavoriteToggle?: (provider: Provider, isFavorited: boolean) => void
   showDistance?: boolean
   compact?: boolean
 }
@@ -70,10 +77,13 @@ export function ProviderCard({
   onCallProvider,
   onVisitWebsite,
   onViewDetails,
+  onScheduleWithAI,
+  onFavoriteToggle,
   showDistance = true,
   compact = false
 }: ProviderCardProps) {
   const [isDesktop, setIsDesktop] = useState(false)
+  const [isFavorited, setIsFavorited] = useState(false)
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -85,6 +95,33 @@ export function ProviderCard({
     
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
+
+  useEffect(() => {
+    setIsFavorited(isProviderFavorited(provider._id))
+  }, [provider._id])
+
+  const handleFavoriteToggle = () => {
+    const favoriteProvider: FavoriteProvider = {
+      _id: provider._id,
+      name: provider.name,
+      address: provider.address,
+      phone: provider.phone,
+      category: provider.category,
+      savedAt: new Date(),
+      filters: {
+        freeServicesOnly: false, // This would be determined by services
+        acceptsMedicaid: provider.medicaid,
+        acceptsMedicare: provider.medicare,
+        acceptsUninsured: provider.accepts_uninsured,
+        noSSNRequired: !provider.ssn_required,
+        telehealthAvailable: provider.telehealth_available
+      }
+    }
+
+    const newFavoriteStatus = toggleFavoriteProvider(favoriteProvider)
+    setIsFavorited(newFavoriteStatus)
+    onFavoriteToggle?.(provider, newFavoriteStatus)
+  }
 
   const renderStars = (rating: number | null | undefined) => {
     const stars = []
@@ -205,6 +242,22 @@ export function ProviderCard({
               </span>
             </div>
           </div>
+          
+          {/* Favorite Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleFavoriteToggle}
+            className="flex-shrink-0 h-10 w-10 p-0 hover:bg-pink-50 dark:hover:bg-pink-900/20"
+          >
+            <Heart 
+              className={`h-5 w-5 transition-colors ${
+                isFavorited 
+                  ? 'fill-pink-500 text-pink-500' 
+                  : 'text-gray-400 hover:text-pink-500'
+              }`} 
+            />
+          </Button>
         </div>
 
         {/* Address */}
@@ -355,6 +408,19 @@ export function ProviderCard({
               </Button>
             )}
           </div>
+          
+          {/* AI Schedule Button - Mobile */}
+          {onScheduleWithAI && (
+            <Button
+              size="lg"
+              variant="default"
+              onClick={() => onScheduleWithAI(provider)}
+              className="w-full h-14 text-base font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
+            >
+              <Phone className="h-5 w-5 mr-2 animate-pulse" />
+              Schedule with AI Voice Agent
+            </Button>
+          )}
         </div>
       </div>
     )
@@ -637,6 +703,20 @@ export function ProviderCard({
           
           <div className="flex flex-col gap-2 sm:gap-2.5 lg:gap-3 flex-shrink-0">
             <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleFavoriteToggle}
+              className="h-8 sm:h-10 lg:h-12 w-8 sm:w-10 lg:w-12 p-0 hover:bg-pink-50 dark:hover:bg-pink-900/20"
+            >
+              <Heart 
+                className={`h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 transition-colors ${
+                  isFavorited 
+                    ? 'fill-pink-500 text-pink-500' 
+                    : 'text-gray-400 hover:text-pink-500'
+                }`} 
+              />
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               onClick={() => onViewDetails?.(provider)}
@@ -806,6 +886,19 @@ export function ProviderCard({
               Get Directions
             </Button>
           </div>
+          
+          {/* AI Schedule Action */}
+          {onScheduleWithAI && (
+            <Button
+              size="lg"
+              variant="default"
+              onClick={() => onScheduleWithAI(provider)}
+              className="w-full h-12 sm:h-14 lg:h-16 text-sm sm:text-base lg:text-lg font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white transition-all shadow-lg hover:shadow-xl"
+            >
+              <Phone className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 mr-2 sm:mr-2.5 lg:mr-3 animate-pulse" />
+              Schedule with AI Voice Agent
+            </Button>
+          )}
           
           {/* Secondary Actions */}
           <div className="flex gap-2 sm:gap-3 lg:gap-4">

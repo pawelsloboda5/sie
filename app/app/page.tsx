@@ -12,8 +12,12 @@ import {
   saveCachedSearchResult, 
   getCachedSearchResult, 
   clearOldCachedResults,
-  type CachedSearchResult 
+  type CachedSearchResult
 } from "@/lib/db"
+import { 
+  saveFavoriteProvider,
+  type FavoriteProvider 
+} from "@/lib/voiceAgent"
 import { 
   applyLocalFilters, 
   sortProvidersLocally, 
@@ -429,9 +433,40 @@ export default function FindPage() {
     }
   }
 
-  const handleProviderAction = (action: string, provider: Provider) => {
-    // Handle provider actions like call, directions, etc.
+  const handleProviderAction = async (action: string, provider: Provider) => {
     console.log(`Action: ${action}`, provider)
+    
+    switch (action) {
+      case 'voice-agent':
+        // Save provider to favorites for voice agent use
+        const favoriteProvider: FavoriteProvider = {
+          _id: provider._id, // Real MongoDB ObjectId
+          name: provider.name,
+          address: provider.address,
+          phone: provider.phone,
+          category: provider.category,
+          savedAt: new Date(),
+          filters: {
+            freeServicesOnly: false, // Will be determined by services
+            acceptsMedicaid: provider.medicaid,
+            acceptsMedicare: provider.medicare,
+            acceptsUninsured: provider.accepts_uninsured,
+            noSSNRequired: !provider.ssn_required,
+            telehealthAvailable: provider.telehealth_available
+          }
+        }
+        
+        // Save to favorites
+        saveFavoriteProvider(favoriteProvider)
+        
+        // Navigate to voice agent page
+        window.location.href = '/voice-agent'
+        break
+        
+      default:
+        // Let ResultsList handle other actions
+        break
+    }
   }
 
   // Handle URL parameters on mount to auto-execute search from homepage
