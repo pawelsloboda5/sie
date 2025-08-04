@@ -98,14 +98,14 @@ export default function VoiceAgentPage() {
     }
   }
 
-  const createAndValidateCallRequest = () => {
+  const createAndValidateCallRequest = (includeAvailabilityValidation = true) => {
     const callRequest = createVoiceAgentCallRequest(
       patientInfo,
       providerConfigs,
       userAvailability
     )
     
-    const validation = validateVoiceAgentCallRequest(callRequest)
+    const validation = validateVoiceAgentCallRequest(callRequest, includeAvailabilityValidation)
     setValidationErrors(validation.errors)
     
     if (validation.isValid) {
@@ -221,7 +221,7 @@ export default function VoiceAgentPage() {
                 onProviderConfigChange={setProviderConfigs}
                 onPatientInfoChange={setPatientInfo}
                 onNext={() => {
-                  const callRequest = createAndValidateCallRequest()
+                  const callRequest = createAndValidateCallRequest(false)
                   if (callRequest) {
                     setCurrentStep('availability')
                   }

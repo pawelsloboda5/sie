@@ -237,6 +237,8 @@ export interface PatientInfo {
 export interface ProviderSelectionData {
   providerId: string
   providerName: string
+  providerAddress?: string
+  providerPhone?: string
   selectedServices: DatabaseService[]
   verifyFilters: {
     freeServicesOnly: boolean
@@ -350,7 +352,10 @@ export const clearVoiceAgentSession = (): void => {
 }
 
 // Validate voice agent call request
-export const validateVoiceAgentCallRequest = (callRequest: Partial<VoiceAgentCallRequest>): { isValid: boolean; errors: string[] } => {
+export const validateVoiceAgentCallRequest = (
+  callRequest: Partial<VoiceAgentCallRequest>, 
+  includeAvailabilityValidation = true
+): { isValid: boolean; errors: string[] } => {
   const errors: string[] = []
   
   // Check patient info
@@ -379,15 +384,17 @@ export const validateVoiceAgentCallRequest = (callRequest: Partial<VoiceAgentCal
     })
   }
   
-  // Check availability
-  if (!callRequest.availability?.length) {
-    errors.push('At least one availability slot is required')
-  } else {
-    const hasValidAvailability = callRequest.availability.some(slot => 
-      slot.timeSlots?.length > 0 || (slot.timeRanges && slot.timeRanges.length > 0)
-    )
-    if (!hasValidAvailability) {
-      errors.push('At least one availability slot must have times specified')
+  // Check availability - only if requested
+  if (includeAvailabilityValidation) {
+    if (!callRequest.availability?.length) {
+      errors.push('At least one availability slot is required')
+    } else {
+      const hasValidAvailability = callRequest.availability.some(slot => 
+        slot.timeSlots?.length > 0 || (slot.timeRanges && slot.timeRanges.length > 0)
+      )
+      if (!hasValidAvailability) {
+        errors.push('At least one availability slot must have times specified')
+      }
     }
   }
   

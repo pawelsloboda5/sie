@@ -79,6 +79,8 @@ export default function ProviderSelector({
         const defaultConfig: ProviderSelectionData = {
           providerId,
           providerName: provider.name,
+          providerAddress: provider.address,
+          providerPhone: provider.phone,
           selectedServices: [],
           verifyFilters: {
             freeServicesOnly: provider.filters.freeServicesOnly,

@@ -38,6 +38,19 @@ interface TTSRequest {
 // ================== TTS Streaming Handler ==================
 export async function POST(request: NextRequest) {
   try {
+    // Check if TTS audio is enabled
+    if (process.env.ENABLE_TTS_AUDIO !== 'true') {
+      console.log('🔇 TTS audio disabled, returning silence')
+      // Return a minimal audio response (short silence)
+      const silenceBuffer = new ArrayBuffer(0)
+      return new Response(silenceBuffer, {
+        headers: {
+          'Content-Type': 'audio/mpeg',
+          'Content-Length': '0'
+        }
+      })
+    }
+
     if (!ELEVENLABS_API_KEY) {
       return NextResponse.json({ 
         error: 'ElevenLabs API key not configured' 

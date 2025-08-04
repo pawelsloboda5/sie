@@ -47,7 +47,7 @@ export default function AgentCallSimulator({
   const [voiceCallState, setVoiceCallState] = useState<VoiceCallState | null>(null)
   const [currentTurn, setCurrentTurn] = useState<ConversationTurn | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [audioEnabled, setAudioEnabled] = useState(true)
+  const [audioEnabled, setAudioEnabled] = useState(process.env.NEXT_PUBLIC_ENABLE_TTS_AUDIO === 'true')
   const [error, setError] = useState<string | null>(null)
   
   // Audio refs
@@ -111,7 +111,13 @@ export default function AgentCallSimulator({
       // Start conversation after a short delay
       setTimeout(() => {
         setCallState('connected')
-        playTurnAudio(data.firstTurn)
+        
+        // Handle audio independently from conversation flow
+        if (audioEnabled) {
+          playTurnAudio(data.firstTurn)
+        }
+        
+        // Note: Conversation flow will be handled by separate useEffect
       }, 2000)
       
     } catch (error) {
@@ -121,11 +127,10 @@ export default function AgentCallSimulator({
     }
   }, [])
 
-  // Play audio for conversation turn
+  // Play audio for conversation turn (audio only, no conversation flow control)
   const playTurnAudio = useCallback(async (turn: ConversationTurn) => {
     if (!audioEnabled) {
-      // Skip audio, proceed to next turn after delay
-      setTimeout(() => proceedToNextTurn(), 3000)
+      // Audio disabled - do nothing, conversation flow is handled separately
       return
     }
 
@@ -155,13 +160,12 @@ export default function AgentCallSimulator({
         audioRef.current.onended = () => {
           setIsPlaying(false)
           URL.revokeObjectURL(audioUrl)
-          // Proceed to next turn after audio finishes
-          setTimeout(() => proceedToNextTurn(), 1000)
+          // Audio finished - no conversation flow control here anymore
         }
         audioRef.current.onerror = () => {
           setIsPlaying(false)
           URL.revokeObjectURL(audioUrl)
-          setTimeout(() => proceedToNextTurn(), 2000)
+          // Audio error - no conversation flow control here anymore
         }
         await audioRef.current.play()
       }
@@ -169,17 +173,28 @@ export default function AgentCallSimulator({
     } catch (error) {
       console.error('Audio playback error:', error)
       setIsPlaying(false)
-      // Continue without audio
-      setTimeout(() => proceedToNextTurn(), 2000)
+      // Audio error - conversation flow continues independently
     }
   }, [audioEnabled])
 
   // Proceed to next conversation turn
   const proceedToNextTurn = useCallback(async () => {
-    if (!voiceCallState) return
+    if (!voiceCallState) {
+      console.log('⚠️ proceedToNextTurn called but no voiceCallState')
+      return
+    }
 
     try {
       const nextTurnNumber = voiceCallState.currentTurn + 1
+      console.log(`🎯 proceedToNextTurn called - current turn: ${voiceCallState.currentTurn}, next: ${nextTurnNumber}`)
+      
+      // Safety check - prevent infinite conversations
+      if (nextTurnNumber > 20) {
+        console.log('🛑 Maximum conversation turns reached, ending call')
+        setCallState('completed')
+        generateCallResult()
+        return
+      }
       
       const response = await fetch(
         `/api/voice-agent-call?callId=${voiceCallState.callId}&turn=${nextTurnNumber}&providerId=${callRequest.callMetadata.selectedProviderIds[currentProviderIndex]}`
@@ -207,8 +222,16 @@ export default function AgentCallSimulator({
       
       setCurrentTurn(data.turn)
       
-      // Play audio for new turn
-      setTimeout(() => playTurnAudio(data.turn), 500)
+      // Handle audio independently
+      if (audioEnabled) {
+        setTimeout(() => playTurnAudio(data.turn), 500)
+      }
+      
+      // Schedule next turn regardless of audio
+      if (!data.ended) {
+        console.log(`🔄 Scheduling next turn ${nextTurnNumber + 1} in ${audioEnabled ? 4000 : 1500}ms`)
+        setTimeout(() => proceedToNextTurn(), audioEnabled ? 4000 : 1500)
+      }
       
     } catch (error) {
       console.error('Failed to proceed to next turn:', error)
@@ -216,6 +239,19 @@ export default function AgentCallSimulator({
       generateCallResult()
     }
   }, [voiceCallState, callRequest, currentProviderIndex])
+
+  // Handle conversation flow when call becomes connected
+  useEffect(() => {
+    if (callState === 'connected' && voiceCallState && voiceCallState.currentTurn === 0) {
+      console.log(`🔄 Call connected, scheduling first turn progression in ${audioEnabled ? 4000 : 1500}ms`)
+      const timer = setTimeout(() => {
+        console.log('🎯 Starting conversation flow from useEffect')
+        proceedToNextTurn()
+      }, audioEnabled ? 4000 : 1500)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [callState, voiceCallState, audioEnabled, proceedToNextTurn])
 
   // Generate call result based on conversation
   const generateCallResult = useCallback(() => {
