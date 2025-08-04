@@ -9,7 +9,7 @@ import {
 
 // Conversation state interfaces
 interface ConversationTurn {
-  speaker: 'agent' | 'receptionist'
+  speaker: 'caller' | 'receptionist'
   text: string
   timestamp: number
   turn: number
@@ -220,7 +220,7 @@ async function generateReceptionistGreeting(state: ConversationState): Promise<C
 async function generateNextTurn(state: ConversationState): Promise<ConversationTurn | null> {
   // Determine who should speak next
   const lastTurn = state.conversationHistory[state.conversationHistory.length - 1]
-  const nextSpeaker = lastTurn.speaker === 'receptionist' ? 'agent' : 'receptionist'
+  const nextSpeaker = lastTurn.speaker === 'receptionist' ? 'caller' : 'receptionist'
 
   // Update conversation phase based on current state
   updateConversationPhase(state)
@@ -258,6 +258,19 @@ function updateConversationPhase(state: ConversationState) {
     state.phase = 'confirmation'
   } else {
     state.phase = 'closing'
+  }
+
+  // End conversation after goodbyes
+  if (state.phase === 'confirmation' && turnCount > 6) {
+    const recentMessages = state.conversationHistory.slice(-2).map(turn => turn.text.toLowerCase())
+    const hasGoodbyes = recentMessages.some(msg => 
+      msg.includes('goodbye') || msg.includes('thank you') || msg.includes('have a great day')
+    )
+    
+    if (hasGoodbyes) {
+      console.log('🏁 Detected goodbyes, ending conversation')
+      state.phase = 'ended'
+    }
   }
 
   console.log(`📋 Conversation phase: ${state.phase} (turn ${turnCount})`)
@@ -300,7 +313,7 @@ function getNextFilterToVerify(state: ConversationState): string | null {
 /**
  * Generate Azure OpenAI response with conversation context
  */
-async function generateAzureOpenAIResponse(state: ConversationState, speaker: 'agent' | 'receptionist'): Promise<string> {
+async function generateAzureOpenAIResponse(state: ConversationState, speaker: 'caller' | 'receptionist'): Promise<string> {
   try {
     const endpoint = process.env.AZURE_OPENAI_ENDPOINT
     const apiKey = process.env.AZURE_OPENAI_API_KEY
@@ -361,7 +374,7 @@ async function generateAzureOpenAIResponse(state: ConversationState, speaker: 'a
 /**
  * Build system prompt for Azure OpenAI
  */
-function buildSystemPrompt(state: ConversationState, speaker: 'agent' | 'receptionist'): string {
+function buildSystemPrompt(state: ConversationState, speaker: 'caller' | 'receptionist'): string {
   const patientName = `${state.callRequest.patientInfo.firstName} ${state.callRequest.patientInfo.lastName}`
   const providerName = state.providerConfig.providerName
   const selectedServices = state.providerConfig.selectedServices.map(s => s.name).join(', ')
@@ -439,7 +452,7 @@ Respond as the AI agent:`
  */
 function buildConversationHistory(state: ConversationState) {
   return state.conversationHistory.map(turn => ({
-    role: turn.speaker === 'agent' ? 'user' : 'assistant',
+    role: turn.speaker === 'caller' ? 'user' : 'assistant',
     content: turn.text
   }))
 }
@@ -447,7 +460,7 @@ function buildConversationHistory(state: ConversationState) {
 /**
  * Update verification status based on response
  */
-function updateVerificationStatus(state: ConversationState, speaker: 'agent' | 'receptionist', response: string) {
+function updateVerificationStatus(state: ConversationState, speaker: 'caller' | 'receptionist', response: string) {
   if (speaker === 'receptionist' && state.phase === 'filter_verification') {
     const nextFilter = getNextFilterToVerify(state)
     if (nextFilter) {
@@ -489,7 +502,7 @@ function updateVerificationStatus(state: ConversationState, speaker: 'agent' | '
       const firstAvailability = state.callRequest.availability[0]
       if (firstAvailability) {
         state.selectedAppointment = {
-          date: firstAvailability.date.toLocaleDateString(),
+          date: new Date(firstAvailability.date).toLocaleDateString(),
           time: firstAvailability.timeSlots[0] || firstAvailability.timeRanges?.[0]?.start || '10:00 AM',
           dayOfWeek: firstAvailability.dayOfWeek
         }
@@ -503,7 +516,7 @@ function updateVerificationStatus(state: ConversationState, speaker: 'agent' | '
 /**
  * Generate fallback response if Azure OpenAI fails
  */
-function generateFallbackResponse(state: ConversationState, speaker: 'agent' | 'receptionist'): string {
+function generateFallbackResponse(state: ConversationState, speaker: 'caller' | 'receptionist'): string {
   const patientName = `${state.callRequest.patientInfo.firstName} ${state.callRequest.patientInfo.lastName}`
   
   if (speaker === 'receptionist') {
@@ -584,7 +597,7 @@ function generateCallResult(state: ConversationState): CallResult {
     filtersVerified,
     callDuration: `${Math.floor(state.conversationHistory.length * 0.5)}:${String((state.conversationHistory.length * 30) % 60).padStart(2, '0')}`,
     transcript: state.conversationHistory.map(turn => 
-      `${turn.speaker === 'agent' ? 'AI Agent' : 'Receptionist'}: ${turn.text}`
+      `${turn.speaker === 'caller' ? 'AI Agent' : 'Receptionist'}: ${turn.text}`
     ),
     servicesDiscussed: state.providerConfig.selectedServices
   }

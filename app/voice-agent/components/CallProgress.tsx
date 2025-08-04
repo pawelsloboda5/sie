@@ -22,21 +22,26 @@ export default function CallProgress({ currentState }: CallProgressProps) {
   ]
 
   const getStepStatus = (stepId: string) => {
-    const stateOrder = ['initializing', 'dialing', 'connected', 'conversation', 'completed']
-    const currentIndex = stateOrder.indexOf(currentState)
-    const stepIndex = stateOrder.indexOf(stepId)
-
     if (currentState === 'failed') return 'failed'
-    if (stepIndex < currentIndex) return 'completed'
     
-    // Map some states for display purposes
-    if (stepId === 'dialing' && (currentState === 'dialing' || currentState === 'initializing')) return 'active'
-    if (stepId === 'verifying-filters' && currentState === 'connected') return 'active'
-    if (stepId === 'verifying-service' && currentState === 'conversation') return 'active'
-    if (stepId === 'scheduling' && currentState === 'conversation') return 'active'
-    
-    if (stepId === currentState) return 'active'
-    return 'pending'
+    // Map conversation states to progress steps
+    switch (currentState) {
+      case 'initializing':
+      case 'dialing':
+        return stepId === 'dialing' ? 'active' : 'pending'
+      case 'connected':
+        if (stepId === 'dialing') return 'completed'
+        return stepId === 'verifying-filters' ? 'active' : 'pending'
+      case 'conversation':
+        if (stepId === 'dialing') return 'completed'
+        if (stepId === 'verifying-filters') return 'completed'
+        if (stepId === 'verifying-service') return 'active'
+        return stepId === 'scheduling' ? 'pending' : 'pending'
+      case 'completed':
+        return 'completed'
+      default:
+        return 'pending'
+    }
   }
 
   return (
