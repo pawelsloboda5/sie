@@ -12,7 +12,12 @@ import Link from 'next/link'
 
 export interface AvailabilitySlot {
   date: Date
+  dayOfWeek: string
   timeSlots: string[]
+  timeRanges?: Array<{
+    start: string
+    end: string
+  }>
 }
 
 export interface FilterVerification {
