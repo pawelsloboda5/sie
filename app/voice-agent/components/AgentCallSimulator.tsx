@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Phone, CheckCircle, XCircle, Loader2, Volume2, VolumeX } from 'lucide-react'
 import CallProgress from './CallProgress'
-import { AvailabilitySlot, CallResult } from '../page'
+import { type VoiceAgentCallRequest, type CallResult, type AvailabilitySlot } from '@/lib/voiceAgent'
 
 type CallState = 
   | 'idle'
@@ -15,8 +15,7 @@ type CallState =
   | 'failed'
 
 interface AgentCallSimulatorProps {
-  selectedProviders: string[]
-  userAvailability: AvailabilitySlot[]
+  callRequest: VoiceAgentCallRequest
   onComplete: (results: CallResult[]) => void
 }
 
@@ -36,8 +35,7 @@ interface VoiceCallState {
 }
 
 export default function AgentCallSimulator({
-  selectedProviders,
-  userAvailability,
+  callRequest,
   onComplete
 }: AgentCallSimulatorProps) {
   const [currentProviderIndex, setCurrentProviderIndex] = useState(0)
@@ -74,17 +72,20 @@ export default function AgentCallSimulator({
       console.log('Provider ID type:', typeof providerId)
       console.log('Provider ID length:', providerId.length)
       
+      // Get provider configuration for this specific provider
+      const providerConfig = callRequest.providerConfigurations.find(
+        config => config.providerId === providerId
+      )
+      
       const response = await fetch('/api/voice-agent-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           providerId,
-          patientPreferences: {
-            serviceType: 'mammogram screening',
-            insurance: 'Medicaid',
-            preferredTime: 'morning',
-            specialNeeds: ['no SSN required']
-          },
+          callRequest: callRequest,
+          providerConfig: providerConfig,
+          patientInfo: callRequest.patientInfo,
+          availability: callRequest.availability,
           simulationMode: true
         })
       })
@@ -181,7 +182,7 @@ export default function AgentCallSimulator({
       const nextTurnNumber = voiceCallState.currentTurn + 1
       
       const response = await fetch(
-        `/api/voice-agent-call?callId=${voiceCallState.callId}&turn=${nextTurnNumber}&providerId=${selectedProviders[currentProviderIndex]}`
+        `/api/voice-agent-call?callId=${voiceCallState.callId}&turn=${nextTurnNumber}&providerId=${callRequest.callMetadata.selectedProviderIds[currentProviderIndex]}`
       )
 
       if (!response.ok) {
@@ -214,24 +215,31 @@ export default function AgentCallSimulator({
       setCallState('completed')
       generateCallResult()
     }
-  }, [voiceCallState, selectedProviders, currentProviderIndex])
+  }, [voiceCallState, callRequest, currentProviderIndex])
 
   // Generate call result based on conversation
   const generateCallResult = useCallback(() => {
     if (!voiceCallState) return
 
+    const providerId = callRequest.callMetadata.selectedProviderIds[currentProviderIndex]
+    const providerConfig = callRequest.providerConfigurations.find(config => config.providerId === providerId)
+    
     const result: CallResult = {
-      providerId: selectedProviders[currentProviderIndex],
+      providerId: providerId,
       providerName: voiceCallState.providerContext.name,
       success: true, // For demo, assume success
-      appointmentTime: userAvailability[0]?.timeSlots[0] || '10:30 AM',
+      appointmentTime: callRequest.availability[0]?.timeSlots[0] || callRequest.availability[0]?.timeRanges?.[0]?.start || '10:30 AM',
       callDuration: '3:45',
       filtersVerified: {
-        freeServicesOnly: { verified: true, notes: 'Free services confirmed via voice call' },
-        acceptsMedicaid: { verified: true, notes: 'Medicaid acceptance verified' },
-        noSSNRequired: { verified: true, notes: 'No SSN requirement confirmed' },
+        freeServicesOnly: { verified: providerConfig?.verifyFilters.freeServicesOnly || false, notes: 'Free services confirmed via voice call' },
+        acceptsMedicaid: { verified: providerConfig?.verifyFilters.acceptsMedicaid || false, notes: 'Medicaid acceptance verified' },
+        acceptsMedicare: { verified: providerConfig?.verifyFilters.acceptsMedicare || false, notes: 'Medicare acceptance verified' },
+        acceptsUninsured: { verified: providerConfig?.verifyFilters.acceptsUninsured || false, notes: 'Uninsured acceptance verified' },
+        noSSNRequired: { verified: providerConfig?.verifyFilters.noSSNRequired || false, notes: 'No SSN requirement confirmed' },
+        telehealthAvailable: { verified: providerConfig?.verifyFilters.telehealthAvailable || false, notes: 'Telehealth availability confirmed' },
         featuredService: { verified: true, notes: 'Service availability confirmed' }
       },
+      servicesDiscussed: providerConfig?.selectedServices || [],
       transcript: voiceCallState.turns.map(turn => 
         `${turn.speaker === 'caller' ? 'AI Agent' : 'Receptionist'}: ${turn.text}`
       )
@@ -241,7 +249,7 @@ export default function AgentCallSimulator({
       const newResults = [...prevResults, result]
       
       // Move to next provider or complete
-      if (currentProviderIndex < selectedProviders.length - 1) {
+      if (currentProviderIndex < callRequest.callMetadata.selectedProviderIds.length - 1) {
         setTimeout(() => {
           setCurrentProviderIndex(prev => prev + 1)
           setCallState('idle')
@@ -256,17 +264,17 @@ export default function AgentCallSimulator({
       
       return newResults
     })
-  }, [voiceCallState, selectedProviders, currentProviderIndex, userAvailability, handleComplete])
+  }, [voiceCallState, callRequest, currentProviderIndex, handleComplete])
 
   // Start initial call when component loads
   useEffect(() => {
-    if (callState === 'idle' && currentProviderIndex < selectedProviders.length) {
+    if (callState === 'idle' && currentProviderIndex < callRequest.callMetadata.selectedProviderIds.length) {
       const timer = setTimeout(() => {
-        initializeVoiceCall(selectedProviders[currentProviderIndex])
+        initializeVoiceCall(callRequest.callMetadata.selectedProviderIds[currentProviderIndex])
       }, 500)
       return () => clearTimeout(timer)
     }
-  }, [callState, currentProviderIndex, selectedProviders, initializeVoiceCall])
+  }, [callState, currentProviderIndex, callRequest, initializeVoiceCall])
 
   // Cleanup audio when component unmounts
   useEffect(() => {
@@ -296,7 +304,7 @@ export default function AgentCallSimulator({
       <div className="text-center mb-8">
         <h2 className="text-2xl font-semibold mb-2">AI Voice Agent Active</h2>
         <p className="text-gray-600">
-          Calling {selectedProviders.length} provider(s) to schedule appointments
+          Calling {callRequest.callMetadata.totalProviders} provider(s) to schedule appointments
         </p>
       </div>
 
@@ -331,7 +339,7 @@ export default function AgentCallSimulator({
               </div>
               <div>
                 <h3 className="font-semibold text-lg">
-                  Provider {currentProviderIndex + 1} of {selectedProviders.length}
+                  Provider {currentProviderIndex + 1} of {callRequest.callMetadata.totalProviders}
                 </h3>
                 <p className="text-sm text-gray-600">
                   {getCallStateMessage(callState)}

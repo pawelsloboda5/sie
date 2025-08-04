@@ -1,17 +1,16 @@
 import { Phone, Shield, Calendar, CheckCircle } from 'lucide-react'
 
-type CallState = 
+type AgentCallState = 
   | 'idle'
+  | 'initializing'
   | 'dialing'
   | 'connected'
-  | 'verifying-filters'
-  | 'verifying-service'
-  | 'scheduling'
+  | 'conversation'
   | 'completed'
   | 'failed'
 
 interface CallProgressProps {
-  currentState: CallState
+  currentState: AgentCallState
 }
 
 export default function CallProgress({ currentState }: CallProgressProps) {
@@ -23,13 +22,20 @@ export default function CallProgress({ currentState }: CallProgressProps) {
   ]
 
   const getStepStatus = (stepId: string) => {
-    const stateOrder = ['dialing', 'connected', 'verifying-filters', 'verifying-service', 'scheduling', 'completed']
+    const stateOrder = ['initializing', 'dialing', 'connected', 'conversation', 'completed']
     const currentIndex = stateOrder.indexOf(currentState)
     const stepIndex = stateOrder.indexOf(stepId)
 
     if (currentState === 'failed') return 'failed'
     if (stepIndex < currentIndex) return 'completed'
-    if (stepId === currentState || (stepId === 'dialing' && currentState === 'connected')) return 'active'
+    
+    // Map some states for display purposes
+    if (stepId === 'dialing' && (currentState === 'dialing' || currentState === 'initializing')) return 'active'
+    if (stepId === 'verifying-filters' && currentState === 'connected') return 'active'
+    if (stepId === 'verifying-service' && currentState === 'conversation') return 'active'
+    if (stepId === 'scheduling' && currentState === 'conversation') return 'active'
+    
+    if (stepId === currentState) return 'active'
     return 'pending'
   }
 

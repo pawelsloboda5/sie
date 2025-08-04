@@ -217,3 +217,204 @@ export const convertFavoriteToVoiceAgent = (favorite: FavoriteProvider): VoiceAg
     category: favorite.category
   }
 }
+
+// Enhanced interfaces for complete voice agent call data structure
+export interface DatabaseService {
+  _id: string
+  name: string
+  category: string
+  description?: string
+  is_free: boolean
+  is_discounted: boolean
+  price_info?: string
+}
+
+export interface PatientInfo {
+  firstName: string
+  lastName: string
+}
+
+export interface ProviderSelectionData {
+  providerId: string
+  providerName: string
+  selectedServices: DatabaseService[]
+  verifyFilters: {
+    freeServicesOnly: boolean
+    acceptsMedicaid: boolean
+    acceptsMedicare: boolean
+    acceptsUninsured: boolean
+    noSSNRequired: boolean
+    telehealthAvailable: boolean
+  }
+}
+
+export interface AvailabilitySlot {
+  date: Date
+  dayOfWeek: string
+  timeSlots: string[]
+  timeRanges?: Array<{
+    start: string
+    end: string
+  }>
+}
+
+export interface VoiceAgentCallRequest {
+  // Unique identifier for this call request
+  requestId: string
+  
+  // Patient information
+  patientInfo: PatientInfo
+  
+  // Provider configurations with services and filters to verify
+  providerConfigurations: ProviderSelectionData[]
+  
+  // User availability for appointment scheduling
+  availability: AvailabilitySlot[]
+  
+  // Call metadata
+  callMetadata: {
+    timestamp: Date
+    callType: 'appointment_booking'
+    selectedProviderIds: string[]
+    totalProviders: number
+  }
+}
+
+export interface CallResult {
+  providerId: string
+  providerName: string
+  success: boolean
+  appointmentTime?: string
+  failureReason?: string
+  filtersVerified?: {
+    freeServicesOnly: { verified: boolean; notes?: string }
+    acceptsMedicaid: { verified: boolean; notes?: string }
+    acceptsMedicare: { verified: boolean; notes?: string }
+    acceptsUninsured: { verified: boolean; notes?: string }
+    noSSNRequired: { verified: boolean; notes?: string }
+    telehealthAvailable: { verified: boolean; notes?: string }
+    featuredService: { verified: boolean; notes?: string }
+  }
+  callDuration?: string
+  transcript?: string[]
+  servicesDiscussed?: DatabaseService[]
+}
+
+// Storage keys
+export const VOICE_AGENT_SESSION_KEY = 'voiceAgentSession'
+
+// Save complete voice agent session data
+export const saveVoiceAgentSession = (callRequest: VoiceAgentCallRequest): void => {
+  try {
+    const sessionData = {
+      ...callRequest,
+      savedAt: new Date().toISOString()
+    }
+    localStorage.setItem(VOICE_AGENT_SESSION_KEY, JSON.stringify(sessionData))
+    console.log('Voice agent session saved:', callRequest.requestId)
+  } catch (error) {
+    console.error('Error saving voice agent session:', error)
+  }
+}
+
+// Get saved voice agent session
+export const getVoiceAgentSession = (): VoiceAgentCallRequest | null => {
+  try {
+    const stored = localStorage.getItem(VOICE_AGENT_SESSION_KEY)
+    if (!stored) return null
+    
+    const sessionData = JSON.parse(stored)
+    
+    // Convert date strings back to Date objects
+    sessionData.callMetadata.timestamp = new Date(sessionData.callMetadata.timestamp)
+    sessionData.availability = sessionData.availability.map((slot: any) => ({
+      ...slot,
+      date: new Date(slot.date)
+    }))
+    
+    return sessionData
+  } catch (error) {
+    console.error('Error loading voice agent session:', error)
+    return null
+  }
+}
+
+// Clear voice agent session
+export const clearVoiceAgentSession = (): void => {
+  try {
+    localStorage.removeItem(VOICE_AGENT_SESSION_KEY)
+    console.log('Voice agent session cleared')
+  } catch (error) {
+    console.error('Error clearing voice agent session:', error)
+  }
+}
+
+// Validate voice agent call request
+export const validateVoiceAgentCallRequest = (callRequest: Partial<VoiceAgentCallRequest>): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = []
+  
+  // Check patient info
+  if (!callRequest.patientInfo?.firstName?.trim()) {
+    errors.push('Patient first name is required')
+  }
+  if (!callRequest.patientInfo?.lastName?.trim()) {
+    errors.push('Patient last name is required')
+  }
+  
+  // Check provider configurations
+  if (!callRequest.providerConfigurations?.length) {
+    errors.push('At least one provider must be selected')
+  } else {
+    callRequest.providerConfigurations.forEach((config, index) => {
+      if (!config.providerId) {
+        errors.push(`Provider ${index + 1} is missing ID`)
+      }
+      
+      const hasServices = config.selectedServices?.length > 0
+      const hasFilters = Object.values(config.verifyFilters || {}).some(Boolean)
+      
+      if (!hasServices && !hasFilters) {
+        errors.push(`Provider ${index + 1} must have at least one service or filter selected`)
+      }
+    })
+  }
+  
+  // Check availability
+  if (!callRequest.availability?.length) {
+    errors.push('At least one availability slot is required')
+  } else {
+    const hasValidAvailability = callRequest.availability.some(slot => 
+      slot.timeSlots?.length > 0 || (slot.timeRanges && slot.timeRanges.length > 0)
+    )
+    if (!hasValidAvailability) {
+      errors.push('At least one availability slot must have times specified')
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  }
+}
+
+// Create a complete voice agent call request
+export const createVoiceAgentCallRequest = (
+  patientInfo: PatientInfo,
+  providerConfigurations: ProviderSelectionData[],
+  availability: AvailabilitySlot[]
+): VoiceAgentCallRequest => {
+  const requestId = `va_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  
+  return {
+    requestId,
+    patientInfo,
+    providerConfigurations,
+    availability,
+    callMetadata: {
+      timestamp: new Date(),
+      callType: 'appointment_booking',
+      selectedProviderIds: providerConfigurations.map(config => config.providerId),
+      totalProviders: providerConfigurations.length
+    }
+  }
+}

@@ -1,42 +1,28 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { getFavoriteProviders, convertFavoriteToVoiceAgent, type FavoriteProvider, type VoiceAgentProvider } from '@/lib/voiceAgent'
+import { 
+  getFavoriteProviders, 
+  type FavoriteProvider,
+  type PatientInfo,
+  type ProviderSelectionData,
+  type AvailabilitySlot,
+  type VoiceAgentCallRequest,
+  type CallResult,
+  createVoiceAgentCallRequest,
+  validateVoiceAgentCallRequest,
+  saveVoiceAgentSession,
+  getVoiceAgentSession,
+  clearVoiceAgentSession
+} from '@/lib/voiceAgent'
 import { AppHeader } from '../app/header'
-import ProviderSelector, { type PatientInfo, type ProviderSelectionData } from './components/ProviderSelector'
+import ProviderSelector from './components/ProviderSelector'
 import AvailabilityPicker from './components/AvailabilityPicker'
 import AgentCallSimulator from './components/AgentCallSimulator'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, AlertCircle } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import Link from 'next/link'
-
-export interface AvailabilitySlot {
-  date: Date
-  dayOfWeek: string
-  timeSlots: string[]
-  timeRanges?: Array<{
-    start: string
-    end: string
-  }>
-}
-
-export interface FilterVerification {
-  freeServicesOnly: { verified: boolean; notes?: string }
-  acceptsMedicaid: { verified: boolean; notes?: string }
-  noSSNRequired: { verified: boolean; notes?: string }
-  featuredService: { verified: boolean; notes?: string }
-}
-
-export interface CallResult {
-  providerId: string
-  providerName: string
-  success: boolean
-  appointmentTime?: string
-  failureReason?: string
-  filtersVerified?: FilterVerification
-  callDuration?: string
-  transcript?: string[]
-}
 
 export default function VoiceAgentPage() {
   const [savedProviders, setSavedProviders] = useState<FavoriteProvider[]>([])
@@ -46,11 +32,23 @@ export default function VoiceAgentPage() {
   const [userAvailability, setUserAvailability] = useState<AvailabilitySlot[]>([])
   const [isCallActive, setIsCallActive] = useState(false)
   const [currentStep, setCurrentStep] = useState<'select' | 'availability' | 'calling'>('select')
+  const [voiceAgentCallRequest, setVoiceAgentCallRequest] = useState<VoiceAgentCallRequest | null>(null)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [hasRestoredSession, setHasRestoredSession] = useState(false)
 
   useEffect(() => {
     // Load saved providers from localStorage on mount
     loadSavedProviders()
+    // Try to restore previous session
+    restoreSession()
   }, [])
+
+  // Auto-save session data whenever it changes
+  useEffect(() => {
+    if (voiceAgentCallRequest && currentStep !== 'calling') {
+      saveVoiceAgentSession(voiceAgentCallRequest)
+    }
+  }, [voiceAgentCallRequest, currentStep])
 
   const loadSavedProviders = () => {
     try {
@@ -79,13 +77,55 @@ export default function VoiceAgentPage() {
     }
   }
 
+  const restoreSession = () => {
+    try {
+      const savedSession = getVoiceAgentSession()
+      if (savedSession && !hasRestoredSession) {
+        console.log('Restoring previous voice agent session:', savedSession.requestId)
+        
+        // Restore all the individual state pieces
+        setPatientInfo(savedSession.patientInfo)
+        setProviderConfigs(savedSession.providerConfigurations)
+        setSelectedProviders(savedSession.callMetadata.selectedProviderIds)
+        setUserAvailability(savedSession.availability)
+        setVoiceAgentCallRequest(savedSession)
+        setHasRestoredSession(true)
+        
+        console.log('Session restored successfully')
+      }
+    } catch (error) {
+      console.error('Error restoring session:', error)
+    }
+  }
+
+  const createAndValidateCallRequest = () => {
+    const callRequest = createVoiceAgentCallRequest(
+      patientInfo,
+      providerConfigs,
+      userAvailability
+    )
+    
+    const validation = validateVoiceAgentCallRequest(callRequest)
+    setValidationErrors(validation.errors)
+    
+    if (validation.isValid) {
+      setVoiceAgentCallRequest(callRequest)
+      return callRequest
+    }
+    
+    return null
+  }
+
   const handleComplete = useCallback((results: CallResult[]) => {
     // Handle completion of all calls
     console.log('All calls completed:', results)
-    console.log('Patient info:', patientInfo)
-    console.log('Provider configs:', providerConfigs)
-    // TODO: Show summary screen
-  }, [patientInfo, providerConfigs])
+    console.log('Complete call request data:', voiceAgentCallRequest)
+    
+    // Clear the session since calls are complete
+    clearVoiceAgentSession()
+    
+    // TODO: Show summary screen with results
+  }, [voiceAgentCallRequest])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20">
@@ -145,6 +185,32 @@ export default function VoiceAgentPage() {
             </div>
           </div>
           
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <Alert className="mb-6 border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="font-medium mb-2">Please fix the following issues:</div>
+                <ul className="list-disc list-inside space-y-1">
+                  {validationErrors.map((error, index) => (
+                    <li key={index} className="text-sm">{error}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Session Restore Notice */}
+          {hasRestoredSession && (
+            <Alert className="mb-6 border-blue-200 bg-blue-50">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="font-medium">Previous session restored</div>
+                <p className="text-sm mt-1">Your previous configuration has been restored. You can continue where you left off.</p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Main Content */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
             {currentStep === 'select' && (
@@ -154,7 +220,12 @@ export default function VoiceAgentPage() {
                 onSelectionChange={setSelectedProviders}
                 onProviderConfigChange={setProviderConfigs}
                 onPatientInfoChange={setPatientInfo}
-                onNext={() => setCurrentStep('availability')}
+                onNext={() => {
+                  const callRequest = createAndValidateCallRequest()
+                  if (callRequest) {
+                    setCurrentStep('availability')
+                  }
+                }}
               />
             )}
             
@@ -163,22 +234,19 @@ export default function VoiceAgentPage() {
                 onAvailabilitySet={setUserAvailability}
                 onBack={() => setCurrentStep('select')}
                 onNext={() => {
-                  console.log('Moving to calling step with:', {
-                    selectedProviders,
-                    providerConfigs,
-                    patientInfo,
-                    userAvailability
-                  })
-                  setCurrentStep('calling')
-                  setIsCallActive(true)
+                  const callRequest = createAndValidateCallRequest()
+                  if (callRequest) {
+                    console.log('Starting voice agent calls with complete data:', callRequest)
+                    setCurrentStep('calling')
+                    setIsCallActive(true)
+                  }
                 }}
               />
             )}
             
-            {currentStep === 'calling' && (
+            {currentStep === 'calling' && voiceAgentCallRequest && (
               <AgentCallSimulator
-                selectedProviders={selectedProviders}
-                userAvailability={userAvailability}
+                callRequest={voiceAgentCallRequest}
                 onComplete={handleComplete}
               />
             )}

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Clock, Calendar as CalendarIcon, X, Plus, Trash2 } from 'lucide-react'
-import { AvailabilitySlot } from '../page'
+import { type AvailabilitySlot } from '@/lib/voiceAgent'
 
 interface AvailabilityPickerProps {
   onAvailabilitySet: (slots: AvailabilitySlot[]) => void

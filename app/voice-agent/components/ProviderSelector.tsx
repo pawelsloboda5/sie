@@ -1,4 +1,9 @@
-import { FavoriteProvider } from '@/lib/voiceAgent'
+import { 
+  type FavoriteProvider, 
+  type DatabaseService, 
+  type PatientInfo, 
+  type ProviderSelectionData 
+} from '@/lib/voiceAgent'
 import { getServicesForProviders } from '@/lib/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -9,34 +14,6 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Phone, MapPin, Check, Heart, Shield, CreditCard, User, Settings } from 'lucide-react'
 import { useState, useEffect } from 'react'
-
-interface DatabaseService {
-  _id: string
-  name: string
-  category: string
-  description?: string
-  is_free: boolean
-  is_discounted: boolean
-  price_info?: string
-}
-
-export interface PatientInfo {
-  firstName: string
-  lastName: string
-}
-
-export interface ProviderSelectionData {
-  providerId: string
-  selectedServices: DatabaseService[]
-  verifyFilters: {
-    freeServicesOnly: boolean
-    acceptsMedicaid: boolean
-    acceptsMedicare: boolean
-    acceptsUninsured: boolean
-    noSSNRequired: boolean
-    telehealthAvailable: boolean
-  }
-}
 
 interface ProviderSelectorProps {
   savedProviders: FavoriteProvider[]
@@ -101,6 +78,7 @@ export default function ProviderSelector({
       if (provider) {
         const defaultConfig: ProviderSelectionData = {
           providerId,
+          providerName: provider.name,
           selectedServices: [],
           verifyFilters: {
             freeServicesOnly: provider.filters.freeServicesOnly,

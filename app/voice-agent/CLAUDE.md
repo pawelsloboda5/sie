@@ -1,245 +1,171 @@
-# AI Voice Agent Implementation Context
+# Voice Agent Implementation - Key Details & Context
 
-## 🎯 Current Implementation Status
+## System Architecture Overview
 
-### Project Goal
-Implementing a sophisticated AI voice agent calling demo with two distinct agents:
-1. **AI Agent Caller** - Healthcare appointment scheduler 
-2. **Receptionist Agent** - Provider's receptionist
+### Core Data Structure (VoiceAgentCallRequest)
+- **Complete centralized interface** containing all call data
+- Includes: patient info, provider configurations, availability, call metadata
+- Stored in localStorage with session restoration capabilities
+- Full TypeScript safety across all components
 
-### Key Requirements from Analysis
-- **MCP Server Integration**: Use existing `get_voice_agent_context(providerId)` tool
-- **ElevenLabs TTS**: Streaming audio with `eleven_turbo_v2_5` model for low latency
-- **Two Distinct Voices**: Jessica/Rachel for caller, Bella/Sarah for receptionist
-- **Real-time Streaming**: mp3_44100_64 format for optimized bandwidth
+### Key Components & Relationships
 
-## 📋 Implementation Plan Status
+#### 1. ProviderSelector Component
+- Uses `FavoriteProvider` data from localStorage (saved via heart icon)
+- Fetches real services via `getServicesForProviders()` from cached search results
+- Collects patient info (firstName, lastName) for AI agent identity
+- Per-provider configuration:
+  - **Selected Services**: Specific services to verify during call
+  - **Filter Verification**: Policies to confirm (Medicaid, free services, etc.)
 
-### ✅ Completed
-- [x] Created comprehensive PLAN.md with technical specifications
-- [x] Analyzed existing codebase architecture 
-- [x] Reviewed MCP server integration patterns from HOW.md
-- [x] Studied ElevenLabs streaming API documentation
+#### 2. AvailabilityPicker Component  
+- Calendar-based date selection with multi-date support
+- **Time Slots**: Specific times (e.g., "10:00 AM", "2:00 PM")
+- **Time Ranges**: Flexible ranges (e.g., "9:00" to "17:00")
+- Enhanced with dayOfWeek calculation for context
 
-### ✅ Phase 1 Completed
-- [x] Created API route `/api/voice-agent-call/route.ts` with MCP server integration
-- [x] Implemented ElevenLabs TTS streaming endpoint `/api/voice-agent-call/tts/route.ts`
-- [x] Built conversation engine with state management
-- [x] Updated AgentCallSimulator component with real-time audio
-- [x] Integrated provider context retrieval and conversation flow
+#### 3. AgentCallSimulator Component
+- Receives complete `VoiceAgentCallRequest` object
+- Uses real patient info, provider configs, and availability
+- Enhanced call results with actual verification data
 
-### ✅ Phase 2 Completed - Real Provider Integration
-- [x] Removed fake/placeholder providers from voice agent system
-- [x] Integrated favorites system with real MongoDB ObjectIds
-- [x] Updated ProviderSelector to use favorited providers
-- [x] Added validation for MongoDB ObjectId format
-- [x] Enhanced error logging and debugging
-- [x] Updated UI to reflect favorites-based workflow
-
-### 🚧 Current Status - Phase 3 Testing
-- [ ] Testing with real favorited providers
-- [ ] Validating ObjectId format in API calls
-- [ ] Verifying MCP server integration with real IDs
-
-### 📊 Technical Context
-
-#### Existing Architecture
-- **Next.js 15 + React 19**: Server components with async transitions
-- **MongoDB Integration**: Provider/service data via `sie/app/api/search/route.ts`
-- **Current Voice Agent Utils**: `sie/lib/voiceAgent.ts` (localStorage-based)
-
-#### MCP Server Context (from HOW.md)
-```typescript
-// Critical Provider Object Structure
-interface Provider {
-  _id: string;                    // MongoDB ObjectId - CRITICAL
-  name: string;
-  category: string;
-  address: string;
-  phone: string;
-  accepts_uninsured: boolean;
-  medicaid: boolean;
-  medicare: boolean;
-  telehealth_available: boolean;
-  free_service_names?: string[];
-}
-
-// MCP Tools Available
-- get_voice_agent_context(providerId) // PRIMARY tool for call context
-- get_provider_by_id(providerId)      // Provider details  
-- get_provider_services(providerId)   // Available services
+### Data Flow Architecture
+```
+User Input → Component State → Validation → VoiceAgentCallRequest → localStorage → AI API
 ```
 
-#### ElevenLabs Integration Patterns
+## Database Integration
+
+### FavoriteProvider Structure
+- Stored in localStorage via voiceAgent.ts functions
+- Contains: _id, name, address, phone, filters, category, savedAt
+- Only providers with valid MongoDB ObjectIds can be used for AI calling
+- Filters indicate provider policies (acceptsMedicaid, freeServicesOnly, etc.)
+
+### Services Data Source
+- Services fetched from `cachedSearchResults` in IndexedDB
+- Function: `getServicesForProviders(providerIds: string[])`
+- Returns services grouped by provider with pricing info
+- Sorted by: free services first, then discounted, then alphabetical
+
+### Session Management
+- Auto-save complete session data to localStorage
+- Session restoration on page reload with date object handling
+- Validation at each step before proceeding
+- Cleanup after successful call completion
+
+## Key Interface Definitions
+
+### VoiceAgentCallRequest
 ```typescript
-// Streaming TTS Configuration
 {
-  model_id: "eleven_turbo_v2_5",     // Low latency
-  output_format: "mp3_44100_64",     // Optimized streaming
-  voice_settings: {
-    stability: 0.3,                   // More expressive
-    similarity_boost: 0.75           // Clear voice quality
+  requestId: string                          // Unique session identifier
+  patientInfo: PatientInfo                   // Patient name for AI calls
+  providerConfigurations: ProviderSelectionData[]  // Provider-specific configs
+  availability: AvailabilitySlot[]           // User availability with times
+  callMetadata: { timestamp, callType, selectedProviderIds, totalProviders }
+}
+```
+
+### ProviderSelectionData
+```typescript
+{
+  providerId: string
+  providerName: string                       // Added for API context
+  selectedServices: DatabaseService[]       // Specific services to verify
+  verifyFilters: {                          // Policies to confirm during call
+    freeServicesOnly: boolean
+    acceptsMedicaid: boolean
+    acceptsMedicare: boolean
+    acceptsUninsured: boolean
+    noSSNRequired: boolean
+    telehealthAvailable: boolean
   }
 }
 ```
 
-## 🔧 Next Implementation Steps
-
-### Step 1: API Route Creation
-- Create `/api/voice-agent-call/route.ts`
-- Implement MCP server communication
-- Add provider context retrieval
-- Handle streaming TTS integration
-
-### Step 2: Conversation Engine
-- Design multi-turn state machine
-- Implement realistic dialogue flow
-- Add context-aware responses
-- Handle voice switching logic
-
-### Step 3: Frontend Integration
-- Update existing AgentCallSimulator component
-- Add real-time audio streaming
-- Implement call progress tracking
-
-## 🎭 Agent Persona Definitions
-
-### AI Agent Caller (Voice: Jessica)
-```
-Role: Professional healthcare appointment scheduler
-Personality: Polite, empathetic, patient-focused
-Knowledge: Patient preferences, insurance info, scheduling needs
-Goal: Successfully schedule appropriate appointment
-Sample: "Hello, I'm calling to schedule an appointment for my patient who needs [service type]. They have [insurance] and prefer [time preferences]."
+### AvailabilitySlot
+```typescript
+{
+  date: Date
+  dayOfWeek: string                         // "Monday", "Tuesday", etc.
+  timeSlots: string[]                       // ["10:00 AM", "2:00 PM"]
+  timeRanges?: Array<{                      // Flexible ranges
+    start: string                           // "9:00"
+    end: string                             // "17:00"
+  }>
+}
 ```
 
-### Receptionist Agent (Voice: Bella)  
-```
-Role: Healthcare provider receptionist
-Personality: Helpful, efficient, knowledgeable
-Knowledge: Provider services, availability, requirements
-Goal: Assist with scheduling per provider protocols
-Sample: "Thank you for calling [Provider Name]. I'd be happy to help you schedule an appointment. What type of service are you looking for?"
-```
+## API Integration Points
 
-## 🚨 Critical Implementation Notes
+### Current Route: `/api/voice-agent-call`
+- POST: Initialize voice call with complete call request data
+- GET: Continue conversation with callId and turn number
+- Enhanced to receive structured VoiceAgentCallRequest
 
-### MCP Server Integration
-- Use provider MongoDB ObjectId from existing search/filter APIs
-- Call `get_voice_agent_context(providerId)` for comprehensive context
-- Handle MCP server connection properly (stdio protocol, not HTTP)
+### TTS Route: `/api/voice-agent-call/tts`
+- POST: Generate speech from text with speaker voice selection
+- Used for realistic conversation playback
 
-### ElevenLabs Streaming  
-- Server-side API key protection (never expose to client)
-- Stream audio chunks in real-time for low latency
-- Handle voice switching between agents seamlessly
-- Implement proper error handling for API limits
+## Azure OpenAI Integration Context
+
+### Available Data for Conversation Flow
+1. **Patient Context**: First name, last name for AI agent identity
+2. **Provider Context**: Name, address, phone, known policies
+3. **Service Context**: Specific services to verify with pricing info
+4. **Filter Context**: Specific policies to confirm (one per turn)
+5. **Availability Context**: Exact dates, times, and day-of-week
+
+### Conversation Requirements
+- Structured turn-by-turn flow
+- Real provider data validation
+- Filter verification one at a time
+- Graceful exit on any "no" response
+- Appointment scheduling with specific availability
+
+## Technical Implementation Notes
+
+### Error Handling & Validation
+- Comprehensive form validation before API calls
+- Session recovery on browser refresh
+- Graceful degradation for missing data
+- Type safety throughout entire flow
 
 ### Performance Considerations
-- Audio latency < 1 second target
-- Chunked transfer encoding for streaming
-- Connection keep-alive for seamless audio
-- Buffer management for network variations
+- Lazy database initialization for SSR compatibility
+- Efficient service filtering from cached results
+- Minimal localStorage usage with cleanup
+- Parallel component updates where possible
 
----
+### User Experience Features
+- Real-time validation feedback
+- Session restoration notifications
+- Progress indicators through call flow
+- Detailed call results with verification status
 
-## 📝 Development Log
+## Critical Implementation Details
 
-**[Current Session]** - Successfully implemented core AI voice agent functionality
+### Provider Data Requirements
+- Must have valid MongoDB ObjectId (24 char hex)
+- Must be saved via heart icon from search results
+- Services must exist in cached search results
+- Phone number required for actual calling
 
-## 🎉 Implementation Summary
+### Availability Handling
+- Support both specific times AND flexible ranges
+- Day-of-week context for natural conversation
+- Multiple dates supported per session
+- Validation ensures at least one time specified
 
-### ✅ Major Components Completed
+### Call Result Enhancement
+- Maps verified filters to actual user selections
+- Includes discussed services in results
+- Provides detailed conversation transcript
+- Links appointment to specific availability slot
 
-1. **API Route (`/api/voice-agent-call/route.ts`)**
-   - MongoDB integration for provider data retrieval
-   - Conversation engine with turn-based state management
-   - Two distinct agent personalities (caller vs receptionist)
-   - Realistic dialogue flow with 5 conversation turns each
-   - MCP server context integration (simulated for MVP)
-
-2. **TTS Streaming Endpoint (`/api/voice-agent-call/tts/route.ts`)**
-   - ElevenLabs API integration with streaming audio
-   - Optimized configuration: `eleven_turbo_v2_5` model, `mp3_44100_64` format
-   - Two distinct voice IDs: Jessica (caller), Sarah (receptionist)
-   - CORS support and proper error handling
-
-3. **Frontend Component (`AgentCallSimulator.tsx`)**
-   - Real-time conversation display with live transcription
-   - Audio playback with voice switching between agents
-   - Call state management and progress visualization
-   - Audio toggle functionality for accessibility
-   - Error handling and graceful degradation
-   - Results display with full conversation transcript
-
-### 🎭 Agent Personas Implemented
-
-**AI Agent Caller (Jessica Voice)**
-- Professional healthcare appointment scheduler
-- Context-aware responses using provider data
-- Mentions patient preferences (insurance, time, special needs)
-- Polite, empathetic tone focused on patient needs
-
-**Receptionist Agent (Sarah Voice)**
-- Healthcare provider front desk representative
-- Knowledgeable about provider services and policies
-- Helpful, efficient communication style
-- Responds based on actual provider context (insurance acceptance, services)
-
-### 🔧 Technical Features
-
-- **Real Provider Integration**: Uses actual favorited providers with MongoDB ObjectIds
-- **MCP Server Integration**: Provider context retrieval using valid database IDs
-- **Streaming Audio**: Real-time TTS with low-latency model
-- **State Management**: Turn-based conversation with proper sequencing
-- **Error Handling**: Comprehensive validation and fallback behavior
-- **Audio Controls**: Toggle audio on/off, visual speaking indicators
-- **Responsive UI**: Live conversation display with real-time updates
-- **Data Validation**: ObjectId format checking and invalid provider filtering
-
-### 🎯 Demo Capability
-
-The implementation provides a fully functional demo of:
-- Two AI agents having a realistic appointment scheduling conversation
-- Provider-specific context integration (name, services, insurance)
-- Real-time audio generation and playback
-- Complete conversation transcript capture
-- Professional healthcare interaction simulation
-
-**Status**: Real provider integration complete. System now uses favorites with valid MongoDB ObjectIds.
-
-## 🔄 Recent Updates - Real Provider Integration
-
-### ✅ System Architecture Changes
-
-1. **Removed Fake Providers**
-   - Eliminated placeholder providers with simple IDs ("1", "2", "3")
-   - Removed demo provider creation in voice agent page
-   - System now relies entirely on real favorited providers
-
-2. **Favorites Integration**
-   - `handleProviderAction('voice-agent')` now saves to `FavoriteProvider`
-   - Voice agent page loads from `getFavoriteProviders()`
-   - ProviderSelector works with `FavoriteProvider` interface
-   - Real MongoDB ObjectIds preserved throughout system
-
-3. **Validation & Error Handling**
-   - Added ObjectId format validation (24-character hex string)
-   - Enhanced error logging with detailed provider ID information
-   - Filtering of invalid providers in voice agent page
-   - User-friendly messages for empty/invalid provider lists
-
-4. **Data Flow Integrity**
-   - Real provider `_id` from MongoDB → Favorites → Voice Agent
-   - MCP server calls will receive valid ObjectIds
-   - Featured services can be fetched using real provider IDs
-
-### 🎯 User Workflow Now
-
-1. **Search & Favorite**: User searches providers and favorites them (❤️ icon)
-2. **Voice Agent Page**: User sees their favorited providers with real data
-3. **Selection**: User selects favorited providers for AI calling
-4. **API Calls**: System uses real MongoDB ObjectIds for MCP server integration
-5. **Conversation**: AI agents get real provider context from database
-
-**Status**: Ready for testing with real favorited providers and ElevenLabs API key.
+## Next Implementation Phase
+- Azure OpenAI conversation engine
+- Structured turn-by-turn dialog flow
+- Real provider data integration
+- Enhanced result processing and display
