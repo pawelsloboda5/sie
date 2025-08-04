@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getFavoriteProviders, convertFavoriteToVoiceAgent, type FavoriteProvider, type VoiceAgentProvider } from '@/lib/voiceAgent'
 import { AppHeader } from '../app/header'
-import ProviderSelector from './components/ProviderSelector'
+import ProviderSelector, { type PatientInfo, type ProviderSelectionData } from './components/ProviderSelector'
 import AvailabilityPicker from './components/AvailabilityPicker'
 import AgentCallSimulator from './components/AgentCallSimulator'
 import { Button } from '@/components/ui/button'
@@ -36,6 +36,8 @@ export interface CallResult {
 export default function VoiceAgentPage() {
   const [savedProviders, setSavedProviders] = useState<FavoriteProvider[]>([])
   const [selectedProviders, setSelectedProviders] = useState<string[]>([])
+  const [providerConfigs, setProviderConfigs] = useState<ProviderSelectionData[]>([])
+  const [patientInfo, setPatientInfo] = useState<PatientInfo>({ firstName: '', lastName: '' })
   const [userAvailability, setUserAvailability] = useState<AvailabilitySlot[]>([])
   const [isCallActive, setIsCallActive] = useState(false)
   const [currentStep, setCurrentStep] = useState<'select' | 'availability' | 'calling'>('select')
@@ -75,8 +77,10 @@ export default function VoiceAgentPage() {
   const handleComplete = useCallback((results: CallResult[]) => {
     // Handle completion of all calls
     console.log('All calls completed:', results)
+    console.log('Patient info:', patientInfo)
+    console.log('Provider configs:', providerConfigs)
     // TODO: Show summary screen
-  }, [])
+  }, [patientInfo, providerConfigs])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20">
@@ -143,6 +147,8 @@ export default function VoiceAgentPage() {
                 savedProviders={savedProviders}
                 selectedProviders={selectedProviders}
                 onSelectionChange={setSelectedProviders}
+                onProviderConfigChange={setProviderConfigs}
+                onPatientInfoChange={setPatientInfo}
                 onNext={() => setCurrentStep('availability')}
               />
             )}
@@ -152,6 +158,12 @@ export default function VoiceAgentPage() {
                 onAvailabilitySet={setUserAvailability}
                 onBack={() => setCurrentStep('select')}
                 onNext={() => {
+                  console.log('Moving to calling step with:', {
+                    selectedProviders,
+                    providerConfigs,
+                    patientInfo,
+                    userAvailability
+                  })
                   setCurrentStep('calling')
                   setIsCallActive(true)
                 }}

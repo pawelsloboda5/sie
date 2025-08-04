@@ -254,3 +254,66 @@ export const clearAllCachedResults = async () => {
     console.error('Error clearing all cached results:', error)
   }
 }
+
+// Get services for specific provider IDs from cached search results
+export const getServicesForProviders = async (providerIds: string[]): Promise<Record<string, any[]>> => {
+  try {
+    const database = getDB()
+    
+    // Get all cached search results
+    const allCachedResults = await database.cachedSearchResults.toArray()
+    
+    const servicesByProvider: Record<string, any[]> = {}
+    
+    // Initialize empty arrays for all provider IDs
+    providerIds.forEach(providerId => {
+      servicesByProvider[providerId] = []
+    })
+    
+    // Check cached results for services matching our provider IDs
+    for (const cachedResult of allCachedResults) {
+      if (cachedResult.services && Array.isArray(cachedResult.services)) {
+        cachedResult.services.forEach((service: any) => {
+          if (providerIds.includes(service.provider_id)) {
+            // Avoid duplicates
+            const existingService = servicesByProvider[service.provider_id].find(
+              (s: any) => s._id === service._id
+            )
+            if (!existingService) {
+              servicesByProvider[service.provider_id].push({
+                _id: service._id,
+                name: service.name,
+                category: service.category || 'General',
+                description: service.description,
+                is_free: service.is_free || false,
+                is_discounted: service.is_discounted || false,
+                price_info: service.price_info
+              })
+            }
+          }
+        })
+      }
+    }
+    
+    // Sort services within each provider (free first, then by name)
+    Object.keys(servicesByProvider).forEach(providerId => {
+      servicesByProvider[providerId].sort((a, b) => {
+        // Free services first
+        if (a.is_free && !b.is_free) return -1
+        if (!a.is_free && b.is_free) return 1
+        
+        // Discounted services next
+        if (a.is_discounted && !b.is_discounted) return -1
+        if (!a.is_discounted && b.is_discounted) return 1
+        
+        // Then alphabetical by name
+        return a.name.localeCompare(b.name)
+      })
+    })
+    
+    return servicesByProvider
+  } catch (error) {
+    console.error('Error getting services for providers:', error)
+    return {}
+  }
+}
