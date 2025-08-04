@@ -117,12 +117,6 @@ return (
 <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
 </Button>
 </CollapsibleTrigger>
-{typeof resultsCount === 'number' && (
-          <div className="hidden md:flex items-center text-sm text-gray-500">
-            {resultsCount} results
-          </div>
-        )}
-
         {onClearFilters && activeFiltersCount > 0 && (
           <Button
             variant="ghost"
@@ -323,9 +317,14 @@ checked: boolean
 onChange: (v: boolean) => void
 }) {
 return (
-<div className="flex items-center justify-between py-2 px-3 rounded-xl border border-gray-200 hover:bg-gray-50">
-<Label htmlFor={id} className="text-sm cursor-pointer">{label}</Label>
-<Switch id={id} checked={checked} onCheckedChange={onChange} />
+<div className="flex items-center justify-between py-3 px-4 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+<Label htmlFor={id} className="text-sm cursor-pointer font-medium">{label}</Label>
+<Switch 
+  id={id} 
+  checked={checked} 
+  onCheckedChange={onChange}
+  className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-200"
+/>
 </div>
 )
 }

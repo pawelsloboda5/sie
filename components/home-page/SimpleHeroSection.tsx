@@ -3,560 +3,446 @@
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Search, MapPin, Loader2, ChevronDown, Clock, FileText, Bot, Shield, Users, Stethoscope } from "lucide-react"
+import {
+Search,
+MapPin,
+Loader2,
+ChevronDown,
+Clock,
+FileText,
+Bot,
+Shield,
+Users,
+Stethoscope
+} from "lucide-react"
 import type { RecentSearch } from "@/lib/db"
 import * as db from "@/lib/db"
-import Link from "next/link"
 import { reverseGeocode } from "@/lib/utils"
 
 interface SimpleHeroSectionProps {
-  showRecentSearches?: boolean
+showRecentSearches?: boolean
 }
 
 export function SimpleHeroSection({ showRecentSearches = true }: SimpleHeroSectionProps) {
-  const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [location, setLocation] = useState("")
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isGettingLocation, setIsGettingLocation] = useState(false)
-  const [searchError, setSearchError] = useState<string | null>(null)
-  const [isSearching, setIsSearching] = useState(false)
-  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
-  const [showAllCapabilities, setShowAllCapabilities] = useState(false)
-  const [currentPlaceholder, setCurrentPlaceholder] = useState(0)
+const router = useRouter()
+const [searchQuery, setSearchQuery] = useState("")
+const [location, setLocation] = useState("")
+const [isSearchOpen, setIsSearchOpen] = useState(false)
+const [isGettingLocation, setIsGettingLocation] = useState(false)
+const [searchError, setSearchError] = useState<string | null>(null)
+const [isSearching, setIsSearching] = useState(false)
+const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
+const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
+const [showAllCapabilities, setShowAllCapabilities] = useState(false)
+const [currentPlaceholder, setCurrentPlaceholder] = useState(0)
 
-  // Featured healthcare services from our 400+ categories database
-  const featuredServices = [
-    "free clinic near me",
-    "mental health services", 
-    "STD testing center",
-    "dental clinic",
-    "women's health clinic",
-    "family planning center", 
-    "community health center",
-    "blood donation center",
-    "HIV testing center",
-    "urgent care center",
-    "walk-in clinic",
-    "pregnancy care center",
-    "addiction treatment center",
-    "crisis center support",
-    "food bank assistance",
-    "homeless shelter",
-    "emergency care service",
-    "abortion clinic",
-    "birth center",
-    "cancer treatment center",
-    "diabetes center",
-    "eye care center",
-    "pain management clinic",
-    "rehabilitation center",
-    "weight loss service"
-  ]
+const featuredServices = [
+"free clinic near me",
+"mental health services",
+"STD testing center",
+"dental clinic",
+"women's health clinic",
+"family planning center",
+"community health center",
+"blood donation center",
+"urgent care center",
+"pregnancy care center",
+"addiction treatment",
+"diabetes screening",
+"vision exam",
+"low-cost prescriptions"
+]
 
-  // Popular search suggestions
-  const searchSuggestions = [
-    "Free STI testing",
-    "Urgent care near me", 
-    "Dental clinic uninsured",
-    "Mental health services",
-    "Pregnancy testing",
-    "Diabetes management",
-    "Blood pressure check",
-    "Vaccination clinic",
-    "Free mammogram",
-    "Women's health services",
-    "Free birth control",
-    "Pediatric care",
-    "Eye exam",
-    "Free prescription assistance",
-    "HIV testing",
-    "Substance abuse treatment"
-  ]
+const searchSuggestions = [
+"Free STI testing",
+"Urgent care near me",
+"Dental clinic uninsured",
+"Mental health services",
+"Pregnancy testing",
+"Diabetes management",
+"Blood pressure check",
+"Vaccination clinic",
+"Free mammogram",
+"Women's health services",
+"Free birth control",
+"Pediatric care",
+"Eye exam",
+"Free prescription assistance",
+"HIV testing",
+"Substance abuse treatment"
+]
 
-  // Rotate placeholder text every 3 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentPlaceholder((prev) => (prev + 1) % featuredServices.length)
-    }, 3000)
-    return () => clearInterval(interval)
-  }, [featuredServices.length])
+useEffect(() => {
+const id = setInterval(() => {
+setCurrentPlaceholder((p) => (p + 1) % featuredServices.length)
+}, 3200)
+return () => clearInterval(id)
+}, [featuredServices.length])
 
-  // Load recent searches on component mount
-  useEffect(() => {
-    if (showRecentSearches) {
-      db.getRecentSearches(5).then(setRecentSearches).catch(console.error)
-    }
-  }, [showRecentSearches])
+useEffect(() => {
+if (showRecentSearches) {
+db.getRecentSearches(6).then(setRecentSearches).catch(console.error)
+}
+}, [showRecentSearches])
 
-  const handleGetLocation = async () => {
-    setIsGettingLocation(true)
-    try {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords
-            
-            // Convert coordinates to address
-            const address = await reverseGeocode(latitude, longitude)
-            setLocation(address)
-            setIsGettingLocation(false)
-          },
-          (error) => {
-            console.error("Error getting location:", error)
-            setIsGettingLocation(false)
-            setSearchError("Unable to get your location. Please enter it manually.")
-          }
-        )
-      } else {
-        setIsGettingLocation(false)
-        setSearchError("Geolocation is not supported by this browser.")
-      }
-    } catch (error) {
-      console.error("Geolocation error:", error)
-      setIsGettingLocation(false)
-      setSearchError("Error accessing location services.")
-    }
-  }
+const handleGetLocation = async () => {
+setIsGettingLocation(true)
+setSearchError(null)
+try {
+if ("geolocation" in navigator) {
+navigator.geolocation.getCurrentPosition(
+async (pos) => {
+const { latitude, longitude } = pos.coords
+const address = await reverseGeocode(latitude, longitude)
+setLocation(address)
+setIsGettingLocation(false)
+},
+() => {
+setIsGettingLocation(false)
+setSearchError("Unable to get your location. Please enter it manually.")
+}
+)
+} else {
+setIsGettingLocation(false)
+setSearchError("Geolocation is not supported by this browser.")
+}
+} catch {
+setIsGettingLocation(false)
+setSearchError("Error accessing location services.")
+}
+}
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      setSearchError("Please enter a search query")
-      return
-    }
+const handleSearch = async () => {
+if (!searchQuery.trim()) {
+setSearchError("Please enter what you’re looking for")
+return
+}
+if (isSearching) return
+setIsSearching(true)
+setSearchError(null)
+try {
+  const cleanQuery = searchQuery.replace(/^I want\s+/i, "").trim()
+  const terms = cleanQuery || searchQuery
 
-    // Prevent double execution
-    if (isSearching) {
-      return
-    }
+  await db.saveRecentSearch(searchQuery, location)
 
-    setSearchError(null)
-    setIsSearching(true)
+  const params = new URLSearchParams()
+  params.set("q", terms)
+  if (location) params.set("location", location)
+  router.push(`/app?${params.toString()}`)
+} catch (e) {
+  console.error(e)
+  setSearchError("Something went wrong. Please try again.")
+} finally {
+  setIsSearching(false)
+}
+}
 
-    try {
-      // Strip "I want" from the beginning for better search results
-      const cleanQuery = searchQuery.replace(/^I want\s+/i, '').trim()
-      const searchTerms = cleanQuery || searchQuery
+const handleRecentSearchClick = (s: RecentSearch) => {
+setSearchQuery(s.query)
+if (s.location) setLocation(s.location)
+setIsSearchOpen(false)
+}
 
-      // Save original search to IndexedDB (with "I want" for history)
-      await db.saveRecentSearch(searchQuery, location)
+const handleCapabilitySelect = (query: string) => {
+setSearchQuery(query)
+setActiveDropdown(null)
+}
 
-      // Redirect to app page with cleaned search parameters
-      const params = new URLSearchParams()
-      params.set('q', searchTerms)
-      if (location) {
-        params.set('location', location)
-      }
+const capabilities = [
+{
+icon: FileText,
+text: "Find Free & Low‑Cost Care",
+key: "free-resources",
+subtext: "No‑cost healthcare services and screenings",
+options: [
+"Free STI testing and sexual health",
+"Free dental care and cleanings",
+"Free mammograms and women's health",
+"Free mental health counseling",
+"Free prescription assistance",
+"Free eye exams and vision care"
+]
+},
+{
+icon: Bot,
+text: "Accessible Care Services",
+key: "essential-care",
+subtext: "Barrier‑free care for everyone",
+options: [
+"Clinics that don't require Social Security Number",
+"Walk-in clinics accepting new patients",
+"Providers with Spanish-speaking staff",
+"Telehealth services available",
+"Sliding scale payment options",
+"Medicaid enrollment assistance"
+]
+},
+{
+icon: Shield,
+text: "Insurance & Payment Options",
+key: "insurance",
+subtext: "Coverage‑based care matching",
+options: ["Accepts Medicaid patients", "Accepts Medicare patients", "Providers for uninsured patients"]
+}
+]
 
-      router.push(`/app?${params.toString()}`)
-    } catch (error) {
-      console.error('Error during search:', error)
-      setSearchError('An error occurred while searching. Please try again.')
-    } finally {
-      setIsSearching(false)
-    }
-  }
+const additionalCapabilities = [
+{
+icon: Stethoscope,
+text: "Specialty Care Services",
+key: "specialty",
+subtext: "Expert care for specific conditions",
+options: ["Cardiology specialists", "Orthopedic services", "Pediatric specialists", "Women's health specialists"]
+},
+{
+icon: Users,
+text: "Accessibility Features",
+key: "accessibility",
+subtext: "Inclusive care environments",
+options: [
+"Wheelchair accessible facilities",
+"ASL interpretation services",
+"Same‑day appointments",
+"After‑hours care availability"
+]
+}
+]
 
-  const handleRecentSearchClick = (search: RecentSearch) => {
-    setSearchQuery(search.query)
-    if (search.location) {
-      setLocation(search.location)
-    }
-  }
+const displayedCapabilities = showAllCapabilities ? [...capabilities, ...additionalCapabilities] : capabilities
 
-  const handleCapabilitySelect = (query: string) => {
-    setSearchQuery(query)
-    setActiveDropdown(null)
-  }
+return (
+<section className="relative bg-brand-radials">
+<div className="container min-h-[82vh] flex flex-col items-center justify-center py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+{/* Brand */}
+<div className="text-center mb-8">
+<Link href="/" className="inline-flex items-center gap-4">
+<Image src="/logo_560x560.png" alt="SIE Wellness Logo" width={96} height={96} className="rounded-xl" />
+<div className="text-left hidden sm:block">
+<h1 className="text-display-md">SIE Wellness</h1>
+</div>
+</Link>
+</div>
+    {/* Error */}
+    {searchError && (
+      <Alert className="mb-4 w-full max-w-5xl rounded-xl border-red-200 bg-red-50">
+        <AlertDescription className="text-sm text-red-700">{searchError}</AlertDescription>
+      </Alert>
+    )}
 
-  // Capability dropdowns based on our actual data extraction capabilities
-  const capabilities = [
-    {
-      icon: FileText,
-      text: "Find Free & Low-Cost Care",
-      key: "free-resources",
-      options: [
-        "Free STI testing and sexual health",
-        "Free dental care and cleanings", 
-        "Free mammograms and women's health",
-        "Free mental health counseling",
-        "Free prescription assistance programs",
-        "Free eye exams and vision care",
-        "Free blood pressure and diabetes screening"
-      ]
-    },
-    {
-      icon: Bot,
-      text: "Accessible Care Services", 
-      key: "essential-care",
-      options: [
-        "Clinics that don't require Social Security Number",
-        "Walk-in clinics accepting new patients",
-        "Providers with Spanish-speaking staff",
-        "Telehealth services available",
-        "Sliding scale payment options",
-        "Medicaid enrollment assistance"
-      ]
-    },
-    {
-      icon: Shield,
-      text: "Insurance & Payment Options",
-      key: "insurance",
-      options: [
-        "Accepts Medicaid patients",
-        "Accepts Medicare patients", 
-        "Providers for uninsured patients"
-
-      ]
-    }
-  ]
-
-  // Additional capabilities for "Explore More"
-  const additionalCapabilities = [
-    {
-      icon: Stethoscope,
-      text: "Specialty Care Services",
-      key: "specialty",
-      options: [
-        "Cardiology specialists",
-        "Limb Loss/Difference Care specialists",
-        "Dental Services and oral health",
-        "Orthopedic services",
-        "Pediatric specialists",
-        "Women's health specialists"
-      ]
-    },
-    {
-      icon: Users,
-      text: "Accessibility Features",
-      key: "accessibility",
-      options: [
-        "Wheelchair accessible facilities",
-        "ASL interpretation services",
-        "After-hours care availability",
-        "Same-day appointments",
-        "Extended hours clinics"
-      ]
-    }
-  ]
-
-  const displayedCapabilities = showAllCapabilities 
-    ? [...capabilities, ...additionalCapabilities] 
-    : capabilities
-
-  return (
-    <section className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-white via-gray-50/50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 relative">
-      {/* Background decoration */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none" />
-      
-      <div className="container max-w-6xl mx-auto relative z-10 px-4">
-        <div className="text-center space-y-16">
-          
-          {/* Brand and Logo */}
-          <div className="flex items-center justify-center mb-4 md:mb-12">
-            <Link href="/" className="flex items-center group">
-              <div className="flex items-center justify-center transition-transform group-hover:scale-105">
-                <Image
-                  src="/logo_560x560.png"
-                  alt="SIE Wellness Logo"
-                  width={230}
-                  height={230}
-                  className="rounded-2xl"
-                />
+    {/* Search shell */}
+    <div className="w-full max-w-6xl">
+      <div className="glass rounded-2xl card-shadow-lg hover:card-shadow-xl transition-medium overflow-hidden">
+        {/* Query row */}
+        <div className="flex items-start gap-3 p-5 sm:p-6">
+          <Search className="h-5 w-5 text-gray-400 mt-1 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <textarea
+              aria-label="What care do you need?"
+              placeholder={`I want ${featuredServices[currentPlaceholder]}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSearch()
+                }
+              }}
+              rows={2}
+              className="w-full bg-transparent border-0 focus:ring-0 focus:outline-none text-lg sm:text-xl leading-relaxed resize-none"
+            />
+            {!searchQuery && (
+              <div className="mt-3">
+                <div className="text-xs text-muted-foreground mb-2">Popular searches</div>
+                <div className="flex flex-wrap gap-2">
+                  {featuredServices.slice(0, 8).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setSearchQuery(`I want ${s}`)}
+                      className="rounded-full px-3 py-1.5 text-xs border border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50 text-gray-600 transition-smooth"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
-              {/* Hide h1 on mobile, show on md+ */}
-              <div className="text-center hidden md:block">
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
-                  SIE Wellness
-                </h1>
-              </div>
-            </Link>
+            )}
           </div>
 
-        {/* Search Error Alert */}
-        {searchError && (
-          <Alert className="mb-8 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20 max-w-2xl mx-auto rounded-2xl">
-            <AlertDescription className="text-sm text-red-700 dark:text-red-400">{searchError}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Main Search Interface */}
-        <div className="w-full max-w-none px-2 sm:px-4 space-y-8">
-          {/* Search Bar - Conversational speech bubble design */}
-          <div className="relative w-full">
-            <div className="flex flex-col bg-white dark:bg-gray-900 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {/* Main Search Input - Tall and conversational */}
-              <div className="flex flex-col sm:flex-row min-h-[5rem] sm:min-h-[6rem]">
-                <div className="flex-1 flex items-start min-w-0 p-6 sm:p-8">
-                  <Search className="mt-2 mr-4 h-6 w-6 text-gray-400 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <textarea
-                      placeholder={`I want ${featuredServices[currentPlaceholder]}...`}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          handleSearch()
-                        }
-                      }}
-                      className="w-full border-0 bg-transparent text-lg sm:text-xl focus:outline-none focus:ring-0 placeholder:text-gray-400 resize-none overflow-hidden min-h-[3rem] sm:min-h-[4rem] leading-relaxed"
-                      rows={2}
-                      style={{ 
-                        lineHeight: '1.6',
-                        fontFamily: 'inherit'
-                      }}
-                    />
-                    
-                    {/* Service categories showcase when empty */}
-                    {!searchQuery && (
-                      <div className="mt-4 space-y-3">
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Popular searches:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {featuredServices.slice(0, 8).map((service) => (
-                            <button
-                              key={service}
-                              onClick={() => setSearchQuery(`I want ${service}`)}
-                              className="inline-flex items-center gap-1 text-xs bg-gray-50 dark:bg-gray-800 hover:bg-teal-50 dark:hover:bg-teal-900/20 text-gray-600 dark:text-gray-300 hover:text-teal-700 dark:hover:text-teal-300 px-3 py-1.5 rounded-full transition-all duration-200 border border-gray-200 dark:border-gray-700 hover:border-teal-200 dark:hover:border-teal-700"
-                            >
-                              <div className="w-1 h-1 bg-[#068282] rounded-full opacity-60"></div>
-                              {service}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="text-center pt-2">
-                          <span className="text-xs text-gray-400">400+ healthcare services available</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Search suggestions dropdown */}
-                  <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-1 h-10 w-10 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full flex-shrink-0"
-                        onClick={() => setIsSearchOpen(!isSearchOpen)}
+          {/* Suggestions */}
+          <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="mt-1 rounded-full hover:bg-gray-100 h-9 w-9"
+                aria-label="Show suggestions"
+              >
+                <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${isSearchOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[92vw] sm:w-[520px] p-0 rounded-xl border-0 card-shadow-lg">
+              <Command>
+                <CommandList>
+                  <CommandEmpty>No suggestions</CommandEmpty>
+                  {showRecentSearches && recentSearches.length > 0 && (
+                    <CommandGroup heading="Recent">
+                      {recentSearches.map((r, i) => (
+                        <CommandItem key={`r-${i}`} onSelect={() => handleRecentSearchClick(r)} className="py-3">
+                          <Clock className="mr-3 h-4 w-4 text-gray-400" />
+                          <div className="min-w-0">
+                            <div className="text-sm text-foreground truncate">{r.query}</div>
+                            {r.location && <div className="text-xs text-muted-foreground truncate">{r.location}</div>}
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                  <CommandGroup heading="Try asking">
+                    {searchSuggestions.map((s, i) => (
+                      <CommandItem
+                        key={`s-${i}`}
+                        onSelect={() => {
+                          setSearchQuery(`I want ${s.toLowerCase()}`)
+                          setIsSearchOpen(false)
+                        }}
+                        className="py-3"
                       >
-                        <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[90vw] sm:w-[500px] p-0 shadow-xl border-0 rounded-2xl" align="center">
-                      <Command className="rounded-2xl">
-                        <CommandList>
-                          <CommandEmpty>No suggestions found.</CommandEmpty>
-                          
-                          {/* Recent Searches */}
-                          {showRecentSearches && recentSearches.length > 0 && (
-                            <CommandGroup heading="Recent Searches">
-                              {recentSearches.map((search, index) => (
-                                <CommandItem
-                                  key={`recent-${index}`}
-                                  onSelect={() => {
-                                    handleRecentSearchClick(search)
-                                    setIsSearchOpen(false)
-                                  }}
-                                  className="cursor-pointer py-3 px-4 hover:bg-teal-50 dark:hover:bg-teal-900/20"
-                                >
-                                  <Clock className="mr-3 h-4 w-4 text-gray-400" />
-                                  <div className="min-w-0">
-                                    <div className="text-sm text-gray-900 dark:text-gray-100 truncate">{search.query}</div>
-                                    {search.location && (
-                                      <div className="text-xs text-gray-500 truncate">{search.location}</div>
-                                    )}
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          )}
-
-                          {/* Popular Searches */}
-                          <CommandGroup heading="Try asking for:">
-                            {searchSuggestions.map((suggestion, index) => (
-                              <CommandItem
-                                key={`suggestion-${index}`}
-                                onSelect={() => {
-                                  setSearchQuery(`I want ${suggestion.toLowerCase()}`)
-                                  setIsSearchOpen(false)
-                                }}
-                                className="cursor-pointer py-3 px-4 hover:bg-teal-50 dark:hover:bg-teal-900/20"
-                              >
-                                <Search className="mr-3 h-4 w-4 text-gray-400" />
-                                <span className="text-sm text-gray-700 dark:text-gray-300 truncate">I want {suggestion.toLowerCase()}</span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-
-              {/* Bottom section with location and search */}
-              <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
-                <div className="flex flex-col sm:flex-row items-stretch">
-                  {/* Location Input */}
-                  <div className="flex-1 flex items-center px-6 sm:px-8 py-4 sm:py-5 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-700">
-                    <MapPin className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
-                    <Input
-                      placeholder="Near me or enter location"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className="flex-1 border-0 bg-transparent text-base focus:outline-none focus:ring-0 placeholder:text-gray-400 min-w-0"
-                    />
-                    <Button
-                      onClick={handleGetLocation}
-                      disabled={isGettingLocation}
-                      variant="ghost"
-                      size="sm"
-                      className="ml-2 h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full flex-shrink-0"
-                    >
-                      {isGettingLocation ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                      ) : (
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Search Button */}
-                  <div className="p-4 sm:p-5">
-                    <Button 
-                      size="lg" 
-                      className="w-full sm:w-auto h-14 sm:h-16 px-10 sm:px-16 bg-[#068282] hover:bg-[#0f766e] text-white rounded-2xl font-semibold text-lg sm:text-xl transition-all duration-300 shadow-lg hover:shadow-xl"
-                      onClick={handleSearch}
-                      disabled={isSearching || !searchQuery.trim()}
-                    >
-                      {isSearching ? (
-                        <>
-                          <Loader2 className="h-6 w-6 animate-spin mr-3" />
-                          <span className="hidden sm:inline">Finding care...</span>
-                          <span className="sm:hidden">Finding...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Search className="h-6 w-6 mr-3" />
-                          <span>Find Care</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Action Buttons - More focused */}
-          <div className="flex items-center justify-center gap-3 flex-wrap max-w-4xl mx-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-sm px-4 py-2"
-              onClick={() => setSearchQuery("I want free STI testing")}
-            >
-              Free STI Testing
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-sm px-4 py-2"
-              onClick={() => setSearchQuery("I want urgent care near me")}
-            >
-              Urgent Care
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-sm px-4 py-2"
-              onClick={() => setSearchQuery("I want mental health services")}
-            >
-              Mental Health
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-800 hover:text-teal-900 transition-all duration-300 text-sm px-4 py-2"
-              onClick={() => setSearchQuery("I want free dental care")}
-            >
-              Free Dental
-            </Button>
-          </div>
-
-          {/* Capability Categories */}
-          <div className={`grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto transition-all duration-500 px-2`}>
-            {displayedCapabilities.map((capability) => {
-              const Icon = capability.icon
-              return (
-                <Popover 
-                  key={capability.key} 
-                  open={activeDropdown === capability.key} 
-                  onOpenChange={(open) => setActiveDropdown(open ? capability.key : null)}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="h-auto p-4 sm:p-6 text-left justify-start hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all duration-300 group bg-white dark:bg-gray-900 rounded-2xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-800"
-                    >
-                      <div className="flex items-center gap-3 sm:gap-4 w-full min-w-0">
-                        <div className="p-2 sm:p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/30 transition-all duration-300 flex-shrink-0">
-                          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-[#068282] dark:text-teal-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 group-hover:text-[#068282] dark:group-hover:text-teal-400 transition-colors duration-300 block leading-tight">
-                            {capability.text}
-                          </span>
-                        </div>
-                        <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 group-hover:text-[#068282] dark:group-hover:text-teal-400 transition-all duration-300 flex-shrink-0" />
-                      </div>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[90vw] sm:w-80 p-0 shadow-xl border-0 rounded-2xl" align="start">
-                    <div className="p-4 sm:p-6">
-                      <div className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-                        <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-[#068282] dark:text-teal-400" />
-                        <span className="truncate">{capability.text}</span>
-                      </div>
-                      <div className="space-y-1 sm:space-y-2">
-                        {capability.options.map((option, optionIndex) => (
-                          <button
-                            key={optionIndex}
-                            onClick={() => handleCapabilitySelect(option)}
-                            className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:text-[#068282] dark:hover:text-teal-400 rounded-xl transition-all duration-300"
-                          >
-                            {option}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )
-            })}
-          </div>
+                        <Search className="mr-3 h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-foreground truncate">I want {s.toLowerCase()}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
-        {/* Explore More */}
-        <div className="mt-12 text-center">
-          <Button 
-            variant="ghost" 
-            className="text-gray-600 dark:text-gray-400 hover:text-[#068282] dark:hover:text-teal-400 text-sm transition-all duration-300 rounded-full px-6 py-3"
-            onClick={() => setShowAllCapabilities(!showAllCapabilities)}
-          >
-            {showAllCapabilities ? 'Show Less' : 'Explore More Options'}
-            <ChevronDown className={`ml-2 h-4 w-4 transition-transform duration-200 ${showAllCapabilities ? 'rotate-180' : ''}`} />
-          </Button>
-        </div>
+        {/* Divider */}
+        <div className="h-px bg-gray-100" />
+
+        {/* Location + CTA */}
+        <div className="flex flex-col sm:flex-row items-stretch">
+          <div className="flex-1 flex items-center gap-3 px-5 sm:px-6 py-4 border-b sm:border-b-0 sm:border-r border-gray-100">
+            <MapPin className="h-5 w-5 text-gray-400 shrink-0" />
+            <Input
+              placeholder="Near me or enter location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:outline-0"
+            />
+            <Button
+              onClick={handleGetLocation}
+              disabled={isGettingLocation}
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full hover:bg-gray-100"
+              aria-label="Use my location"
+            >
+              {isGettingLocation ? <Loader2 className="h-4 w-4 animate-spin text-gray-400" /> : <MapPin className="h-4 w-4 text-gray-500" />}
+            </Button>
+          </div>
+
+          <div className="p-5 sm:p-6">
+            <Button
+              size="lg"
+              className="w-full sm:w-auto h-14 sm:h-16 px-10 sm:px-16 rounded-xl font-semibold text-base sm:text-lg text-white bg-gradient-to-r from-violet-700 to-blue-600 hover:from-violet-800 hover:to-blue-700 border-0 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+              onClick={handleSearch}
+              disabled={isSearching || !searchQuery.trim()}
+            >
+              {isSearching ? (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin mr-3" />
+                  Finding care...
+                </>
+              ) : (
+                <>
+                  <Search className="h-6 w-6 mr-3" />
+                  Find Care
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
-    </section>
-  )
+    </div>
+
+    {/* Quick chips */}
+    <div className="mt-5 flex items-center justify-center gap-2 flex-wrap">
+      {["Free STI Testing", "Urgent Care", "Mental Health", "Free Dental"].map((chip) => (
+        <Button
+          key={chip}
+          variant="outline"
+          size="sm"
+          className="rounded-full border-emerald-200 text-emerald-800 bg-emerald-50 hover:bg-emerald-100"
+          onClick={() => setSearchQuery(`I want ${chip.toLowerCase()}`)}
+        >
+          {chip}
+        </Button>
+      ))}
+    </div>
+
+    {/* Capabilities */}
+    <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl">
+      {displayedCapabilities.map((cap) => {
+        const Icon = cap.icon
+        const open = activeDropdown === cap.key
+        return (
+          <Popover key={cap.key} open={open} onOpenChange={(o) => setActiveDropdown(o ? cap.key : null)}>
+            <PopoverTrigger asChild>
+              <button
+                className="text-left rounded-2xl glass p-5 hover-border-primary hover:shadow-md transition-medium"
+                aria-expanded={open}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold">{cap.text}</div>
+                    <div className="text-xs text-muted-foreground">{cap.subtext}</div>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+                </div>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[92vw] sm:w-[420px] p-0 rounded-xl border-0 card-shadow-lg" align="start">
+              <div className="p-3">
+                {cap.options.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleCapabilitySelect(opt)}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-emerald-50 text-sm transition-smooth"
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        )
+      })}
+    </div>
+
+    {/* Explore more */}
+    <div className="mt-6">
+      <Button
+        variant="ghost"
+        className="rounded-full text-muted-foreground hover:text-foreground"
+        onClick={() => setShowAllCapabilities((v) => !v)}
+      >
+        {showAllCapabilities ? "Show Less" : "Explore More Options"}
+        <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showAllCapabilities ? "rotate-180" : ""}`} />
+      </Button>
+    </div>
+  </div>
+</section>
+)
 }
