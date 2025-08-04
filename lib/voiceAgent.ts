@@ -298,7 +298,7 @@ export interface CallResult {
     featuredService: { verified: boolean; notes?: string }
   }
   callDuration?: string
-  transcript?: string[]
+  transcript?: Array<{ speaker: string; text: string; timestamp: number }>
   servicesDiscussed?: DatabaseService[]
 }
 

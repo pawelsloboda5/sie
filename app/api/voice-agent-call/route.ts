@@ -260,17 +260,27 @@ function updateConversationPhase(state: ConversationState) {
     state.phase = 'closing'
   }
 
-  // End conversation after goodbyes
-  if (state.phase === 'confirmation' && turnCount > 6) {
+  // Backup ending logic - end conversation after goodbyes (in case AI doesn't set isCallEnded)
+  if ((state.phase === 'confirmation' || state.phase === 'scheduling') && turnCount > 6) {
     const recentMessages = state.conversationHistory.slice(-2).map(turn => turn.text.toLowerCase())
     const hasGoodbyes = recentMessages.some(msg => 
-      msg.includes('goodbye') || msg.includes('thank you') || msg.includes('have a great day')
+      msg.includes('goodbye') || msg.includes('thank you') || msg.includes('have a great day') ||
+      msg.includes('appointment is confirmed') || msg.includes('have a wonderful day')
     )
     
     if (hasGoodbyes) {
-      console.log('🏁 Detected goodbyes, ending conversation')
+      console.log('🏁 Backup: Detected goodbyes, ending conversation')
+      state.ended = true
       state.phase = 'ended'
+      state.success = true
     }
+  }
+  
+  // Safety net - prevent conversations from going beyond 15 turns
+  if (turnCount > 15) {
+    console.log('🛑 Safety: Maximum turns reached, ending conversation')
+    state.ended = true
+    state.phase = 'ended'
   }
 
   console.log(`📋 Conversation phase: ${state.phase} (turn ${turnCount})`)
@@ -340,9 +350,12 @@ async function generateAzureOpenAIResponse(state: ConversationState, speaker: 'c
           { role: 'system', content: systemPrompt },
           ...conversationHistory
         ],
-        max_tokens: 150,
+        max_tokens: 200,
         temperature: 0.7,
-        stop: ['Human:', 'Assistant:']
+        stop: ['Human:', 'Assistant:'],
+        response_format: {
+          type: "json_object"
+        }
       })
     })
 
@@ -353,21 +366,56 @@ async function generateAzureOpenAIResponse(state: ConversationState, speaker: 'c
     }
 
     const data = await response.json()
-    const aiResponse = data.choices[0]?.message?.content?.trim()
+    const rawResponse = data.choices[0]?.message?.content?.trim()
 
-    if (!aiResponse) {
+    if (!rawResponse) {
       throw new Error('No response from Azure OpenAI')
     }
 
-    // Update verification status if this was a filter response
-    updateVerificationStatus(state, speaker, aiResponse)
+    // Parse JSON response
+    let parsedResponse
+    try {
+      parsedResponse = JSON.parse(rawResponse)
+    } catch (e) {
+      console.error('Failed to parse JSON response, using fallback:', rawResponse)
+      // Fallback to text response if JSON parsing fails
+      parsedResponse = { message: rawResponse, isCallEnded: false }
+    }
 
-    return aiResponse
+    const aiResponseText = parsedResponse.message || parsedResponse.text || rawResponse
+    const isCallEnded = parsedResponse.isCallEnded || false
+
+    console.log(`🤖 AI Response - Text: "${aiResponseText}", Call Ended: ${isCallEnded}`)
+
+    // Check if AI determined the call should end
+    if (isCallEnded) {
+      console.log('🏁 AI indicated call should end - marking conversation as ended')
+      state.ended = true
+      state.phase = 'ended'
+      state.success = true // Mark as successful if we reached natural conclusion
+    }
+
+    // Update verification status if this was a filter response
+    updateVerificationStatus(state, speaker, aiResponseText)
+
+    return aiResponseText
 
   } catch (error) {
     console.error('Error generating Azure OpenAI response:', error)
     // Fallback to predefined responses
-    return generateFallbackResponse(state, speaker)
+    const fallbackResponse = generateFallbackResponse(state, speaker)
+    
+    // Parse the fallback JSON response
+    try {
+      const parsed = JSON.parse(fallbackResponse)
+      if (parsed.isCallEnded) {
+        state.ended = true
+        state.phase = 'ended'
+      }
+      return parsed.message
+    } catch (e) {
+      return fallbackResponse
+    }
   }
 }
 
@@ -414,10 +462,21 @@ INSTRUCTIONS:
 - Always be ready to schedule if all requirements are met
 - Keep responses natural and concise (1-2 sentences)
 
+IMPORTANT: You must respond in JSON format with these fields:
+{
+  "message": "your response text here",
+  "isCallEnded": false/true
+}
+
+Set "isCallEnded" to true if:
+- An appointment has been successfully scheduled AND goodbyes have been exchanged
+- The call has reached a natural conclusion
+- You've provided farewell statements like "Have a great day" or "Thank you for calling"
+
 CONVERSATION HISTORY:
 ${state.conversationHistory.map(turn => `${turn.speaker}: ${turn.text}`).join('\n')}
 
-Respond as the receptionist:`
+Respond as the receptionist in JSON format:`
   } else {
     const nextFilter = getNextFilterToVerify(state)
     
@@ -440,10 +499,22 @@ INSTRUCTIONS:
 - If scheduling, provide the patient's availability
 - Keep responses natural and concise (1-2 sentences)
 
+IMPORTANT: You must respond in JSON format with these fields:
+{
+  "message": "your response text here",
+  "isCallEnded": false/true
+}
+
+Set "isCallEnded" to true if:
+- An appointment has been successfully confirmed by the receptionist
+- You have said your goodbyes (like "Thank you" or "Have a great day")
+- The conversation has achieved its goal
+- Any requirements cannot be met and you need to end politely
+
 CONVERSATION HISTORY:
 ${state.conversationHistory.map(turn => `${turn.speaker}: ${turn.text}`).join('\n')}
 
-Respond as the AI agent:`
+Respond as the AI agent in JSON format:`
   }
 }
 
@@ -518,37 +589,52 @@ function updateVerificationStatus(state: ConversationState, speaker: 'caller' | 
  */
 function generateFallbackResponse(state: ConversationState, speaker: 'caller' | 'receptionist'): string {
   const patientName = `${state.callRequest.patientInfo.firstName} ${state.callRequest.patientInfo.lastName}`
+  let message = ''
+  let isCallEnded = false
   
   if (speaker === 'receptionist') {
     switch (state.phase) {
       case 'greeting':
-        return `Hello, this is ${state.providerConfig.providerName}, how may I help you?`
+        message = `Hello, this is ${state.providerConfig.providerName}, how may I help you?`
+        break
       case 'service_inquiry':
-        return `Yes, we do offer that service. How can I help you today?`
+        message = `Yes, we do offer that service. How can I help you today?`
+        break
       case 'filter_verification':
-        return `Yes, that's correct. Is there anything else you'd like to know?`
+        message = `Yes, that's correct. Is there anything else you'd like to know?`
+        break
       case 'scheduling':
-        return `Let me check our schedule... Yes, we have availability then. Shall I book that for you?`
+        message = `Let me check our schedule... Yes, we have availability then. Shall I book that for you?`
+        break
       default:
-        return `Thank you for calling ${state.providerConfig.providerName}. Have a great day!`
+        message = `Thank you for calling ${state.providerConfig.providerName}. Have a great day!`
+        isCallEnded = true
     }
   } else {
     switch (state.phase) {
       case 'greeting':
-        return `Hello, this is ${patientName}. I'm calling to inquire about your services.`
+        message = `Hello, this is ${patientName}. I'm calling to inquire about your services.`
+        break
       case 'service_inquiry':
         const serviceName = state.providerConfig.selectedServices[0]?.name || 'healthcare services'
-        return `I'm interested in ${serviceName}. Do you offer this service?`
+        message = `I'm interested in ${serviceName}. Do you offer this service?`
+        break
       case 'filter_verification':
         const nextFilter = getNextFilterToVerify(state)
-        return getFilterQuestion(nextFilter)
+        message = getFilterQuestion(nextFilter)
+        break
       case 'scheduling':
         const availability = state.callRequest.availability[0]
-        return `I'm available on ${availability?.dayOfWeek} at ${availability?.timeSlots[0] || 'morning'}. Do you have any openings?`
+        message = `I'm available on ${availability?.dayOfWeek} at ${availability?.timeSlots[0] || 'morning'}. Do you have any openings?`
+        break
       default:
-        return `Thank you so much for your help!`
+        message = `Thank you so much for your help!`
+        isCallEnded = true
     }
   }
+
+  const responseObj = { message, isCallEnded }
+  return JSON.stringify(responseObj)
 }
 
 /**
