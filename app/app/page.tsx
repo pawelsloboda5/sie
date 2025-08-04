@@ -8,762 +8,547 @@ import { List, Search } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { parseLocationString, type Coordinates } from "@/lib/utils"
 import { AppHeader } from "./header"
-import { 
-  saveCachedSearchResult, 
-  getCachedSearchResult, 
-  clearOldCachedResults,
-  type CachedSearchResult
+import {
+saveCachedSearchResult,
+getCachedSearchResult,
+clearOldCachedResults,
+type CachedSearchResult
 } from "@/lib/db"
-import { 
-  saveFavoriteProvider,
-  type FavoriteProvider 
+import {
+saveFavoriteProvider,
+type FavoriteProvider
 } from "@/lib/voiceAgent"
-import { 
-  applyLocalFilters, 
-  sortProvidersLocally, 
-  hasActiveFilters,
-  type LocalFilterOptions 
+import {
+applyLocalFilters,
+sortProvidersLocally,
+hasActiveFilters,
+type LocalFilterOptions
 } from "@/lib/localFilters"
- 
+
 interface FilterOptions {
-  freeOnly: boolean
-  acceptsUninsured: boolean
-  acceptsMedicaid: boolean
-  acceptsMedicare: boolean
-  ssnRequired: boolean
-  telehealthAvailable: boolean
-  maxDistance: number
-  insuranceProviders: string[]
-  serviceCategories: string[]
-  providerTypes: string[]
-  minRating: number
-  sortBy: 'distance' | 'rating' | 'name' | 'relevance'
+freeOnly: boolean
+acceptsUninsured: boolean
+acceptsMedicaid: boolean
+acceptsMedicare: boolean
+ssnRequired: boolean
+telehealthAvailable: boolean
+maxDistance: number
+insuranceProviders: string[]
+serviceCategories: string[]
+providerTypes: string[]
+minRating: number
+sortBy: 'distance' | 'rating' | 'name' | 'relevance'
 }
 
 interface Provider {
-  _id: string
-  name: string
-  category: string
-  address: string
-  phone?: string
-  website?: string
-  email?: string
-  rating?: number
-  accepts_uninsured: boolean
-  medicaid: boolean
-  medicare: boolean
-  ssn_required: boolean
-  telehealth_available: boolean
-  insurance_providers: string[]
-  distance?: number
-  searchScore?: number
+_id: string
+name: string
+category: string
+address: string
+phone?: string
+website?: string
+email?: string
+rating?: number
+accepts_uninsured: boolean
+medicaid: boolean
+medicare: boolean
+ssn_required: boolean
+telehealth_available: boolean
+insurance_providers: string[]
+distance?: number
+searchScore?: number
 }
 
 interface Service {
-  _id: string
-  provider_id: string
-  name: string
-  category: string
-  description: string
-  is_free: boolean
-  is_discounted: boolean
-  price_info: string
-  searchScore?: number
+_id: string
+provider_id: string
+name: string
+category: string
+description: string
+is_free: boolean
+is_discounted: boolean
+price_info: string
+searchScore?: number
 }
 
 interface SearchResults {
-  providers: Provider[]
-  services: Service[]
-  query: string
-  totalResults: number
-  isFiltered?: boolean
+providers: Provider[]
+services: Service[]
+query: string
+totalResults: number
+isFiltered?: boolean
 }
 
 const defaultFilters: FilterOptions = {
-  freeOnly: false,
-  acceptsUninsured: false,
-  acceptsMedicaid: false,
-  acceptsMedicare: false,
-  ssnRequired: true,
-  telehealthAvailable: false,
-  maxDistance: 25,
-  insuranceProviders: [],
-  serviceCategories: [],
-  providerTypes: [],
-  minRating: 0,
-  sortBy: 'relevance'
+freeOnly: false,
+acceptsUninsured: false,
+acceptsMedicaid: false,
+acceptsMedicare: false,
+ssnRequired: true,
+telehealthAvailable: false,
+maxDistance: 25,
+insuranceProviders: [],
+serviceCategories: [],
+providerTypes: [],
+minRating: 0,
+sortBy: 'relevance'
 }
 
 export default function FindPage() {
-  const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [filters, setFilters] = useState<FilterOptions>(defaultFilters)
-  const [currentQuery, setCurrentQuery] = useState("")
-  const [currentLocation, setCurrentLocation] = useState<Coordinates | undefined>(undefined)
-  const [viewMode, setViewMode] = useState<'display' | 'list'>('list')
+const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
+const [isLoading, setIsLoading] = useState(false)
+const [filters, setFilters] = useState<FilterOptions>(defaultFilters)
+const [currentQuery, setCurrentQuery] = useState("")
+const [currentLocation, setCurrentLocation] = useState<Coordinates | undefined>(undefined)
+const [viewMode, setViewMode] = useState<'display' | 'list'>('list')
+
+const [hasCachedData, setHasCachedData] = useState(false)
+const [originalSearchData, setOriginalSearchData] = useState<CachedSearchResult | null>(null)
+const [isLocalFiltering, setIsLocalFiltering] = useState(false)
+
+const [initialQuery, setInitialQuery] = useState("")
+const [initialLocation, setInitialLocation] = useState("")
+const [hasExecutedUrlSearch, setHasExecutedUrlSearch] = useState(false)
+const searchExecutionRef = useRef(false)
+
+useEffect(() => {
+clearOldCachedResults().catch(console.error)
+}, [])
+
+const handleFilterOnlySearch = useCallback(async (searchFilters: FilterOptions) => {
+setIsLoading(true)
+setCurrentQuery("Filtered Results")
+try {
+  const response = await fetch('/api/filter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filters: {
+        freeOnly: searchFilters.freeOnly,
+        acceptsUninsured: searchFilters.acceptsUninsured,
+        acceptsMedicaid: searchFilters.acceptsMedicaid,
+        acceptsMedicare: searchFilters.acceptsMedicare,
+        ssnRequired: searchFilters.ssnRequired,
+        telehealthAvailable: searchFilters.telehealthAvailable,
+        maxDistance: searchFilters.maxDistance,
+        insuranceProviders: searchFilters.insuranceProviders,
+        serviceCategories: searchFilters.serviceCategories,
+      },
+      location: currentLocation,
+      limit: 20
+    }),
+  })
+
+  if (!response.ok) throw new Error('Filter search failed')
+
+  const results = await response.json()
+  setSearchResults(results)
+  setHasCachedData(false)
+  setOriginalSearchData(null)
+} catch (error) {
+  console.error('Filter search error:', error)
+  setSearchResults(null)
+} finally {
+  setIsLoading(false)
+}
+}, [currentLocation])
+
+const handleSearch = useCallback(async (query: string, location?: Coordinates, searchFilters?: Partial<FilterOptions>) => {
+const filtersToUse = searchFilters ? { ...filters, ...searchFilters } as FilterOptions : filters
+setIsLoading(true)
+setCurrentQuery(query)
+setCurrentLocation(location)
+setHasCachedData(false)
+setOriginalSearchData(null)
+setIsLocalFiltering(false)
+try {
+  const locationString = location ? `${location.latitude}, ${location.longitude}` : undefined
+  const cachedResult = await getCachedSearchResult(query, locationString)
   
-  // NEW: Local caching state
-  const [hasCachedData, setHasCachedData] = useState(false)
-  const [originalSearchData, setOriginalSearchData] = useState<CachedSearchResult | null>(null)
-  const [isLocalFiltering, setIsLocalFiltering] = useState(false)
-  
-  // State for initial values from URL parameters
-  const [initialQuery, setInitialQuery] = useState("")
-  const [initialLocation, setInitialLocation] = useState("")
-  const [hasExecutedUrlSearch, setHasExecutedUrlSearch] = useState(false)
-  const searchExecutionRef = useRef(false)
-
-  // Clear old cached results on component mount
-  useEffect(() => {
-    clearOldCachedResults().catch(console.error)
-  }, [])
-
-  const handleFilterOnlySearch = useCallback(async (searchFilters: FilterOptions) => {
-    setIsLoading(true)
-    setCurrentQuery("Filtered Results")
-    
-    try {
-      const response = await fetch('/api/filter', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filters: {
-            freeOnly: searchFilters.freeOnly,
-            acceptsUninsured: searchFilters.acceptsUninsured,
-            acceptsMedicaid: searchFilters.acceptsMedicaid,
-            acceptsMedicare: searchFilters.acceptsMedicare,
-            ssnRequired: searchFilters.ssnRequired,
-            telehealthAvailable: searchFilters.telehealthAvailable,
-            maxDistance: searchFilters.maxDistance,
-            insuranceProviders: searchFilters.insuranceProviders,
-            serviceCategories: searchFilters.serviceCategories,
-          },
-          location: currentLocation,
-          limit: 20
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Filter search failed')
-      }
-
-      const results = await response.json()
-      setSearchResults(results)
-      // Reset cache state since this is a server-filtered result
-      setHasCachedData(false)
-      setOriginalSearchData(null)
-    } catch (error) {
-      console.error('Filter search error:', error)
-      setSearchResults(null)
-    } finally {
-      setIsLoading(false)
+  if (cachedResult) {
+    const localFilterOptions: LocalFilterOptions = {
+      freeOnly: filtersToUse.freeOnly,
+      acceptsUninsured: filtersToUse.acceptsUninsured,
+      acceptsMedicaid: filtersToUse.acceptsMedicaid,
+      acceptsMedicare: filtersToUse.acceptsMedicare,
+      ssnRequired: filtersToUse.ssnRequired,
+      telehealthAvailable: filtersToUse.telehealthAvailable,
+      maxDistance: filtersToUse.maxDistance,
+      insuranceProviders: filtersToUse.insuranceProviders,
+      serviceCategories: filtersToUse.serviceCategories,
+      providerTypes: filtersToUse.providerTypes,
+      minRating: filtersToUse.minRating
     }
-  }, [currentLocation])
-
-  const handleSearch = useCallback(async (query: string, location?: Coordinates, searchFilters?: Partial<FilterOptions>) => {
-    const filtersToUse = searchFilters || filters
-    setIsLoading(true)
-    setCurrentQuery(query)
-    setCurrentLocation(location)
     
-    // Reset local filtering state for new search
+    const filteredResults = applyLocalFilters(cachedResult, localFilterOptions, location)
+    const sortedProviders = sortProvidersLocally(
+      filteredResults.providers,
+      filteredResults.services,
+      filtersToUse.sortBy || 'relevance'
+    )
+    
+    setSearchResults({
+      providers: sortedProviders,
+      services: filteredResults.services,
+      query: cachedResult.query,
+      totalResults: sortedProviders.length + filteredResults.services.length,
+      isFiltered: hasActiveFilters(localFilterOptions)
+    })
+    
+    setOriginalSearchData(cachedResult)
+    setHasCachedData(true)
+    setIsLoading(false)
+    return
+  }
+
+  const response = await fetch('/api/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      location,
+      filters: {
+        freeOnly: filtersToUse.freeOnly,
+        acceptsUninsured: filtersToUse.acceptsUninsured,
+        acceptsMedicaid: filtersToUse.acceptsMedicaid,
+        acceptsMedicare: filtersToUse.acceptsMedicare,
+        ssnRequired: filtersToUse.ssnRequired,
+        telehealthAvailable: filtersToUse.telehealthAvailable,
+        maxDistance: filtersToUse.maxDistance,
+        insuranceProviders: filtersToUse.insuranceProviders,
+        serviceCategories: filtersToUse.serviceCategories,
+      },
+      limit: 20
+    }),
+  })
+
+  if (!response.ok) throw new Error('Search failed')
+
+  const results = await response.json()
+  
+  if (results.providers && results.services) {
+    results.providers.sort((a: Provider, b: Provider) => {
+      const aHasFree = results.services.some((s: Service) => s.provider_id === a._id && s.is_free)
+      const bHasFree = results.services.some((s: Service) => s.provider_id === b._id && s.is_free)
+      if (aHasFree && !bHasFree) return -1
+      if (!aHasFree && bHasFree) return 1
+      if (aHasFree && bHasFree) {
+        const aFreeCount = results.services.filter((s: Service) => s.provider_id === a._id && s.is_free).length
+        const bFreeCount = results.services.filter((s: Service) => s.provider_id === b._id && s.is_free).length
+        if (aFreeCount !== bFreeCount) return bFreeCount - aFreeCount
+      }
+      return (b.searchScore || 0) - (a.searchScore || 0)
+    })
+  }
+  
+  setSearchResults(results)
+  
+  const cacheData: CachedSearchResult = {
+    query,
+    location: locationString,
+    coordinates: location,
+    providers: results.providers,
+    services: results.services,
+    timestamp: new Date(),
+    totalResults: results.totalResults
+  }
+  
+  try {
+    await saveCachedSearchResult(cacheData)
+    setOriginalSearchData(cacheData)
+    setHasCachedData(true)
+  } catch (cacheError) {
+    console.error('Failed to cache search result:', cacheError)
     setHasCachedData(false)
     setOriginalSearchData(null)
+  }
+  
+} catch (error) {
+  console.error('Search error:', error)
+  setSearchResults(null)
+} finally {
+  setIsLoading(false)
+}
+}, [filters])
+
+const handleFiltersChange = (newFilters: Partial<FilterOptions>) => {
+const converted: FilterOptions = {
+freeOnly: newFilters.freeOnly ?? false,
+acceptsUninsured: newFilters.acceptsUninsured ?? false,
+acceptsMedicaid: newFilters.acceptsMedicaid ?? false,
+acceptsMedicare: newFilters.acceptsMedicare ?? false,
+ssnRequired: newFilters.ssnRequired !== false,
+telehealthAvailable: newFilters.telehealthAvailable ?? false,
+maxDistance: newFilters.maxDistance ?? 25,
+insuranceProviders: newFilters.insuranceProviders ?? [],
+serviceCategories: newFilters.serviceCategories ?? [],
+providerTypes: newFilters.providerTypes ?? [],
+minRating: newFilters.minRating ?? 0,
+sortBy: newFilters.sortBy ?? 'relevance'
+}
+setFilters(converted)
+if (hasCachedData && originalSearchData) {
+  setIsLocalFiltering(true)
+  try {
+    const localFilterOptions: LocalFilterOptions = {
+      freeOnly: converted.freeOnly,
+      acceptsUninsured: converted.acceptsUninsured,
+      acceptsMedicaid: converted.acceptsMedicaid,
+      acceptsMedicare: converted.acceptsMedicare,
+      ssnRequired: converted.ssnRequired,
+      telehealthAvailable: converted.telehealthAvailable,
+      maxDistance: converted.maxDistance,
+      insuranceProviders: converted.insuranceProviders,
+      serviceCategories: converted.serviceCategories,
+      providerTypes: converted.providerTypes,
+      minRating: converted.minRating
+    }
+    
+    const filteredResults = applyLocalFilters(
+      originalSearchData, 
+      localFilterOptions, 
+      currentLocation
+    )
+    
+    const sortedProviders = sortProvidersLocally(
+      filteredResults.providers,
+      filteredResults.services,
+      converted.sortBy
+    )
+    
+    setSearchResults({
+      providers: sortedProviders,
+      services: filteredResults.services,
+      query: originalSearchData.query,
+      totalResults: sortedProviders.length + filteredResults.services.length,
+      isFiltered: hasActiveFilters(localFilterOptions)
+    })
+  } catch (error) {
+    console.error('Local filtering failed, falling back to server:', error)
+    handleFilterOnlySearch(converted)
+  } finally {
     setIsLocalFiltering(false)
-    
-    try {
-      // Check for cached result first
-      const locationString = location ? `${location.latitude}, ${location.longitude}` : undefined
-      const cachedResult = await getCachedSearchResult(query, locationString)
-      
-      if (cachedResult) {
-        console.log('Using cached search result for:', query)
-        
-        // Apply current filters to cached data locally
-        const localFilterOptions: LocalFilterOptions = {
-          freeOnly: filtersToUse.freeOnly,
-          acceptsUninsured: filtersToUse.acceptsUninsured,
-          acceptsMedicaid: filtersToUse.acceptsMedicaid,
-          acceptsMedicare: filtersToUse.acceptsMedicare,
-          ssnRequired: filtersToUse.ssnRequired,
-          telehealthAvailable: filtersToUse.telehealthAvailable,
-          maxDistance: filtersToUse.maxDistance,
-          insuranceProviders: filtersToUse.insuranceProviders,
-          serviceCategories: filtersToUse.serviceCategories,
-          providerTypes: filtersToUse.providerTypes,
-          minRating: filtersToUse.minRating
-        }
-        
-        const filteredResults = applyLocalFilters(cachedResult, localFilterOptions, location)
-        const sortedProviders = sortProvidersLocally(
-          filteredResults.providers,
-          filteredResults.services,
-          filtersToUse.sortBy || 'relevance'
-        )
-        
-        setSearchResults({
-          providers: sortedProviders,
-          services: filteredResults.services,
-          query: cachedResult.query,
-          totalResults: sortedProviders.length + filteredResults.services.length,
-          isFiltered: hasActiveFilters(localFilterOptions)
-        })
-        
-        setOriginalSearchData(cachedResult)
-        setHasCachedData(true)
-        setIsLoading(false)
-        return
-      }
-
-      // No cached result, make server call
-      const response = await fetch('/api/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          location,
-          filters: {
-            freeOnly: filtersToUse.freeOnly,
-            acceptsUninsured: filtersToUse.acceptsUninsured,
-            acceptsMedicaid: filtersToUse.acceptsMedicaid,
-            acceptsMedicare: filtersToUse.acceptsMedicare,
-            ssnRequired: filtersToUse.ssnRequired,
-            telehealthAvailable: filtersToUse.telehealthAvailable,
-            maxDistance: filtersToUse.maxDistance,
-            insuranceProviders: filtersToUse.insuranceProviders,
-            serviceCategories: filtersToUse.serviceCategories,
-          },
-          limit: 20
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Search failed')
-      }
-
-      const results = await response.json()
-      
-      // Sort providers to prioritize those with free services
-      if (results.providers && results.services) {
-        results.providers.sort((a: Provider, b: Provider) => {
-          // Check if providers have free services
-          const aHasFree = results.services.some((service: Service) => 
-            service.provider_id === a._id && service.is_free
-          )
-          const bHasFree = results.services.some((service: Service) => 
-            service.provider_id === b._id && service.is_free
-          )
-          
-          // Prioritize providers with free services
-          if (aHasFree && !bHasFree) return -1
-          if (!aHasFree && bHasFree) return 1
-          
-          // If both have free services, count them
-          if (aHasFree && bHasFree) {
-            const aFreeCount = results.services.filter((service: Service) => 
-              service.provider_id === a._id && service.is_free
-            ).length
-            const bFreeCount = results.services.filter((service: Service) => 
-              service.provider_id === b._id && service.is_free
-            ).length
-            if (aFreeCount !== bFreeCount) return bFreeCount - aFreeCount
-          }
-          
-          // Then sort by search relevance score
-          return (b.searchScore || 0) - (a.searchScore || 0)
-        })
-      }
-      
-      setSearchResults(results)
-      
-      // Cache the search result
-      const cacheData: CachedSearchResult = {
-        query,
-        location: locationString,
-        coordinates: location,
-        providers: results.providers,
-        services: results.services,
-        timestamp: new Date(),
-        totalResults: results.totalResults
-      }
-      
-      try {
-        await saveCachedSearchResult(cacheData)
-        setOriginalSearchData(cacheData)
-        setHasCachedData(true)
-      } catch (cacheError) {
-        console.error('Failed to cache search result:', cacheError)
-        // Continue without caching - don't break the user experience
-        setHasCachedData(false)
-        setOriginalSearchData(null)
-      }
-      
-    } catch (error) {
-      console.error('Search error:', error)
-      setSearchResults(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [filters])
-
-  const handleFiltersChange = (newFilters: Partial<FilterOptions>) => {
-    const convertedFilters: FilterOptions = {
-      freeOnly: newFilters.freeOnly || false,
-      acceptsUninsured: newFilters.acceptsUninsured || false,
-      acceptsMedicaid: newFilters.acceptsMedicaid || false,
-      acceptsMedicare: newFilters.acceptsMedicare || false,
-      ssnRequired: newFilters.ssnRequired !== false,
-      telehealthAvailable: newFilters.telehealthAvailable || false,
-      maxDistance: newFilters.maxDistance || 25,
-      insuranceProviders: newFilters.insuranceProviders || [],
-      serviceCategories: newFilters.serviceCategories || [],
-      providerTypes: newFilters.providerTypes || [],
-      minRating: newFilters.minRating || 0,
-      sortBy: newFilters.sortBy || 'relevance'
-    }
-    setFilters(convertedFilters)
-    
-    // Use local filtering if we have cached data
-    if (hasCachedData && originalSearchData) {
-      setIsLocalFiltering(true)
-      
-      try {
-        const localFilterOptions: LocalFilterOptions = {
-          freeOnly: convertedFilters.freeOnly,
-          acceptsUninsured: convertedFilters.acceptsUninsured,
-          acceptsMedicaid: convertedFilters.acceptsMedicaid,
-          acceptsMedicare: convertedFilters.acceptsMedicare,
-          ssnRequired: convertedFilters.ssnRequired,
-          telehealthAvailable: convertedFilters.telehealthAvailable,
-          maxDistance: convertedFilters.maxDistance,
-          insuranceProviders: convertedFilters.insuranceProviders,
-          serviceCategories: convertedFilters.serviceCategories,
-          providerTypes: convertedFilters.providerTypes,
-          minRating: convertedFilters.minRating
-        }
-        
-        const filteredResults = applyLocalFilters(
-          originalSearchData, 
-          localFilterOptions, 
-          currentLocation
-        )
-        
-        const sortedProviders = sortProvidersLocally(
-          filteredResults.providers,
-          filteredResults.services,
-          convertedFilters.sortBy
-        )
-        
-        setSearchResults({
-          providers: sortedProviders,
-          services: filteredResults.services,
-          query: originalSearchData.query,
-          totalResults: sortedProviders.length + filteredResults.services.length,
-          isFiltered: hasActiveFilters(localFilterOptions)
-        })
-      } catch (error) {
-        console.error('Local filtering failed, falling back to server:', error)
-        handleFilterOnlySearch(convertedFilters)
-      } finally {
-        setIsLocalFiltering(false)
-      }
-      return
-    }
-    
-    // Check if any advanced filters are active and we don't have cached data
-    const hasAdvancedFilters = convertedFilters.freeOnly || 
-      convertedFilters.acceptsUninsured || 
-      convertedFilters.acceptsMedicaid || 
-      convertedFilters.acceptsMedicare || 
-      convertedFilters.ssnRequired === false || 
-      convertedFilters.telehealthAvailable || 
-      convertedFilters.insuranceProviders.length > 0 || 
-      convertedFilters.serviceCategories.length > 0
-    
-    // Use filter API if advanced filters are active but no cached data
-    if (hasAdvancedFilters) {
-      handleFilterOnlySearch(convertedFilters)
-    }
   }
+  return
+}
 
-  const handleClearFilters = () => {
-    setFilters(defaultFilters)
-    
-    // If we have cached data, apply cleared filters locally
-    if (hasCachedData && originalSearchData) {
-      const filteredResults = applyLocalFilters(
-        originalSearchData, 
-        {}, // Empty filters
-        currentLocation
-      )
-      
-      const sortedProviders = sortProvidersLocally(
-        filteredResults.providers,
-        filteredResults.services,
-        'relevance'
-      )
-      
-      setSearchResults({
-        providers: sortedProviders,
-        services: filteredResults.services,
-        query: originalSearchData.query,
-        totalResults: sortedProviders.length + filteredResults.services.length,
-        isFiltered: false
-      })
-      return
-    }
-    
-    // Fallback behavior for when no cached data
-    if (currentQuery && currentQuery !== "Filtered Results") {
-      handleSearch(currentQuery, currentLocation, defaultFilters)
-    } else if (currentQuery === "Filtered Results") {
-      // If we were in filter-only mode, clear results
-      setSearchResults(null)
-      setCurrentQuery("")
-    }
-  }
+const hasAdvanced = converted.freeOnly || 
+  converted.acceptsUninsured || 
+  converted.acceptsMedicaid || 
+  converted.acceptsMedicare || 
+  converted.ssnRequired === false || 
+  converted.telehealthAvailable || 
+  converted.insuranceProviders.length > 0 || 
+  converted.serviceCategories.length > 0
 
-  const handleRetrySearch = () => {
-    if (currentQuery) {
-      handleSearch(currentQuery, currentLocation)
-    }
-  }
+if (hasAdvanced) {
+  handleFilterOnlySearch(converted)
+}
+}
 
-  const handleProviderAction = async (action: string, provider: Provider) => {
-    console.log(`Action: ${action}`, provider)
-    
-    switch (action) {
-      case 'voice-agent':
-        // Save provider to favorites for voice agent use
-        const favoriteProvider: FavoriteProvider = {
-          _id: provider._id, // Real MongoDB ObjectId
-          name: provider.name,
-          address: provider.address,
-          phone: provider.phone,
-          category: provider.category,
-          savedAt: new Date(),
-          filters: {
-            freeServicesOnly: false, // Will be determined by services
-            acceptsMedicaid: provider.medicaid,
-            acceptsMedicare: provider.medicare,
-            acceptsUninsured: provider.accepts_uninsured,
-            noSSNRequired: !provider.ssn_required,
-            telehealthAvailable: provider.telehealth_available
-          }
-        }
-        
-        // Save to favorites
-        saveFavoriteProvider(favoriteProvider)
-        
-        // Navigate to voice agent page
-        window.location.href = '/voice-agent'
-        break
-        
-      default:
-        // Let ResultsList handle other actions
-        break
-    }
-  }
+const handleClearFilters = () => {
+setFilters(defaultFilters)
+if (hasCachedData && originalSearchData) {
+const filtered = applyLocalFilters(originalSearchData, {}, currentLocation)
+const sorted = sortProvidersLocally(filtered.providers, filtered.services, 'relevance')
+setSearchResults({
+providers: sorted,
+services: filtered.services,
+query: originalSearchData.query,
+totalResults: sorted.length + filtered.services.length,
+isFiltered: false
+})
+return
+}
+if (currentQuery && currentQuery !== "Filtered Results") {
+  handleSearch(currentQuery, currentLocation, defaultFilters)
+} else if (currentQuery === "Filtered Results") {
+  setSearchResults(null)
+  setCurrentQuery("")
+}
+}
 
-  // Handle URL parameters on mount to auto-execute search from homepage
-  useEffect(() => {
-    // Prevent double execution
-    if (hasExecutedUrlSearch || searchExecutionRef.current) {
-      return
-    }
+const handleRetrySearch = () => {
+if (currentQuery) handleSearch(currentQuery, currentLocation)
+}
 
-    const handleUrlParams = async () => {
-      const urlParams = new URLSearchParams(window.location.search)
-      const query = urlParams.get('q')
-      const location = urlParams.get('location')
-      
-      // Set initial values for HeroSection pre-population
-      setInitialQuery(query || "")
-      setInitialLocation(location || "")
-      
-      if (query && query.trim()) {
-        // Final check before execution
-        if (searchExecutionRef.current) {
-          return
-        }
-        
-        searchExecutionRef.current = true
-        setHasExecutedUrlSearch(true)
-        
-        try {
-          // Parse location if provided
-          let locationCoords: Coordinates | undefined = undefined
-          if (location) {
-            locationCoords = await parseLocationString(location)
-          }
-          
-          // Auto-execute search with URL parameters using default filters
-          await handleSearch(query, locationCoords, defaultFilters)
-        } catch (error) {
-          console.error('Auto-search failed:', error)
-        }
-      }
-    }
+const handleProviderAction = async (action: string, provider: Provider) => {
+switch (action) {
+case 'voice-agent': {
+const favoriteProvider: FavoriteProvider = {
+_id: provider._id,
+name: provider.name,
+address: provider.address,
+phone: provider.phone,
+category: provider.category,
+savedAt: new Date(),
+filters: {
+freeServicesOnly: false,
+acceptsMedicaid: provider.medicaid,
+acceptsMedicare: provider.medicare,
+acceptsUninsured: provider.accepts_uninsured,
+noSSNRequired: !provider.ssn_required,
+telehealthAvailable: provider.telehealth_available
+}
+}
+saveFavoriteProvider(favoriteProvider)
+window.location.href = '/voice-agent'
+break
+}
+default:
+break
+}
+}
 
-    handleUrlParams()
-  }, [hasExecutedUrlSearch, handleSearch])
+useEffect(() => {
+if (hasExecutedUrlSearch || searchExecutionRef.current) return
+const handleUrlParams = async () => {
+const urlParams = new URLSearchParams(window.location.search)
+const query = urlParams.get('q')
+const location = urlParams.get('location')
+setInitialQuery(query || "")
+setInitialLocation(location || "")
+if (query && query.trim()) {
+if (searchExecutionRef.current) return
+searchExecutionRef.current = true
+setHasExecutedUrlSearch(true)
+try {
+let coords: Coordinates | undefined = undefined
+if (location) coords = await parseLocationString(location)
+await handleSearch(query, coords, defaultFilters)
+} catch (error) {
+console.error('Auto-search failed:', error)
+}
+}
+}
+handleUrlParams()
+}, [hasExecutedUrlSearch, handleSearch])
 
-  return (
-    <div className="h-screen flex flex-col bg-background">
-      <AppHeader />
-      {/* Hero Section - takes natural height */}
-      <div className="flex-shrink-0">
-        <HeroSection 
-          onSearch={handleSearch}
-          isSearching={isLoading}
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          onClearFilters={handleClearFilters}
-          resultsCount={searchResults?.totalResults || 0}
-          initialQuery={initialQuery}
-          initialLocation={initialLocation}
-          isLocalFiltering={isLocalFiltering}
-        />
-      </div>
-      
-      {/* Main Results Area - takes remaining height */}
-      <main className="flex-1 min-h-0 bg-background">
-        <div className="h-full flex flex-col">
-          <div className="flex-1 min-h-0 container mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-6 lg:py-8">
-            {/* Mobile Controls */}
-            <div className="lg:hidden mb-6 space-y-4">
-              {/* Results Summary */}
-              {searchResults?.totalResults && (
-                <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-lg font-bold text-foreground">
-                        {searchResults.totalResults} Results Found
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        {currentQuery && `for "${currentQuery}"`}
-                      </p>
-                    </div>
-                    {/* Active Filters Indicator */}
-                    {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
-                      filters.acceptsMedicare || filters.telehealthAvailable || 
-                      filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
-                      <Badge variant="secondary" className="text-xs px-3 py-1">
-                        Filters Active
-                      </Badge>
-                    )}
-                  </div>
+return (
+<div className="min-h-screen flex flex-col bg-[radial-gradient(1200px_600px_at_10%_-10%,#EAF4EF_25%,transparent),radial-gradient(1000px_500px_at_90%_0%,#EAF2FF_20%,transparent)]">
+<AppHeader />
+<div className="flex-shrink-0">
+    <HeroSection 
+      onSearch={handleSearch}
+      isSearching={isLoading}
+      filters={filters}
+      onFiltersChange={handleFiltersChange}
+      onClearFilters={handleClearFilters}
+      resultsCount={searchResults?.totalResults || 0}
+      initialQuery={initialQuery}
+      initialLocation={initialLocation}
+      isLocalFiltering={isLocalFiltering}
+    />
+  </div>
+  
+  <main className="flex-1 min-h-0">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 min-h-0 container mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-8">
+        {/* Mobile quick controls */}
+        <div className="lg:hidden mb-5 space-y-3">
+          {searchResults?.totalResults ? (
+            <div className="rounded-2xl border border-gray-200/70 bg-white/80 shadow-sm p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">{searchResults.totalResults} Results</h2>
+                  <p className="text-xs text-gray-500">{currentQuery && `for "${currentQuery}"`}</p>
                 </div>
-              )}
-
-              {/* View Mode Toggle - Larger and more touch-friendly */}
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-2 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant={viewMode === 'display' ? 'default' : 'ghost'}
-                    onClick={() => setViewMode('display')}
-                    className={`h-12 flex items-center justify-center gap-3 text-base font-semibold rounded-xl transition-all ${
-                      viewMode === 'display' 
-                        ? 'bg-[#068282] text-white shadow-md' 
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    <Search className="h-5 w-5" />
-                    Card View
-                  </Button>
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
-                    onClick={() => setViewMode('list')}
-                    className={`h-12 flex items-center justify-center gap-3 text-base font-semibold rounded-xl transition-all ${
-                      viewMode === 'list' 
-                        ? 'bg-[#068282] text-white shadow-md' 
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    <List className="h-5 w-5" />
-                    List View
-                  </Button>
-                </div>
-              </div>
-
-              {/* Active Filters Display */}
-              {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
-                filters.acceptsMedicare || filters.telehealthAvailable || 
-                filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                      Active Filters
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearFilters}
-                      className="text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/50 h-8 px-3 rounded-lg"
-                    >
-                      Clear All
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {filters.freeOnly && (
-                      <Badge className="bg-green-600 text-white text-sm px-3 py-1">Free Only</Badge>
-                    )}
-                    {filters.acceptsUninsured && (
-                      <Badge className="bg-blue-600 text-white text-sm px-3 py-1">Uninsured</Badge>
-                    )}
-                    {filters.acceptsMedicaid && (
-                      <Badge className="bg-green-600 text-white text-sm px-3 py-1">Medicaid</Badge>
-                    )}
-                    {filters.acceptsMedicare && (
-                      <Badge className="bg-green-600 text-white text-sm px-3 py-1">Medicare</Badge>
-                    )}
-                    {filters.ssnRequired === false && (
-                      <Badge className="bg-purple-600 text-white text-sm px-3 py-1">No SSN Required</Badge>
-                    )}
-                    {filters.telehealthAvailable && (
-                      <Badge className="bg-indigo-600 text-white text-sm px-3 py-1">Telehealth</Badge>
-                    )}
-                    {filters.insuranceProviders.map((insurance) => (
-                      <Badge key={insurance} className="bg-orange-600 text-white text-sm px-3 py-1">
-                        {insurance}
-                      </Badge>
-                    ))}
-                    {filters.serviceCategories.map((category) => (
-                      <Badge key={category} className="bg-teal-600 text-white text-sm px-3 py-1">
-                        {category}
-                      </Badge>
-                    ))}
-                    {filters.providerTypes.map((type) => (
-                      <Badge key={type} className="bg-gray-600 text-white text-sm px-3 py-1">
-                        {type}
-                      </Badge>
-                    ))}
-                    {filters.minRating > 0 && (
-                      <Badge className="bg-yellow-600 text-white text-sm px-3 py-1">
-                        {filters.minRating}+ Stars
-                      </Badge>
-                    )}
-                    {filters.maxDistance < 50 && (
-                      <Badge className="bg-red-600 text-white text-sm px-3 py-1">
-                        Within {filters.maxDistance}mi
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Desktop Controls */}
-            <div className="hidden lg:flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                {/* View Mode Toggle for Desktop */}
-                <div className="flex items-center border border-border rounded-lg p-1">
-                  <Button
-                    variant={viewMode === 'display' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('display')}
-                    className="h-8 px-3 text-sm transition-colors"
-                  >
-                    <Search className="h-4 w-4 mr-2" />
-                    Card View
-                  </Button>
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className="h-8 px-3 text-sm transition-colors"
-                  >
-                    <List className="h-4 w-4 mr-2" />
-                    List View
-                  </Button>
-                </div>
-
-                {/* Filter indicators */}
                 {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
                   filters.acceptsMedicare || filters.telehealthAvailable || 
                   filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Active filters:</span>
-                    <div className="flex gap-1">
-                      {filters.freeOnly && (
-                        <Badge variant="secondary" className="text-xs">Free Only</Badge>
-                      )}
-                      {filters.acceptsUninsured && (
-                        <Badge variant="secondary" className="text-xs">Uninsured</Badge>
-                      )}
-                      {filters.acceptsMedicaid && (
-                        <Badge variant="secondary" className="text-xs">Medicaid</Badge>
-                      )}
-                      {filters.acceptsMedicare && (
-                        <Badge variant="secondary" className="text-xs">Medicare</Badge>
-                      )}
-                      {filters.ssnRequired === false && (
-                        <Badge variant="secondary" className="text-xs">No SSN Required</Badge>
-                      )}
-                      {filters.telehealthAvailable && (
-                        <Badge variant="secondary" className="text-xs">Telehealth</Badge>
-                      )}
-                      {filters.insuranceProviders.map((insurance) => (
-                        <Badge key={insurance} variant="secondary" className="text-xs">
-                          {insurance}
-                        </Badge>
-                      ))}
-                      {filters.serviceCategories.map((category) => (
-                        <Badge key={category} variant="secondary" className="text-xs">
-                          {category}
-                        </Badge>
-                      ))}
-                      {filters.providerTypes.map((type) => (
-                        <Badge key={type} variant="secondary" className="text-xs">
-                          {type}
-                        </Badge>
-                      ))}
-                      {filters.minRating > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {filters.minRating}+ Stars
-                        </Badge>
-                      )}
-                      {filters.maxDistance < 50 && (
-                        <Badge variant="secondary" className="text-xs">
-                          Within {filters.maxDistance}mi
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3">
-                {searchResults?.totalResults && (
-                  <span className="text-sm text-muted-foreground">
-                    {searchResults.totalResults} results found
-                  </span>
+                  <Badge variant="secondary" className="text-xs px-3">Filters Active</Badge>
                 )}
               </div>
             </div>
-            
-            {/* Results Display - takes remaining height */}
-            <div className="flex-1 min-h-0">
-              <ResultsList
-                results={searchResults}
-                isLoading={isLoading || isLocalFiltering}
-                onRetry={handleRetrySearch}
-                onProviderAction={handleProviderAction}
-                showDistance={!!currentLocation}
-                compact={viewMode === 'list'}
-                activeFilters={filters}
-              />
+          ) : null}
+
+          <div className="rounded-2xl border border-gray-200/70 bg-white/80 shadow-sm p-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={viewMode === 'display' ? 'default' : 'ghost'}
+                onClick={() => setViewMode('display')}
+                className={`h-11 rounded-xl ${viewMode === 'display' ? 'bg-emerald-600 text-white' : ''}`}
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Card View
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                onClick={() => setViewMode('list')}
+                className={`h-11 rounded-xl ${viewMode === 'list' ? 'bg-emerald-600 text-white' : ''}`}
+              >
+                <List className="h-4 w-4 mr-2" />
+                List View
+              </Button>
             </div>
           </div>
-          
-          {/* Bottom padding */}
-          <div className="flex-shrink-0 h-4 sm:h-6"></div>
         </div>
-      </main>
+
+        {/* Desktop quick controls */}
+        <div className="hidden lg:flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center border border-border rounded-lg p-1 bg-white/80">
+              <Button
+                variant={viewMode === 'display' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('display')}
+                className="h-8 px-3"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Card View
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="h-8 px-3"
+              >
+                <List className="h-4 w-4 mr-2" />
+                List View
+              </Button>
+            </div>
+            {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
+              filters.acceptsMedicare || filters.telehealthAvailable || 
+              filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Active:</span>
+                <div className="flex gap-1 flex-wrap">
+                  {filters.freeOnly && <Badge variant="secondary" className="text-xs">Free</Badge>}
+                  {filters.acceptsUninsured && <Badge variant="secondary" className="text-xs">Uninsured</Badge>}
+                  {filters.acceptsMedicaid && <Badge variant="secondary" className="text-xs">Medicaid</Badge>}
+                  {filters.acceptsMedicare && <Badge variant="secondary" className="text-xs">Medicare</Badge>}
+                  {filters.ssnRequired === false && <Badge variant="secondary" className="text-xs">No SSN</Badge>}
+                  {filters.telehealthAvailable && <Badge variant="secondary" className="text-xs">Telehealth</Badge>}
+                  {filters.insuranceProviders.map(i => <Badge key={i} variant="secondary" className="text-xs">{i}</Badge>)}
+                  {filters.serviceCategories.map(c => <Badge key={c} variant="secondary" className="text-xs">{c}</Badge>)}
+                  {filters.providerTypes.map(p => <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>)}
+                  {filters.minRating > 0 && <Badge variant="secondary" className="text-xs">{filters.minRating}+ Stars</Badge>}
+                  {filters.maxDistance < 50 && <Badge variant="secondary" className="text-xs">≤ {filters.maxDistance}mi</Badge>}
+                </div>
+              </div>
+            )}
+          </div>
+          {searchResults?.totalResults ? (
+            <span className="text-sm text-gray-500">{searchResults.totalResults} results</span>
+          ) : null}
+        </div>
+        
+        {/* Results */}
+        <div className="flex-1 min-h-0">
+          <ResultsList
+            results={searchResults}
+            isLoading={isLoading || isLocalFiltering}
+            onRetry={handleRetrySearch}
+            onProviderAction={handleProviderAction}
+            showDistance={!!currentLocation}
+            compact={viewMode === 'list'}
+            activeFilters={filters}
+          />
+        </div>
+      </div>
+      <div className="h-6" />
     </div>
-  )
+  </main>
+</div>
+)
 }
