@@ -1,35 +1,10 @@
 ﻿"use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { HeartHandshake, Stethoscope, Users, MapPin } from "lucide-react"
 import { ProvidersHeader } from "./header"
+import { ProviderApplicationForm } from "@/components/provider/ProviderApplicationForm"
 
 export default function ProvidersPage() {
-  const [selectedProfession, setSelectedProfession] = useState("")
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    profession: "",
-    otherProfession: "",
-    location: "",
-    additionalInfo: ""
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Handle form submission
-    console.log("Form submitted:", formData)
-  }
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -109,127 +84,7 @@ export default function ProvidersPage() {
 
           {/* Provider Application Form */}
           <div className="max-w-2xl mx-auto">
-            <form onSubmit={handleSubmit} className="space-y-6 p-8 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  required
-                  value={formData.fullName}
-                  onChange={(e) => handleInputChange("fullName", e.target.value)}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="profession">Professional Role</Label>
-                <Select
-                  value={selectedProfession}
-                  onValueChange={(value) => {
-                    setSelectedProfession(value)
-                    handleInputChange("profession", value)
-                  }}
-                  required
-                >
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Medical Doctor">Medical Doctor</SelectItem>
-                    <SelectItem value="Dentist">Dentist</SelectItem>
-                    <SelectItem value="Dental Technician">Dental Technician</SelectItem>
-                    <SelectItem value="Nurse Practitioner">Nurse Practitioner</SelectItem>
-                    <SelectItem value="Lab Technician">Lab Technician</SelectItem>
-                    <SelectItem value="Physician Assistant">Physician Assistant</SelectItem>
-                    <SelectItem value="Gynecologist">Gynecologist</SelectItem>
-                    <SelectItem value="Licensed Therapist">Licensed Therapist</SelectItem>
-                    <SelectItem value="Other">Other (please specify)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedProfession === "Other" && (
-                <div className="space-y-2">
-                  <Label htmlFor="otherProfession">Please specify your profession</Label>
-                  <Input
-                    id="otherProfession"
-                    name="otherProfession"
-                    type="text"
-                    required={selectedProfession === "Other"}
-                    value={formData.otherProfession}
-                    onChange={(e) => handleInputChange("otherProfession", e.target.value)}
-                    placeholder="Please specify your profession"
-                    className="h-12"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="location">Preferred Service Area</Label>
-                <Select
-                  value={formData.location}
-                  onValueChange={(value) => handleInputChange("location", value)}
-                  required
-                >
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Select your region" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Atlanta Metro">Atlanta Metropolitan Area</SelectItem>
-                    <SelectItem value="Twin Cities">Twin Cities of Minnesota</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="additionalInfo">Additional Information / Comments</Label>
-                <Textarea
-                  id="additionalInfo"
-                  name="additionalInfo"
-                  rows={4}
-                  value={formData.additionalInfo}
-                  onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
-                  placeholder="Share any details about your practice, availability, or interests"
-                  className="resize-none"
-                />
-              </div>
-
-              <Button 
-                type="submit" 
-                size="lg" 
-                className="w-full h-12 bg-[#068282] hover:bg-[#0f766e] text-white transition-all duration-300"
-              >
-                Submit Application
-              </Button>
-            </form>
+            <ProviderApplicationForm />
           </div>
         </div>
       </section>

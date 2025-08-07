@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SimpleHeroSection } from "@/components/home-page/SimpleHeroSection";
 import { Header } from "@/components/layout/Header";
+import { ProviderApplicationForm } from "@/components/provider/ProviderApplicationForm";
 
 export default function Landing() {
   const [isOpenSourceOpen, setIsOpenSourceOpen] = useState(false);
@@ -60,6 +61,83 @@ export default function Landing() {
             desc="Empower your navigation services with detailed provider information and accessibility insights."
             benefits={["Navigation tools", "Accessibility data", "Provider insights", "Client matching"]}
           />
+        </div>
+      </section>
+
+      {/* ---------- Provider Application Section ---------- */}
+      <section id="join-network" className="py-24 bg-gradient-to-br from-teal-50/30 via-white to-teal-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-teal-900/10">
+        <div className="container space-y-12">
+          <div className="text-center space-y-8 max-w-4xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
+              <HeartHandshake className="h-4 w-4 text-[#068282] dark:text-teal-400" />
+              <span className="text-sm font-semibold text-[#068282] dark:text-teal-400">Join Our Network</span>
+            </div>
+            
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100">
+              Become a SIE Wellness Provider
+            </h2>
+            
+            <div className="space-y-6 mt-8">
+              <p className="text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
+                Join our network of healthcare professionals delivering preventative care to underserved communities. 
+                Help us expand access to essential services while growing your practice.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Benefits List */}
+          <div className="max-w-4xl mx-auto">            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+              <div className="flex gap-4 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div className="flex-shrink-0">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/20">
+                    <Stethoscope className="h-6 w-6 text-[#068282] dark:text-teal-400" />
+                  </div>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300">
+                  Provide preventive services including screenings, routine check-ups, and patient education
+                </p>
+              </div>
+
+              <div className="flex gap-4 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div className="flex-shrink-0">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/20">
+                    <Users className="h-6 w-6 text-[#068282] dark:text-teal-400" />
+                  </div>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300">
+                  Serve uninsured and underinsured populations in Atlanta and Twin Cities
+                </p>
+              </div>
+
+              <div className="flex gap-4 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div className="flex-shrink-0">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/20">
+                    <HeartHandshake className="h-6 w-6 text-[#068282] dark:text-teal-400" />
+                  </div>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300">
+                  Collaborate with AI-driven tools for patient matching and care coordination
+                </p>
+              </div>
+
+              <div className="flex gap-4 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div className="flex-shrink-0">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/20">
+                    <Shield className="h-6 w-6 text-[#068282] dark:text-teal-400" />
+                  </div>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300">
+                  Benefit from competitive reimbursement rates and flexible scheduling
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Provider Application Form */}
+          <div className="max-w-2xl mx-auto">
+            <ProviderApplicationForm />
+          </div>
         </div>
       </section>
 
