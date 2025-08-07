@@ -324,37 +324,43 @@ import {
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 gap-1.5 max-h-40 overflow-y-auto pr-1">
-                            {availableServices.map((service) => (
-                              <div key={service._id} className="flex items-start gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-white/5">
-                                <Checkbox
-                                  id={`service-${provider._id}-${service._id}`}
-                                  checked={config.selectedServices.some(s => s._id === service._id)}
-                                  onCheckedChange={(checked) => {
-                                    const newServices = checked
-                                      ? [...config.selectedServices, service]
-                                      : config.selectedServices.filter(s => s._id !== service._id)
-                                    updateProviderConfig(provider._id, { selectedServices: newServices })
-                                  }}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <Label
-                                    htmlFor={`service-${provider._id}-${service._id}`}
-                                    className="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer leading-tight"
-                                  >
-                                    {service.name}
-                                  </Label>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-xs text-gray-600">{service.category}</span>
-                                    {service.is_free && (
-                                      <Badge className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0 border border-emerald-200">FREE</Badge>
-                                    )}
-                                    {service.is_discounted && (
-                                      <Badge className="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0 border border-blue-200">DISCOUNTED</Badge>
-                                    )}
+                            {availableServices.map((service) => {
+                              const isChecked = config.selectedServices.some(s => s._id === service._id)
+                              return (
+                                <div
+                                  key={service._id}
+                                  className={`flex items-start gap-2 p-2 rounded ${isChecked ? "bg-emerald-100 dark:bg-emerald-900/40" : "hover:bg-gray-50 dark:hover:bg-white/5"}`}
+                                >
+                                  <Checkbox
+                                    id={`service-${provider._id}-${service._id}`}
+                                    checked={isChecked}
+                                    onCheckedChange={(checked) => {
+                                      const newServices = checked
+                                        ? [...config.selectedServices, service]
+                                        : config.selectedServices.filter(s => s._id !== service._id)
+                                      updateProviderConfig(provider._id, { selectedServices: newServices })
+                                    }}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <Label
+                                      htmlFor={`service-${provider._id}-${service._id}`}
+                                      className="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer leading-tight"
+                                    >
+                                      {service.name}
+                                    </Label>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-xs text-gray-600">{service.category}</span>
+                                      {service.is_free && (
+                                        <Badge className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0 border border-emerald-200">FREE</Badge>
+                                      )}
+                                      {service.is_discounted && (
+                                        <Badge className="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0 border border-blue-200">DISCOUNTED</Badge>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         )}
                       </div>
@@ -378,7 +384,16 @@ import {
                             { key: 'noSSNRequired', label: 'No Social Security Number required', icon: Check },
                             { key: 'telehealthAvailable', label: 'Telehealth services available', icon: Phone }
                           ].map(({ key, label, icon: Icon }) => (
-                            <label key={key} htmlFor={`filter-${provider._id}-${key}`} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">
+                            <label
+                              key={key}
+                              htmlFor={`filter-${provider._id}-${key}`}
+                              className={[
+                                "flex items-center gap-2 rounded-md px-2 py-1.5 cursor-pointer transition-all duration-150",
+                                config.verifyFilters[key as keyof typeof config.verifyFilters]
+                                  ? "bg-emerald-100 ring-2 ring-emerald-400 scale-105"
+                                  : "hover:bg-gray-50 dark:hover:bg-white/5"
+                              ].join(' ')}
+                            >
                               <Checkbox
                                 id={`filter-${provider._id}-${key}`}
                                 checked={config.verifyFilters[key as keyof typeof config.verifyFilters]}
@@ -405,6 +420,7 @@ import {
           )
         })
       )}
+      
     </div>
   </div>
 

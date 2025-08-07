@@ -37,10 +37,9 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-white to-teal-50/40 dark:from-gray-950 dark:via-gray-950 dark:to-teal-950/20">
       <Header />
       
-      {/* ---------- New Top Promo Bar ---------- */}
-      <TopPromo />
+     
       {/* ---------- Keep your searchable hero (if desired) ---------- */}
-      <section className="container -mt-8 md:-mt-14">
+      <section className="container">
         <SimpleHeroSection />
       </section>
       {/* ---------- New Brand Hero ---------- */}
