@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { getServerDb } from '@/lib/server/db'
 import { extractProviderIdFromSlug } from '@/lib/utils'
 import { ObjectId } from 'mongodb'
@@ -137,6 +138,8 @@ export default async function ProviderPage({ params }: PageProps) {
     '@type': schemaType,
     name,
     url: `${siteUrl}/providers/${slug}`,
+    image: `${siteUrl}/logo_560x560.png`,
+    priceRange: 'Free/Low-cost',
   }
   if (phone) ldJson.telephone = phone
   if (website) ldJson.sameAs = website
@@ -196,12 +199,19 @@ export default async function ProviderPage({ params }: PageProps) {
     Address: new RegExp(address ? address.split(',')[0].trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '', 'i')
   })
 
+  const breadcrumbLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Search', item: `${siteUrl}/app` },
+      { '@type': 'ListItem', position: 2, name, item: `${siteUrl}/providers/${slug}` },
+    ],
+  }
+
   return (
     <main className="container py-10">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(ldJson) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ldJson) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
 
       {/* Breadcrumbs */}
       <nav className="text-sm mb-4 text-muted-foreground">
@@ -210,15 +220,33 @@ export default async function ProviderPage({ params }: PageProps) {
         <span className="text-foreground">{name}</span>
       </nav>
 
-      <h1 className="text-display-lg mb-2">{name}</h1>
-      {category && <p className="text-body-base text-muted-foreground mb-2">{category}</p>}
-      {address && (
-        <p className="text-body-base mb-2">{address}</p>
-      )}
-      <div className="space-x-4 mb-6">
-        {phone && <a className="underline" href={`tel:${phone}`}>Call</a>}
-        {website && <a className="underline" href={website} target="_blank" rel="noopener noreferrer">Visit Website</a>}
-      </div>
+      {/* Header with branding and CTAs */}
+      <header className="mb-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Image src="/logo_560x560.png" alt="SIE Wellness" width={40} height={40} className="rounded-md" />
+            <div>
+              <h1 className="text-display-lg leading-tight">{name}</h1>
+              {category && <p className="text-body-base text-muted-foreground">{category}</p>}
+              {address && <p className="text-sm text-muted-foreground mt-1">{address}</p>}
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-2">
+            {phone && (
+              <a aria-label="Call provider" href={`tel:${phone}`} className="px-4 py-2 rounded-lg border bg-primary/90 text-primary-foreground hover:bg-primary transition-colors">Call</a>
+            )}
+            {address && (
+              <a aria-label="Get directions" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-lg border hover:bg-muted transition-colors">Directions</a>
+            )}
+            {website && (
+              <a aria-label="Visit website" href={website} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-lg border hover:bg-muted transition-colors">Website</a>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
 
       {/* Overview summary */}
       {summaryText && (
@@ -250,14 +278,7 @@ export default async function ProviderPage({ params }: PageProps) {
         </div>
       </section>
 
-      <ul className="text-sm text-muted-foreground space-y-1 mb-8">
-        {acceptsUninsured && <li>Accepts uninsured</li>}
-        {medicaid && <li>Accepts Medicaid</li>}
-        {medicare && <li>Accepts Medicare</li>}
-        {ssnRequired === false && <li>No SSN required</li>}
-        {telehealth && <li>Telehealth available</li>}
-        {languages && languages.length > 0 && <li>Languages: {languages.join(', ')}</li>}
-      </ul>
+      {/* moved accessibility chips to sidebar */}
 
       {/* Specialties */}
       {specialties.length > 0 && (
@@ -451,7 +472,52 @@ export default async function ProviderPage({ params }: PageProps) {
         </section>
       )}
 
-      <Link className="underline" href="/app">Back to search</Link>
+        </div>
+        <aside className="lg:col-span-4">
+          <div className="border rounded-xl p-5 bg-card/50 lg:sticky lg:top-24 space-y-4">
+            <h3 className="text-h4">Contact</h3>
+            {phone && (
+              <div>
+                <div className="text-sm text-muted-foreground">Phone</div>
+                <a className="underline" href={`tel:${phone}`}>{phone}</a>
+              </div>
+            )}
+            {address && (
+              <div>
+                <div className="text-sm text-muted-foreground">Address</div>
+                <div className="text-sm">{address}</div>
+                <a className="underline text-primary" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`} target="_blank" rel="noopener noreferrer">Get directions</a>
+              </div>
+            )}
+            {website && (
+              <div>
+                <div className="text-sm text-muted-foreground">Website</div>
+                <a className="underline" href={website} target="_blank" rel="noopener noreferrer">Visit Website</a>
+              </div>
+            )}
+            {languages && languages.length > 0 && (
+              <div>
+                <div className="text-sm text-muted-foreground">Languages</div>
+                <div className="text-sm">{languages.join(', ')}</div>
+              </div>
+            )}
+            <div className="pt-2">
+              <div className="text-sm text-muted-foreground mb-2">Accessibility & Coverage</div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                {acceptsUninsured && <li>Accepts uninsured</li>}
+                {medicaid && <li>Accepts Medicaid</li>}
+                {medicare && <li>Accepts Medicare</li>}
+                {ssnRequired === false && <li>No SSN required</li>}
+                {telehealth && <li>Telehealth available</li>}
+              </ul>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div className="mt-8">
+        <Link className="underline" href="/app">Back to search</Link>
+      </div>
     </main>
   )
 }
