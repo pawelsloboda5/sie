@@ -34,6 +34,12 @@ Design system (consistency)
 - Dark mode
   - Already supported by tokens; ensure imagery and icons adapt.
 
+Component library upgrades (React 19 / Next.js 15)
+- Prefer React Server Components (RSC) for data‑driven, read‑only sections (provider pages, city/service pages) to minimize JS.
+- Client components only where interactivity is required (filters, dialogs, carousels).
+- Use Next’s new metadata APIs and `next/og` for dynamic OG images.
+- Image handling via `next/image` with `sizes`/`priority` tuned; avoid layout shift.
+
 Hero and homepage
 - Replace static hero with brand “S” logomark + wordmark and a concise promise statement.
 - Keep the powerful search, but add 3 curated quick‑start buttons (Free STI Testing, Free Dental, Mental Health).
@@ -49,15 +55,31 @@ Provider page UX (new)
   - Breadcrumbs: Providers > City > Provider Name
   - Optional: short success stories or tips (what to bring, documents)
 
+ Implementation notes (dev)
+ - Server component for main page; client subcomponents for map, “Call” button analytics, and collapsible sections.
+ - Prefetch adjacent provider pages on hover/viewport (Next Link prefetch) from lists.
+ - Add `generateMetadata` to build dynamic title/description and Open Graph.
+ - Render JSON‑LD via a small server component that outputs `<script type="application/ld+json">` safely.
+
 Programmatic city/service pages (new)
 - Route: `/find/[service]/[city]`
 - Above‑the‑fold: headline with city + service, quick filters, map toggle (later), count of free services
 - Body: featured free/low‑cost providers, FAQs, nearby cities/neighborhoods, links to provider pages
 
+ Implementation notes (dev)
+ - Use RSC with streaming for fast TTFB; hydrate only filters.
+ - Add breadcrumbs, internal links to service hub and provider pages.
+ - Include `ItemList` and optional `FAQPage` JSON‑LD.
+
 Resources hub
 - Route: `/resources`
 - Cards for: Cost & Eligibility Guides, “No SSN” explainer, How to find care fast, Insurance tips
 - Short blog posts (MDX) with related links to service/city pages
+
+ MDX/blog system
+ - Store in `content/blog/` with frontmatter (title, description, tags, date, reviewedBy).
+ - Build an index page with filters by region (DC/MD/VA/GA/SF) and service.
+ - Generate RSS at `/rss.xml`.
 
 Imagery and brand assets
 - Use the 2D mark for brand clarity; reserve the 3D “S” sparingly as a hero accent.
@@ -68,11 +90,15 @@ Accessibility (WCAG 2.2 AA)
 - Keyboard navigation for menus, filters, dialogs
 - Visible focus states (already present via `.focus-ring*` utilities)
 - Semantic landmarks and headings; descriptive alt text
+ - Form labels and errors: connect with `aria-describedby`; ensure logical tab order
+ - Motion: respect `prefers-reduced-motion` in all animated components
 
 Performance
 - Optimize `next/image` sizes; avoid layout shifts; lazy‑load below fold
 - Cache programmatic pages with ISR; prefetch provider pages from lists
 - Audit CWV regularly (Lighthouse/PSI) and fix regressions
+ - Avoid client‑side heavy libraries on programmatic pages; prefer CSS and native elements
+ - Target budgets: LCP < 2.5s, INP < 200ms, CLS < 0.1 on mobile 75th percentile
 
 Implementation roadmap
 - Milestone 1 (Weeks 1–2):
@@ -86,6 +112,9 @@ Implementation roadmap
 - Milestone 3 (Weeks 5–6):
   - A/B titles and CTA copy; refine spacing and typography rhythm
   - Dark‑mode visual QA; accessibility fixes from audit
+ - Milestone 4 (Weeks 7–8):
+   - Map enhancements and city landing page expansions
+   - Add error states, empty states, and loading skeletons for all major routes
 
 Design QA checklist
 - [ ] Consistent spacing scale and container widths
@@ -93,5 +122,14 @@ Design QA checklist
 - [ ] All buttons have clear text, aria‑labels where icons are used
 - [ ] Images have alt text; decorative images are marked appropriately
 - [ ] Mobile nav is reachable and operable with keyboard/screen reader
+
+Regional focus (current data)
+- DMV (DC/MD/VA), Georgia, and San Francisco-specific quick links on homepage/footer.
+- Service presets for these regions in search chips.
+
+Tech references
+- Next.js 15 App Router: metadata, `robots.ts`, `sitemap.ts`, RSC/streaming, `next/og`.
+- React 19: concurrent rendering default, `use` for data fetching in RSC where applicable.
+
 
 
