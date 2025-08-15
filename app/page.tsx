@@ -55,7 +55,7 @@ export default function Landing() {
             />
           </div>
 
-          <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-600 via-teal-500 to-cyan-500 dark:from-teal-300 dark:to-cyan-300 bg-clip-text text-transparent">
+          <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-600 dark:from-emerald-300 dark:via-emerald-200 dark:to-teal-200 bg-clip-text text-transparent">
             Built for Real People with Real Needs
           </h2>
           <p className="max-w-3xl mx-auto mt-6 text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -64,7 +64,7 @@ export default function Landing() {
           </p>
         </div>
 
-        <div className="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
           <GlassyUserGroup
             icon={Users}
             title="Individuals & Families"
@@ -320,17 +320,19 @@ function GlassyUserGroup({
   benefits: string[]
 }) {
   return (
-    <Card className="relative group bg-white/50 dark:bg-slate-900/30 backdrop-blur-md border border-slate-200/50 dark:border-slate-700/50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
-      <div className="absolute inset-0 bg-gradient-to-br from-teal-100/10 via-teal-300/10 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      <CardContent className="relative p-8 text-left">
-        <div className="mb-6 inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-100 to-teal-200 dark:from-teal-900 dark:to-teal-800">
-          <Icon className="w-7 h-7 text-teal-700 dark:text-teal-200" />
+    <Card className="h-full relative group bg-white/50 dark:bg-slate-900/30 backdrop-blur-md border border-slate-200/50 dark:border-slate-700/50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/10 via-emerald-300/10 to-emerald-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <CardContent className="relative p-8 text-left h-full grid grid-rows-[auto_1fr_auto]">
+        <div className="mb-4 inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900 dark:to-emerald-800">
+          <Icon className="w-7 h-7 text-emerald-700 dark:text-emerald-200" />
         </div>
-        <h4 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">{title}</h4>
-        <p className="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">{desc}</p>
-        <ul className="mt-5 space-y-2">
+        <div className="space-y-3">
+          <h4 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">{title}</h4>
+          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{desc}</p>
+        </div>
+        <ul className="mt-5 grid grid-rows-4 gap-2">
           {benefits.map(b => (
-            <li key={b} className="flex items-center text-sm text-teal-600 dark:text-teal-400">
+            <li key={b} className="flex items-center md:h-6 text-sm text-emerald-700 dark:text-emerald-400 md:whitespace-nowrap md:truncate">
               <Sparkles className="mr-2 h-4 w-4 flex-shrink-0" />
               {b}
             </li>
