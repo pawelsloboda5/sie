@@ -16,7 +16,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/services',
     '/resources',
     // child sitemaps (treat as URLs for discovery)
-    '/sitemaps/providers',
     '/sitemaps/providers/index',
     '/sitemaps/cities-services',
     '/sitemaps/blog',
