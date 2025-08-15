@@ -205,3 +205,39 @@ Monitoring & operations
 - Search Console: submit all sitemaps; monitor coverage, enhancement reports, CWV
 - Log `notFound` rates on provider routes; add 301s when merging duplicates
 - Track CTR by title pattern; A/B test titles via content updates (no cloaking)
+
+Wins, outcomes, and expectations
+
+| Area | What we shipped | Expected impact (0–6 weeks) | 6–12 week outlook |
+|---|---|---|---|
+| Sitemaps | Root sitemap with child indices; provider sitemap index + 5k‑URL chunk routes; city/service + blog sitemaps | Fast discovery and crawling of core routes; reduced 404s | Majority of provider URLs discovered; coverage steadily rises in GSC |
+| Robots | `robots.ts` allowing crawl, disallowing `/api/*`; `/app` results set to `noindex,follow` | Prevents low‑value result pages from indexing; protects crawl budget | Cleaner index; stronger focus on detail pages |
+| Programmatic pages | Provider detail route with canonical, JSON‑LD, OG images; city/service pages with `ItemList` + `FAQPage`; service hubs | Eligible for rich results; long‑tail queries start to rank | Indexation of thousands of pages; early long‑tail traffic |
+| Structured data | `MedicalClinic`/`Physician`/`LocalBusiness`, `ItemList`, `FAQPage`, `Breadcrumb` UX | Enhanced SERP appearance; better understanding by Google | Higher CTR on pages with FAQs/collections |
+| OG images | Dynamic OG for providers, city/service, service hubs | Higher shareability and improved social previews | Brand consistency; better social CTR |
+| Performance | RSC usage, ISR defaults, image optimization | Faster FCP/LCP → ranking tie‑breaker benefits | Stable CWV pass sitewide |
+| Internal linking | Cards link to provider pages; related providers; breadcrumbs | Stronger crawl paths and topical clusters | Better depth crawling and ranking for clusters |
+| Geocoding | Server proxy to avoid CORS | Improved UX → longer dwell time and conversions | Indirect positive engagement signals |
+
+Traffic expectations (based on similar programmatic healthcare directories)
+
+- Indexation: With 2k+ provider pages + seeded city/service pages, expect 40–60% of pages discovered and 25–40% indexed within 4–6 weeks (varies with domain history and link equity). Adding internal links/feeds will accelerate.
+- Impressions: Initial long‑tail impressions in the tens of thousands within 6–8 weeks as Google tests page quality. CTR should average 3–6% on programmatic pages; FAQ‑enhanced pages can hit 6–10%.
+- Sessions: Conservative ramp to 5–15k monthly organic sessions by weeks 8–12, assuming consistent crawl, no indexation blockers, and continued content improvements. With additional city/service coverage and links, 25–50k/mo by 4–6 months is achievable. Scaling beyond 100k+/mo will depend on link acquisition and continued page growth/quality.
+- Coverage risks: Thin pages (few providers per city/service) may be de‑prioritized. We’ve guarded by generating content and FAQs; continue enriching copy and interlinks.
+
+How good is SEO now?
+
+- Technical baseline: Strong. Metadata, canonicals, OG, JSON‑LD, robots, sitemaps (with chunking), and RSC performance are in place. CWV should pass given current footprint; monitor in GSC/PSI after deploy.
+- Content quality: Good foundation. Provider pages show rich, deduplicated data with cross‑referenced business info. City/service pages include `ItemList` and FAQs; expand human intros for top markets to avoid thin content flags.
+- IA/linking: Solid start with breadcrumbs, related providers, and programmatic links. Next lift is adding more in‑context links from service hubs and blog posts.
+- Authority: Early stage. Begin outreach to local orgs, gov/NGO directories, and healthcare blogs for mentions/links. Publish helpful guides to attract organic links.
+
+Next levers to accelerate
+- Scale city/service coverage steadily (ensure each has ≥5–10 providers). Add neighborhood pages for top metros.
+- Add editorial intros to top 100 city/service pages and 12 service hubs.
+- Ship OG images for blog; add `/rss.xml`; publish 2 posts/week and 1 guide/week for 6–8 weeks.
+- Start link outreach to local coalitions and non‑profits; list in relevant directories.
+
+FAQ strategy (including Preventive Care)
+- We added preventive‑care FAQs now to capture informational intent around “annual checkups,” “screenings,” “wellness plans,” and “preventive care for uninsured.” Clear “coming soon” language prevents misleading users. This supports topical coverage and enables FAQ rich results without risking thin or deceptive content.

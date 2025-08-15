@@ -210,6 +210,97 @@ async with NPILookupClient() as client:
       {/* ---------- Footer ---------- */}
       <footer className="mt-auto border-t bg-background/80 section-padding">
         <div className="container">
+          {/* SEO FAQ */}
+          <section className="mb-12">
+            <h3 className="text-h3 mb-4">Frequently Asked Questions</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-body-sm">
+              <div className="space-y-3">
+                <h4 className="text-h5">About the Search Tool</h4>
+                <p><strong>What is SIE Wellness Search?</strong> It’s an intelligent tool that helps you find free & low‑cost healthcare: clinics, urgent care, dental, mental health, labs, immunizations, and more.</p>
+                <p><strong>How does it work?</strong> We organize provider data from trusted sources and our network so you can compare services, pricing, languages, hours, and accessibility in one place.</p>
+                <p><strong>Is it free?</strong> Yes. Search is free for everyone. We may add optional premium features later.</p>
+                <p><strong>Does it include only doctors?</strong> No — you’ll find primary care, specialists, community health centers, urgent care, pharmacies, labs, and preventive care.</p>
+                <p><strong>How accurate is the info?</strong> We refresh data frequently and show clear contact details so you can confirm hours and availability.</p>
+              </div>
+              <div className="space-y-3">
+                <h4 className="text-h5">Appointments & Access</h4>
+                <p><strong>What is Automated Phone Scheduling?</strong> A smart assistant that books appointments for you and sends confirmations and reminders by text/email.</p>
+                <p><strong>Can I use it for any provider?</strong> We’re expanding coverage across our network — primary care, specialists, urgent care, dental, and mental health.</p>
+                <p><strong>Do I need insurance?</strong> No. Many listings accept uninsured patients and offer sliding‑scale or free services.</p>
+                <p><strong>Is SSN required?</strong> Many clinics do not require a Social Security Number. We label “No SSN” when available.</p>
+                <p><strong>Is telehealth available?</strong> Yes — filter for telehealth to find virtual visit options near you.</p>
+              </div>
+              <div className="space-y-3">
+                <h4 className="text-h5">Preventive Care Plan (Coming Soon)</h4>
+                <p><strong>What is the Preventive Care Plan?</strong> A bundled package of annual checkups, screenings, and wellness services designed to help you stay healthy.</p>
+                <p><strong>Why is preventive care important?</strong> Early detection catches issues when they’re most treatable and often least expensive.</p>
+                <p><strong>What services are included?</strong> We’re designing a plan with common screenings, primary care visits, and wellness checks — final details will be announced before launch.</p>
+                <p><strong>Do I need insurance?</strong> No. The plan is designed to work for uninsured and underinsured people with transparent pricing.</p>
+              </div>
+            </div>
+            {/* JSON-LD FAQ schema for rich results */}
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  '@context': 'https://schema.org',
+                  '@type': 'FAQPage',
+                  mainEntity: [
+                    {
+                      '@type': 'Question',
+                      name: 'What is SIE Wellness Search?',
+                      acceptedAnswer: { '@type': 'Answer', text: 'An intelligent tool to find free and low‑cost healthcare — clinics, urgent care, dental, mental health, labs, immunizations, and more.' }
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'How does the search work?',
+                      acceptedAnswer: { '@type': 'Answer', text: 'We organize provider data from trusted sources and our network so you can compare services, pricing, languages, hours, and accessibility in one place.' }
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'Is SIE Wellness free to use?',
+                      acceptedAnswer: { '@type': 'Answer', text: 'Yes. The search experience is free for everyone. Optional premium features may be added later.' }
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'Do I need insurance or an SSN?',
+                      acceptedAnswer: { '@type': 'Answer', text: 'No. Many clinics accept uninsured patients and do not require a Social Security Number. Use filters for Uninsured and No SSN.' }
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'Is telehealth available?',
+                      acceptedAnswer: { '@type': 'Answer', text: 'Yes. You can filter for telehealth to find virtual care options near you.' }
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'What is Automated Phone Scheduling?',
+                      acceptedAnswer: { '@type': 'Answer', text: 'A smart assistant that books your appointments for you and sends confirmations and reminders by text or email.' }
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'What is the Preventive Care Plan?',
+                      acceptedAnswer: { '@type': 'Answer', text: 'A bundled package of annual checkups, screenings, and wellness services designed to help you stay healthy. Coming soon.' }
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'Why is preventive care important?',
+                      acceptedAnswer: { '@type': 'Answer', text: 'Preventive care helps detect potential health issues early, when they are easiest and least expensive to treat.' }
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'What services are included in the Preventive Care Plan?',
+                      acceptedAnswer: { '@type': 'Answer', text: 'We’re designing a plan with common screenings, primary care visits, and wellness checks. Final details will be announced before launch.' }
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'Do I need insurance for the Preventive Care Plan?',
+                      acceptedAnswer: { '@type': 'Answer', text: 'No. The plan is designed for uninsured and underinsured people with transparent pricing.' }
+                    }
+                  ]
+                })
+              }}
+            />
+          </section>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div className="space-y-4">
               <Link href="#" className="flex items-center gap-3">
