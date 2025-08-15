@@ -19,52 +19,13 @@ export interface Coordinates {
  */
 export async function reverseGeocode(latitude: number, longitude: number): Promise<string> {
   try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
-    )
-    
-    if (!response.ok) {
-      throw new Error('Geocoding service unavailable')
-    }
-    
-    const data = await response.json()
-    
-    if (data && data.display_name) {
-      // Extract city, state, zip from the address components
-      const address = data.address || {}
-      const parts = []
-      
-      // Add city
-      if (address.city || address.town || address.village) {
-        parts.push(address.city || address.town || address.village)
-      }
-      
-      // Add state
-      if (address.state) {
-        parts.push(address.state)
-      }
-      
-      // Add postal code
-      if (address.postcode) {
-        parts.push(address.postcode)
-      }
-      
-      // If we have structured parts, use them; otherwise use display_name
-      if (parts.length > 0) {
-        return parts.join(', ')
-      } else {
-        // Fallback to a shorter version of display_name
-        const displayParts = data.display_name.split(',').slice(0, 3)
-        return displayParts.join(',').trim()
-      }
-    }
-    
-    // Fallback to coordinates if geocoding fails
-    return `${latitude}, ${longitude}`
-  } catch (error) {
-    console.error('Reverse geocoding failed:', error)
-    // Fallback to coordinates if geocoding fails
-    return `${latitude}, ${longitude}`
+    const res = await fetch(`/api/geo/reverse?lat=${latitude}&lon=${longitude}`)
+    if (!res.ok) throw new Error('Reverse geocoding failed')
+    const data = await res.json()
+    return data.display || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+  } catch (e) {
+    console.error('Reverse geocoding failed:', e)
+    return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
   }
 }
 
@@ -75,26 +36,13 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
  */
 export async function forwardGeocode(address: string): Promise<Coordinates | undefined> {
   try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&addressdetails=1`
-    )
-    
-    if (!response.ok) {
-      throw new Error('Geocoding service unavailable')
-    }
-    
-    const data = await response.json()
-    
-    if (data && data.length > 0 && data[0].lat && data[0].lon) {
-      return {
-        latitude: parseFloat(data[0].lat),
-        longitude: parseFloat(data[0].lon)
-      }
-    }
-    
+    const res = await fetch(`/api/geo/forward?q=${encodeURIComponent(address)}`)
+    if (!res.ok) throw new Error('Forward geocoding failed')
+    const data = await res.json()
+    if (data && data.ok) return { latitude: data.latitude, longitude: data.longitude }
     return undefined
-  } catch (error) {
-    console.error('Forward geocoding failed:', error)
+  } catch (e) {
+    console.error('Forward geocoding failed:', e)
     return undefined
   }
 }
@@ -116,4 +64,32 @@ export async function parseLocationString(locationString: string): Promise<Coord
   
   // For text addresses, use forward geocoding
   return await forwardGeocode(locationString)
+}
+
+// ---------------- Provider slug utilities (SEO) ----------------
+
+function basicSlugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+/**
+ * Build a stable provider slug. We include a short id suffix to avoid collisions
+ * while keeping the URL human‑readable.
+ */
+export function buildProviderSlug(name: string, id?: string): string {
+  const base = basicSlugify(name || 'provider')
+  const suffix = id ? `-p-${String(id).slice(-6)}` : ''
+  return `${base}${suffix}`
+}
+
+/** Extract the short id suffix from a provider slug, if present. */
+export function extractProviderIdFromSlug(slug: string): string | undefined {
+  const match = slug.match(/-p-([a-z0-9]{6})$/i)
+  return match ? match[1] : undefined
 }

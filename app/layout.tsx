@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.sie2.com'),
   title: "SIE Wellness - Free & Low-Cost Healthcare Near You",
   description: "Find accessible healthcare services in your area, regardless of insurance status. Discover free clinics, community health centers, and affordable medical care.",
   icons: {

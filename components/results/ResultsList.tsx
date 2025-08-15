@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from "react"
 import { ProviderCard } from "./ProviderCard"
 import { ProviderDetailsModal } from "../provider/ProviderDetailsModal"
+import Link from "next/link"
+import { buildProviderSlug } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -159,10 +161,11 @@ const handleProviderAction = (action: string, provider: Provider) => {
     case 'website':
       if (provider.website) window.open(provider.website, '_blank');
       break;
-    case 'details':
-      setSelectedProvider(provider);
-      setIsDetailsModalOpen(true);
+    case 'details': {
+      const slug = buildProviderSlug(provider.name, provider._id)
+      window.location.href = `/providers/${slug}`
       break;
+    }
   }
   onProviderAction?.(action, provider);
 };

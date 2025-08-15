@@ -27,6 +27,73 @@ export interface SavedProvider {
   notes?: string
 }
 
+// Server-side collections live in Mongo/Cosmos; this interface mirrors the
+// pre-processed Businesses collection shape for cross-referencing on provider pages.
+// Many fields are optional because upstream sources vary.
+export interface BusinessRecord {
+  _id?: unknown
+  'Google Maps URL'?: string
+  'Category'?: string
+  'Name'?: string
+  'Phone'?: string
+  'Website'?: string
+  'email'?: string
+  'Business Status'?: string
+  'Address'?: string
+  'Total Reviews'?: string | number
+  'Booking Links'?: string
+  'Rating'?: string | number
+  'Hours'?: string
+  search_keywords?: string[]
+  jina_scraped?: boolean
+  jina_title?: string
+  jina_description?: string
+  pages_analyzed?: number
+  pages_data?: Array<{ url: string; title?: string }>
+  services_offered?: {
+    general_services?: Array<{ name: string; category?: string; description?: string; price_info?: string; is_free?: boolean; is_discounted?: boolean }>
+    specialized_services?: Array<{ name: string; category?: string; description?: string; price_info?: string; is_free?: boolean; is_discounted?: boolean }>
+    diagnostic_services?: Array<{ name: string; category?: string; description?: string; price_info?: string; is_free?: boolean; is_discounted?: boolean }>
+  }
+  insurance_accepted?: {
+    major_providers?: string[]
+    medicaid?: boolean
+    medicare?: boolean
+    self_pay_options?: boolean
+    payment_plans?: boolean
+    financial_assistance_programs?: string[]
+    accepted_payment_methods?: string[]
+    notes?: string
+  }
+  eligibility_requirements?: {
+    age_groups?: string[]
+    new_patients_accepted?: boolean
+    geographic_restrictions?: string[]
+    required_documentation?: string[]
+    referral_notes?: string
+    walk_ins_accepted?: boolean
+    appointment_process?: string
+    eligibility_restrictions?: string[]
+  } | string[]
+  referral_info?: {
+    referral_required?: boolean
+    self_referral_accepted?: boolean
+    referral_sources?: string[]
+    notes?: string
+  }
+  telehealth_info?: {
+    telehealth_available?: boolean
+    services_offered_virtually?: string[]
+    platforms_used?: string[]
+    scheduling_info?: string
+  }
+  accessibility_info?: Record<string, unknown>
+  financial_assistance?: Record<string, unknown>
+  documentation_requirements?: Record<string, unknown>
+  special_programs?: Record<string, unknown>
+  data_extraction_metadata?: Record<string, unknown>
+}
+
 // Add new interface for cached search results
 export interface CachedSearchResult {
   id?: number
