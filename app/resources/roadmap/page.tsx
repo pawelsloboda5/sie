@@ -151,23 +151,23 @@ export default async function RoadmapPage() {
         <section className="mb-12">
           <h2 className="text-h3 mb-3">Shipped</h2>
           <ul className="list-disc pl-6 space-y-1 text-body-base">
-            <li>Programmatic provider pages with JSON‑LD and dynamic OG images</li>
-            <li>Programmatic city/service pages (3–5 contextual FAQs with JSON‑LD)</li>
-            <li>Sitemap index + provider chunking; cities/services sitemap</li>
-            <li>Geocoding server proxy (CORS‑safe); address rendering in hero flows</li>
-            <li>Unified header styles; homepage FAQ now limited to current features</li>
-            <li>GA4 integrated; Search Console sitemaps ready</li>
+            <li>Faster care discovery with clear, local results</li>
+            <li>Thousands of provider pages with easy contact info, directions, and services</li>
+            <li>City & service pages that explain options and answer common questions</li>
+            <li>Reliable addresses and maps with a mobile‑friendly experience</li>
+            <li>Helpful filters: uninsured, no SSN, telehealth, and free/discounted services</li>
+            <li>Consistent, clean design and shareable previews when you send links</li>
           </ul>
         </section>
 
         <section className="mb-12">
           <h2 className="text-h3 mb-3">Next (30–60 days)</h2>
           <ul className="list-disc pl-6 space-y-1 text-body-base">
-            <li>Scale city/service coverage with stronger internal linking</li>
-            <li>Resources hub build‑out (MDX guides + short blog) with OG images</li>
-            <li>Neighborhood pages in top metros (DMV, Atlanta, SF)</li>
-            <li>Data refinement from multi‑agent extractors (insurance, eligibility, hours)</li>
-            <li>Alpha: automated phone scheduling (limited pilots)</li>
+            <li>Nationwide coverage: grow from ~5,000 to 100,000+ providers and facilities</li>
+            <li>Provider beta: AI agent scheduler that books appointments for patients</li>
+            <li>More guides and how‑tos to help people prepare for visits</li>
+            <li>Richer provider details (insurance, languages, hours, eligibility)</li>
+            <li>Stronger local pages, including neighborhood hubs in top metros</li>
           </ul>
         </section>
 
