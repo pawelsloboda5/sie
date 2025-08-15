@@ -1,456 +1,439 @@
+"use client"
+
 import React from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { 
-  MapPin, 
-  Phone, 
-  Globe, 
-  Mail, 
-  Star, 
-  DollarSign, 
-  Shield, 
-  CreditCard,
-  Navigation,
-  Heart,
-  CheckCircle,
-  AlertCircle,
-  Info,
-  X
+import {
+MapPin,
+Phone,
+Globe,
+Mail,
+Star,
+DollarSign,
+Shield,
+CreditCard,
+Navigation,
+Heart,
+CheckCircle,
+AlertCircle,
+Info,
+X
 } from "lucide-react"
 
 interface Provider {
-  _id: string
-  name: string
-  category: string
-  address: string
-  phone?: string
-  website?: string
-  email?: string
-  rating?: number
-  accepts_uninsured: boolean
-  medicaid: boolean
-  medicare: boolean
-  ssn_required: boolean
-  telehealth_available: boolean
-  insurance_providers: string[]
-  distance?: number
-  searchScore?: number
+_id: string
+name: string
+category: string
+address: string
+phone?: string
+website?: string
+email?: string
+rating?: number
+accepts_uninsured: boolean
+medicaid: boolean
+medicare: boolean
+ssn_required: boolean
+telehealth_available: boolean
+insurance_providers: string[]
+distance?: number
+searchScore?: number
 }
 
 interface Service {
-  _id: string
-  name: string
-  category: string
-  description: string
-  is_free: boolean
-  is_discounted: boolean
-  price_info: string
+_id: string
+name: string
+category: string
+description: string
+is_free: boolean
+is_discounted: boolean
+price_info: string
 }
 
 interface ProviderDetailsModalProps {
-  provider: Provider | null
-  services: Service[]
-  isOpen: boolean
-  onClose: () => void
-  onGetDirections?: (provider: Provider) => void
-  onCallProvider?: (provider: Provider) => void
-  onVisitWebsite?: (provider: Provider) => void
-  showDistance?: boolean
+provider: Provider | null
+services: Service[]
+isOpen: boolean
+onClose: () => void
+onGetDirections?: (provider: Provider) => void
+onCallProvider?: (provider: Provider) => void
+onVisitWebsite?: (provider: Provider) => void
+showDistance?: boolean
 }
 
 export function ProviderDetailsModal({
-  provider,
-  services,
-  isOpen,
-  onClose,
-  onGetDirections,
-  onCallProvider,
-  onVisitWebsite,
-  showDistance = true
+provider,
+services,
+isOpen,
+onClose,
+onGetDirections,
+onCallProvider,
+onVisitWebsite,
+showDistance = true
 }: ProviderDetailsModalProps) {
-  if (!provider) return null
+if (!provider) return null
 
-  const renderStars = (rating: number | null | undefined) => {
-    const stars = []
-    const safeRating = rating || 0
-    const fullStars = Math.floor(safeRating)
-    const hasHalfStar = safeRating % 1 !== 0
+const renderStars = (rating: number | null | undefined) => {
+const r = rating || 0
+return Array.from({ length: 5 }).map((_, i) => (
+<Star
+key={i}
+className={`h-4 w-4 ${i < Math.round(r) ? "fill-amber-400 text-amber-400" : "text-gray-300"}`}
+/>
+))
+}
 
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />)
-    }
+const formatDistance = (distance: number) => {
+if (distance < 1) return `${(distance * 5280).toFixed(0)} ft`
+return `${distance.toFixed(1)} mi`
+}
 
-    if (hasHalfStar) {
-      stars.push(<Star key="half" className="h-4 w-4 fill-yellow-400/50 text-yellow-400" />)
-    }
+const freeServices = services.filter(s => s.is_free)
+const discountedServices = services.filter(s => s.is_discounted && !s.is_free)
+const regularServices = services.filter(s => !s.is_free && !s.is_discounted)
 
-    const remainingStars = 5 - Math.ceil(safeRating)
-    for (let i = 0; i < remainingStars; i++) {
-      stars.push(<Star key={`empty-${i}`} className="h-4 w-4 text-gray-300" />)
-    }
+const handleAction = (action: "call" | "directions" | "website") => {
+if (action === "call") onCallProvider?.(provider)
+if (action === "directions") onGetDirections?.(provider)
+if (action === "website") onVisitWebsite?.(provider)
+}
 
-    return stars
-  }
+return (
+<Dialog open={isOpen} onOpenChange={onClose}>
+<DialogContent className="w-full max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[92vh] p-0 overflow-hidden border-0 bg-white/90 backdrop-blur rounded-2xl">
+{/* Header */}
+<DialogHeader className="px-5 sm:px-7 pt-6 pb-4 border-b bg-gradient-to-b from-white/70 to-white/30">
+<div className="flex items-start justify-between gap-4">
+<div className="min-w-0">
+<DialogTitle className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 truncate">
+{provider.name}
+</DialogTitle>
+<DialogDescription className="mt-1 text-gray-600">
+{provider.category}
+</DialogDescription>
+<div className="mt-2 flex items-center gap-2">
+<div className="flex items-center gap-0.5">{renderStars(provider.rating)}</div>
+<span className="text-sm text-gray-600 font-medium">
+{(provider.rating || 0).toFixed(1)}
+</span>
+{showDistance && provider.distance != null && (
+<>
+<span className="text-gray-300">•</span>
+<Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
+<MapPin className="h-3.5 w-3.5 mr-1" />
+{formatDistance(provider.distance)}
+</Badge>
+</>
+)}
+</div>
+</div>
+</div>
+</DialogHeader>
+    {/* Scrollable body */}
+    <ScrollArea className="max-h-[calc(92vh-160px)]">
+      <div className="px-5 sm:px-7 py-6 space-y-8">
+        {/* Contact and quick info */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardRow
+            icon={<MapPin className="h-5 w-5 text-emerald-600" />}
+            title="Address"
+            content={<span className="text-sm text-gray-700 break-words">{provider.address}</span>}
+          />
+          {provider.phone && (
+            <CardRow
+              icon={<Phone className="h-5 w-5 text-emerald-600" />}
+              title="Phone"
+              content={
+                <a href={`tel:${provider.phone}`} className="text-sm font-medium text-emerald-700 hover:underline">
+                  {provider.phone}
+                </a>
+              }
+            />
+          )}
+          {provider.website && (
+            <CardRow
+              icon={<Globe className="h-5 w-5 text-emerald-600" />}
+              title="Website"
+              content={
+                <a
+                  href={provider.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-emerald-700 hover:underline break-all"
+                >
+                  {provider.website.replace(/^https?:\/\//, "")}
+                </a>
+              }
+            />
+          )}
+          {provider.email && (
+            <CardRow
+              icon={<Mail className="h-5 w-5 text-emerald-600" />}
+              title="Email"
+              content={
+                <a href={`mailto:${provider.email}`} className="text-sm font-medium text-emerald-700 hover:underline break-all">
+                  {provider.email}
+                </a>
+              }
+            />
+          )}
+        </section>
 
-  const formatDistance = (distance: number) => {
-    if (distance < 1) {
-      return `${(distance * 5280).toFixed(0)} ft`
-    }
-    return `${distance.toFixed(1)} mi`
-  }
+        <Separator />
 
-  const getFreeServices = () => services.filter(service => service.is_free)
-  const getDiscountedServices = () => services.filter(service => service.is_discounted && !service.is_free)
-  const getRegularServices = () => services.filter(service => !service.is_free && !service.is_discounted)
+        {/* Accessibility */}
+        <section className="space-y-3">
+          <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <Shield className="h-5 w-5 text-emerald-600" />
+            Accessibility & Requirements
+          </h3>
 
-  const handleAction = (action: string) => {
-    switch (action) {
-      case 'call':
-        onCallProvider?.(provider)
-        break
-      case 'directions':
-        onGetDirections?.(provider)
-        break
-      case 'website':
-        onVisitWebsite?.(provider)
-        break
-    }
-  }
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Pill
+              ok={provider.accepts_uninsured}
+              okLabel="Accepts Uninsured"
+              noLabel="Requires Insurance"
+            />
+            <Pill ok={provider.medicaid} okLabel="Accepts Medicaid" noLabel="No Medicaid" />
+            <Pill ok={provider.medicare} okLabel="Accepts Medicare" noLabel="No Medicare" />
+            <Pill
+              ok={!provider.ssn_required}
+              okLabel="No SSN Required"
+              noLabel="SSN Required"
+              warn={!provider.ssn_required ? false : true}
+            />
+          </div>
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[95vh] md:max-h-[90vh] p-0 m-2 md:m-4 lg:m-6 overflow-hidden">
-        {/* Header Section */}
-        <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-6 pb-4 border-b bg-white/50 backdrop-blur-sm">
-          <div className="space-y-4">
-            <div className="flex flex-col space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight flex-1 min-w-0">
-                  {provider.name}
-                </DialogTitle>
-                {showDistance && provider.distance && (
-                  <Badge variant="outline" className="text-sm px-3 py-1.5 flex-shrink-0">
-                    <MapPin className="h-4 w-4 mr-1.5" />
-                    {formatDistance(provider.distance)}
-                  </Badge>
-                )}
-              </div>
-              
-              <DialogDescription className="text-base sm:text-lg text-gray-600">
-                {provider.category}
-              </DialogDescription>
-              
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  {renderStars(provider.rating)}
-                  <span className="text-sm sm:text-base text-gray-600 ml-2 font-medium">
-                    ({(provider.rating || 0).toFixed(1)})
-                  </span>
-                </div>
-              </div>
+          {provider.telehealth_available && (
+            <div className="mt-2 flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+              <CheckCircle className="h-4 w-4" />
+              Telehealth available
             </div>
-          </div>
-        </DialogHeader>
+          )}
+        </section>
 
-        {/* Scrollable Content */}
-        <ScrollArea className="flex-1 max-h-[calc(95vh-240px)] md:max-h-[calc(90vh-260px)]">
-          <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-            
-            {/* Contact Information Section */}
-            <section className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
-                <Info className="h-5 w-5 text-blue-600" />
-                Contact Information
+        {/* Insurance */}
+        {provider.insurance_providers.length > 0 && (
+          <>
+            <Separator />
+            <section className="space-y-3">
+              <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-blue-600" />
+                Insurance Accepted
               </h3>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50">
-                    <MapPin className="h-5 w-5 mt-0.5 text-gray-500 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-900 mb-1">Address</p>
-                      <p className="text-gray-600 text-sm leading-relaxed break-words">{provider.address}</p>
-                    </div>
-                  </div>
-                  
-                  {provider.phone && (
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50">
-                      <Phone className="h-5 w-5 mt-0.5 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-gray-900 mb-1">Phone</p>
-                        <a 
-                          href={`tel:${provider.phone}`}
-                          className="text-blue-600 hover:text-blue-800 hover:underline transition-colors text-sm font-medium"
-                        >
-                          {provider.phone}
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-4">
-                  {provider.website && (
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50">
-                      <Globe className="h-5 w-5 mt-0.5 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-gray-900 mb-1">Website</p>
-                        <a 
-                          href={provider.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 hover:underline break-all transition-colors text-sm font-medium"
-                        >
-                          {provider.website.replace(/^https?:\/\//, '')}
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {provider.email && (
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50/50">
-                      <Mail className="h-5 w-5 mt-0.5 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-gray-900 mb-1">Email</p>
-                        <a 
-                          href={`mailto:${provider.email}`}
-                          className="text-blue-600 hover:text-blue-800 hover:underline break-all transition-colors text-sm font-medium"
-                        >
-                          {provider.email}
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {provider.insurance_providers.map((ins) => (
+                  <Badge key={ins} variant="outline" className="rounded-full text-xs px-3 py-1">
+                    {ins}
+                  </Badge>
+                ))}
               </div>
             </section>
+          </>
+        )}
 
-            <Separator className="my-8" />
+        <Separator />
 
-            {/* Accessibility & Requirements Section */}
-            <section className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
-                <Shield className="h-5 w-5 text-green-600" />
-                Accessibility & Requirements
-              </h3>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50">
-                  {provider.accepts_uninsured ? (
-                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                  ) : (
-                    <X className="h-5 w-5 text-red-500 flex-shrink-0" />
-                  )}
-                  <span className={`text-sm font-medium ${provider.accepts_uninsured ? "text-green-700" : "text-red-600"}`}>
-                    {provider.accepts_uninsured ? "Accepts Uninsured" : "Requires Insurance"}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50">
-                  {provider.medicaid ? (
-                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                  ) : (
-                    <X className="h-5 w-5 text-red-500 flex-shrink-0" />
-                  )}
-                  <span className={`text-sm font-medium ${provider.medicaid ? "text-green-700" : "text-red-600"}`}>
-                    {provider.medicaid ? "Accepts Medicaid" : "No Medicaid"}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50">
-                  {provider.medicare ? (
-                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                  ) : (
-                    <X className="h-5 w-5 text-red-500 flex-shrink-0" />
-                  )}
-                  <span className={`text-sm font-medium ${provider.medicare ? "text-green-700" : "text-red-600"}`}>
-                    {provider.medicare ? "Accepts Medicare" : "No Medicare"}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50">
-                  {!provider.ssn_required ? (
-                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
-                  )}
-                  <span className={`text-sm font-medium ${!provider.ssn_required ? "text-green-700" : "text-orange-600"}`}>
-                    {!provider.ssn_required ? "No SSN Required" : "SSN Required"}
-                  </span>
-                </div>
-              </div>
-              
-              {provider.telehealth_available && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
-                  <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                  <span className="text-sm font-medium text-blue-700">
-                    Telehealth Services Available
-                  </span>
-                </div>
-              )}
-            </section>
+        {/* Services */}
+        <section className="space-y-6">
+          <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <Heart className="h-5 w-5 text-rose-500" />
+            Services Offered
+          </h3>
 
-            {/* Insurance Information */}
-            {provider.insurance_providers.length > 0 && (
-              <>
-                <Separator className="my-8" />
-                <section className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
-                    <CreditCard className="h-5 w-5 text-purple-600" />
-                    Insurance Accepted
-                  </h3>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    {provider.insurance_providers.map((insurance) => (
-                      <Badge key={insurance} variant="outline" className="text-sm px-3 py-1.5 font-medium">
-                        {insurance}
-                      </Badge>
-                    ))}
-                  </div>
-                </section>
-              </>
-            )}
+          {freeServices.length > 0 && (
+            <ServiceGroup
+              title={`Free Services (${freeServices.length})`}
+              color="green"
+              items={freeServices}
+            />
+          )}
 
-            <Separator className="my-8" />
+          {discountedServices.length > 0 && (
+            <ServiceGroup
+              title={`Discounted Services (${discountedServices.length})`}
+              color="orange"
+              items={discountedServices}
+            />
+          )}
 
-            {/* Services Section */}
-            <section className="space-y-6">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
-                <Heart className="h-5 w-5 text-red-500" />
-                Services Offered
-              </h3>
-              
-              {/* Free Services */}
-              {getFreeServices().length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-green-700 flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    Free Services ({getFreeServices().length})
-                  </h4>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {getFreeServices().map((service) => (
-                      <div key={service._id} className="p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100/50 transition-colors">
-                        <div className="flex items-start justify-between mb-2 gap-2">
-                          <h5 className="font-medium text-green-900 flex-1 leading-tight">{service.name}</h5>
-                          <Badge className="bg-green-100 text-green-800 text-xs flex-shrink-0 font-medium">FREE</Badge>
-                        </div>
-                        <p className="text-sm text-green-700 mb-2 font-medium">{service.category}</p>
-                        {service.description && (
-                          <p className="text-sm text-green-600 leading-relaxed">{service.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          {regularServices.length > 0 && (
+            <ServiceGroup
+              title={`Other Services (${regularServices.length})`}
+              color="blue"
+              items={regularServices}
+            />
+          )}
 
-              {/* Discounted Services */}
-              {getDiscountedServices().length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-orange-700 flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    Discounted Services ({getDiscountedServices().length})
-                  </h4>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {getDiscountedServices().map((service) => (
-                      <div key={service._id} className="p-4 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100/50 transition-colors">
-                        <div className="flex items-start justify-between mb-2 gap-2">
-                          <h5 className="font-medium text-orange-900 flex-1 leading-tight">{service.name}</h5>
-                          <Badge className="bg-orange-100 text-orange-800 text-xs flex-shrink-0 font-medium">DISCOUNTED</Badge>
-                        </div>
-                        <p className="text-sm text-orange-700 mb-2 font-medium">{service.category}</p>
-                        {service.description && (
-                          <p className="text-sm text-orange-600 mb-2 leading-relaxed">{service.description}</p>
-                        )}
-                        {service.price_info && (
-                          <p className="text-sm font-medium text-orange-700">
-                            Pricing: {service.price_info}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          {services.length === 0 && (
+            <div className="text-center py-10 text-gray-500 text-sm">
+              No detailed service information available.
+            </div>
+          )}
+        </section>
+      </div>
+    </ScrollArea>
 
-              {/* Regular Services */}
-              {getRegularServices().length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-blue-700 flex items-center gap-2">
-                    <Heart className="h-4 w-4" />
-                    Other Services ({getRegularServices().length})
-                  </h4>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {getRegularServices().map((service) => (
-                      <div key={service._id} className="p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100/50 transition-colors">
-                        <h5 className="font-medium text-blue-900 mb-2 leading-tight">{service.name}</h5>
-                        <p className="text-sm text-blue-700 mb-2 font-medium">{service.category}</p>
-                        {service.description && (
-                          <p className="text-sm text-blue-600 mb-2 leading-relaxed">{service.description}</p>
-                        )}
-                        {service.price_info && (
-                          <p className="text-sm font-medium text-blue-700">
-                            Pricing: {service.price_info}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+    {/* Footer actions */}
+    <div className="px-5 sm:px-7 py-4 border-t bg-white/90 backdrop-blur">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {provider.phone && (
+          <Button
+            onClick={() => handleAction("call")}
+            className="h-11 rounded-xl font-semibold shadow-sm hover:shadow"
+          >
+            <Phone className="h-5 w-5 mr-2" />
+            Call Now
+          </Button>
+        )}
+        <Button
+          onClick={() => handleAction("directions")}
+          variant="outline"
+          className="h-11 rounded-xl font-semibold border-2"
+        >
+          <Navigation className="h-5 w-5 mr-2" />
+          Get Directions
+        </Button>
+        {provider.website && (
+          <Button
+            onClick={() => handleAction("website")}
+            variant="outline"
+            className="h-11 rounded-xl font-semibold border-2"
+          >
+            <Globe className="h-5 w-5 mr-2" />
+            Visit Website
+          </Button>
+        )}
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
+)
+}
 
-              {services.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 text-base">
-                    No detailed service information available
-                  </p>
-                </div>
-              )}
-            </section>
-          </div>
-        </ScrollArea>
+/* Subcomponents */
 
-        {/* Action Buttons - Sticky Footer */}
-        <div className="px-4 sm:px-6 lg:px-8 py-4 border-t bg-white/80 backdrop-blur-sm">
-          <div className="flex flex-col sm:flex-row gap-3">
-            {provider.phone && (
-              <Button
-                onClick={() => handleAction('call')}
-                className="w-full sm:flex-1 h-12 sm:h-14 text-base font-semibold shadow-sm hover:shadow-md transition-all"
-                size="lg"
-              >
-                <Phone className="h-5 w-5 mr-2" />
-                Call Now
-              </Button>
-            )}
-            
-            <Button
-              onClick={() => handleAction('directions')}
-              variant="outline"
-              className="w-full sm:flex-1 h-12 sm:h-14 text-base font-semibold border-2 hover:bg-gray-50 transition-all"
-              size="lg"
-            >
-              <Navigation className="h-5 w-5 mr-2" />
-              Get Directions
-            </Button>
-            
-            {provider.website && (
-              <Button
-                onClick={() => handleAction('website')}
-                variant="outline"
-                className="w-full sm:flex-1 h-12 sm:h-14 text-base font-semibold border-2 hover:bg-gray-50 transition-all"
-                size="lg"
-              >
-                <Globe className="h-5 w-5 mr-2" />
-                Visit Website
-              </Button>
+function CardRow({
+icon,
+title,
+content
+}: {
+icon: React.ReactNode
+title: string
+content: React.ReactNode
+}) {
+return (
+<div className="rounded-xl border border-gray-200 bg-white/70 p-3">
+<div className="flex items-start gap-3">
+<div className="shrink-0">{icon}</div>
+<div className="min-w-0">
+<p className="text-sm font-semibold text-gray-900">{title}</p>
+<div className="mt-0.5">{content}</div>
+</div>
+</div>
+</div>
+)
+}
+
+function Pill({
+ok,
+okLabel,
+noLabel,
+warn
+}: {
+ok: boolean
+okLabel: string
+noLabel: string
+warn?: boolean
+}) {
+if (ok) {
+return (
+<div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+<CheckCircle className="h-4 w-4 text-emerald-600" />
+<span className="text-sm font-medium text-emerald-700">{okLabel}</span>
+</div>
+)
+}
+return (
+<div
+className={[
+"flex items-center gap-2 rounded-xl px-3 py-2 border",
+warn
+? "border-amber-200 bg-amber-50 text-amber-700"
+: "border-rose-200 bg-rose-50 text-rose-700"
+].join(" ")}
+>
+{warn ? <AlertCircle className="h-4 w-4" /> : <X className="h-4 w-4" />}
+<span className="text-sm font-medium">{noLabel}</span>
+</div>
+)
+}
+
+function ServiceGroup({
+title,
+color,
+items
+}: {
+title: string
+color: "green" | "orange" | "blue"
+items: Service[]
+}) {
+const palette = {
+green: {
+bg: "bg-emerald-50",
+border: "border-emerald-200",
+title: "text-emerald-800",
+chip: "bg-emerald-100 text-emerald-800"
+},
+orange: {
+bg: "bg-orange-50",
+border: "border-orange-200",
+title: "text-orange-800",
+chip: "bg-orange-100 text-orange-800"
+},
+blue: {
+bg: "bg-blue-50",
+border: "border-blue-200",
+title: "text-blue-800",
+chip: "bg-blue-100 text-blue-800"
+}
+}[color]
+
+return (
+  <div className="space-y-3">
+    <h4 className={`text-sm font-semibold ${palette.title}`}>{title}</h4>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {items.map((s) => (
+        <div
+          key={s._id}
+          className={`rounded-xl ${palette.bg} ${palette.border} border p-4 transition-colors hover:bg-white`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-gray-900">{s.name}</div>
+              <div className="text-xs text-gray-600 mt-0.5">{s.category}</div>
+            </div>
+            {(s.is_free || s.is_discounted) && (
+              <Badge className={`${palette.chip} text-[10px] px-2 py-0.5`}>
+                {s.is_free ? "FREE" : "DISCOUNTED"}
+              </Badge>
             )}
           </div>
+          {s.description && (
+            <p className="mt-2 text-sm text-gray-700 leading-relaxed">
+              {s.description}
+            </p>
+          )}
+          {s.price_info && (
+            <p className="mt-2 text-xs text-gray-600">
+              Pricing: <span className="font-medium">{s.price_info}</span>
+            </p>
+          )}
         </div>
-      </DialogContent>
-    </Dialog>
-  )
-} 
+      ))}
+    </div>
+  </div>
+)
+}
