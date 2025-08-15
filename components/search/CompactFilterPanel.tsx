@@ -65,8 +65,6 @@ const providerTypes = [
 export function CompactFilterPanel({
 filters,
 onFiltersChange,
-onClearFilters,
-resultsCount,
 isLoading = false,
 className = "",
 isLocalFiltering = false
@@ -115,22 +113,7 @@ return (
 <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
 </Button>
 </CollapsibleTrigger>
-{typeof resultsCount === 'number' && (
-          <div className="hidden md:flex items-center text-sm text-gray-500">
-            {resultsCount} results
-          </div>
-        )}
-
-        {onClearFilters && activeFiltersCount > 0 && (
-          <Button
-            variant="ghost"
-            onClick={onClearFilters}
-            className="rounded-xl h-11"
-          >
-            Clear
-          </Button>
-        )}
-      </div>
+</div>
 
       {/* Panel */}
       <CollapsibleContent className="mt-4">

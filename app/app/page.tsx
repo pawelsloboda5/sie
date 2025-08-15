@@ -528,9 +528,6 @@ return (
               </div>
             )}
           </div>
-          {searchResults?.totalResults ? (
-            <span className="text-sm text-gray-500">{searchResults.totalResults} results</span>
-          ) : null}
         </div>
         
         {/* Results */}
