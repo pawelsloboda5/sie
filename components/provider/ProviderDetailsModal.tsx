@@ -12,14 +12,12 @@ Phone,
 Globe,
 Mail,
 Star,
-DollarSign,
 Shield,
 CreditCard,
 Navigation,
 Heart,
 CheckCircle,
 AlertCircle,
-Info,
 X
 } from "lucide-react"
 
