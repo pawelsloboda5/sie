@@ -240,4 +240,6 @@ Next levers to accelerate
 - Start link outreach to local coalitions and non‑profits; list in relevant directories.
 
 FAQ strategy (including Preventive Care)
-- We added preventive‑care FAQs now to capture informational intent around “annual checkups,” “screenings,” “wellness plans,” and “preventive care for uninsured.” Clear “coming soon” language prevents misleading users. This supports topical coverage and enables FAQ rich results without risking thin or deceptive content.
+- Homepage: keep FAQ strictly about the live search product (what it is, how it works, free/uninsured/SSN/telehealth/accuracy). Mark up with FAQPage JSON‑LD.
+- Dedicated page: add `/resources/faq` with expanded FAQs (no JSON‑LD) and link to it from header/footer. Treat “coming soon” topics (AI scheduler, Preventive Care Plan) here only, clearly labeled, and avoid structured‑data markup until launch.
+- Programmatic pages: include 3–5 contextual FAQs per city/service page with FAQPage JSON‑LD (already implemented), focused on eligibility, cost, documents, and how to use filters.

@@ -88,6 +88,21 @@ export default async function CityServicePage({ params }: PageProps) {
         '@type': 'Question',
         name: 'What documents should I bring?',
         acceptedAnswer: { '@type': 'Answer', text: 'Policies vary by provider. Many free services do not require SSN. Call to confirm hours and eligibility.' }
+      },
+      {
+        '@type': 'Question',
+        name: 'Do providers accept uninsured patients?',
+        acceptedAnswer: { '@type': 'Answer', text: 'Many listings accept uninsured patients and offer sliding‑scale or free options. Use filters for “Accepts uninsured”.' }
+      },
+      {
+        '@type': 'Question',
+        name: 'Is telehealth available?',
+        acceptedAnswer: { '@type': 'Answer', text: 'Yes. Use the telehealth filter to find virtual visit options in this area.' }
+      },
+      {
+        '@type': 'Question',
+        name: 'How current is the information?',
+        acceptedAnswer: { '@type': 'Answer', text: 'We refresh data regularly and show contact details so you can confirm hours and availability with providers.' }
       }
     ]
   }

@@ -42,10 +42,22 @@ export function AppHeader() {
             Home
           </Link>
           <Link
+            href="/app"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 transition-colors"
+          >
+            Search
+          </Link>
+          <Link
             href="/providers"
             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 transition-colors"
           >
             Providers
+          </Link>
+          <Link
+            href="/resources/faq"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 transition-colors"
+          >
+            FAQ
           </Link>
         </nav>
 
@@ -75,11 +87,25 @@ export function AppHeader() {
               Home
             </Link>
             <Link
+              href="/app"
+              onClick={closeMobileMenu}
+              className="block py-3 px-4 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              Search
+            </Link>
+            <Link
               href="/providers"
               onClick={closeMobileMenu}
               className="block py-3 px-4 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               Providers
+            </Link>
+            <Link
+              href="/resources/faq"
+              onClick={closeMobileMenu}
+              className="block py-3 px-4 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              FAQ
             </Link>
           </nav>
         </div>
