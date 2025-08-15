@@ -3,7 +3,10 @@ import { getServerDb } from '@/lib/server/db'
 import Link from 'next/link'
 import { ObjectId } from 'mongodb'
 
-type PageProps = { params: { service: string; city: string } }
+type PageParams = { service: string; city: string }
+type PageProps = { params: Promise<PageParams> }
+
+async function unwrapParams<T>(p: T | Promise<T>): Promise<T> { return await p }
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.sie2.com'
 
@@ -12,23 +15,24 @@ function titleize(s: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const serviceName = titleize(params.service)
-  const cityName = titleize(params.city)
+  const { service, city } = await unwrapParams(params)
+  const serviceName = titleize(service)
+  const cityName = titleize(city)
   const title = `Free & Low‑Cost ${serviceName} in ${cityName} | SIE Wellness`
   const description = `Find free and affordable ${serviceName} in ${cityName}. Compare hours, insurance, no‑SSN options, and directions.`
   return {
     title,
     description,
-    alternates: { canonical: `/find/${params.service}/${params.city}` },
-    openGraph: { title, description, url: `${siteUrl}/find/${params.service}/${params.city}`, images: [`${siteUrl}/find/${params.service}/${params.city}/opengraph-image`] },
+    alternates: { canonical: `/find/${service}/${city}` },
+    openGraph: { title, description, url: `${siteUrl}/find/${service}/${city}`, images: [`${siteUrl}/find/${service}/${city}/opengraph-image`] },
     twitter: { card: 'summary_large_image', title, description },
   }
 }
 
 export default async function CityServicePage({ params }: PageProps) {
+  const { service, city } = await unwrapParams(params)
   const db = await getServerDb()
-  const serviceKey = params.service
-  const cityKey = params.city.split('-')[0] // allow state at end
+  const cityKey = city.split('-')[0] // allow state at end
   const cityRegex = new RegExp(cityKey.replace(/-/g, '.*'), 'i')
 
   // Query providers in city; then fetch their services filtered by category match
@@ -39,16 +43,24 @@ export default async function CityServicePage({ params }: PageProps) {
     .toArray()
 
   const ids = providers.map(p => p._id) as ObjectId[]
-  const services = ids.length
+  type ServiceDoc = {
+    _id: ObjectId
+    provider_id: ObjectId
+    name: string
+    category?: string
+    is_free?: boolean
+  }
+
+  const services: ServiceDoc[] = ids.length
     ? await db
-        .collection('services')
+        .collection<ServiceDoc>('services')
         .find({ provider_id: { $in: ids } }, { projection: { _id: 1, provider_id: 1, name: 1, category: 1, is_free: 1 } })
         .limit(500)
         .toArray()
     : []
 
-  const serviceName = titleize(params.service)
-  const cityName = titleize(params.city)
+  const serviceName = titleize(service)
+  const cityName = titleize(city)
 
   // JSON‑LD ItemList for providers
   const itemList = {
@@ -93,8 +105,8 @@ export default async function CityServicePage({ params }: PageProps) {
         <ul className="space-y-3 mb-8">
           {providers.map((p) => {
             const slug = `${String(p.name).toLowerCase().trim().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/-{2,}/g,'-').replace(/^-|-$/g,'')}-p-${String(p._id).slice(-6)}`
-            const pServices = services.filter((s: any) => String(s.provider_id) === String(p._id))
-            const freeCount = pServices.filter((s: any) => s.is_free).length
+            const pServices = services.filter((s) => String(s.provider_id) === String(p._id))
+            const freeCount = pServices.filter((s) => Boolean(s.is_free)).length
             return (
               <li key={String(p._id)} className="border rounded-md p-3">
                 <Link className="underline font-semibold" href={`/providers/${slug}`}>{p.name}</Link>

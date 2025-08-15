@@ -24,7 +24,7 @@ export async function GET() {
       Array.from({ length: pages }, (_, i) => `<sitemap><loc>${siteUrl}/sitemaps/providers/${i + 1}.xml</loc></sitemap>`).join('') +
       `</sitemapindex>`
     return new NextResponse(xml, { headers: { 'Content-Type': 'application/xml' } })
-  } catch (e) {
+  } catch {
     return new NextResponse('Service unavailable', { status: 503 })
   }
 }

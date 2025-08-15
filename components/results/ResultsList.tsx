@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from "react"
 import { ProviderCard } from "./ProviderCard"
 import { ProviderDetailsModal } from "../provider/ProviderDetailsModal"
-import Link from "next/link"
 import { buildProviderSlug } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

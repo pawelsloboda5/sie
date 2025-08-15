@@ -42,7 +42,6 @@ Component library upgrades (React 19 / Next.js 15)
 
 Hero and homepage
 - Replace static hero with brand “S” logomark + wordmark and a concise promise statement.
-- Keep the powerful search, but add 3 curated quick‑start buttons (Free STI Testing, Free Dental, Mental Health).
 - Add trust signals: “How it works”, data coverage, and communities served.
 
 Provider page UX (new)

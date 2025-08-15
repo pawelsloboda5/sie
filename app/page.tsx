@@ -24,6 +24,15 @@ export default function Landing() {
       {/* ---------- Who We Help ---------- */}
       <section id="who-we-help" className="py-24 bg-gray-50/50 dark:bg-gray-900/50">
         <div className="container text-center mb-16">
+          <div className="flex justify-center mb-8">
+            <Image
+              src="/SIE Prim_teal.png"
+              alt="SIE Wellness"
+              width={200}
+              height={80}
+              className="object-contain"
+            />
+          </div>
           <h3 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-6">
             Built for Real People with Real Needs
           </h3>
@@ -304,16 +313,15 @@ async with NPILookupClient() as client:
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div className="space-y-4">
               <Link href="#" className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center">
+                <div className="flex h-12 w-32 items-center justify-center">
                   <Image
-                    src="/logo_560x560.png"
+                    src="/1600x600-black-banner-logo.png"
                     alt="SIE Wellness Logo"
-                    width={32}
-                    height={32}
-                    className="rounded-lg"
+                    width={128}
+                    height={48}
+                    className="object-contain"
                   />
                 </div>
-                <span className="text-h5">SIE Wellness</span>
               </Link>
               <p className="text-body-sm text-muted-foreground">
                 AI-powered healthcare discovery for everyone.

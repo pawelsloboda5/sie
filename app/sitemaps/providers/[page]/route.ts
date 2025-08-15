@@ -18,9 +18,13 @@ function slugify(name: string, id: ObjectId) {
   return `${base}-p-${String(id).slice(-6)}`
 }
 
-export async function GET(req: NextRequest, { params }: { params: { page: string } }) {
+type RouteParams = { page: string }
+
+export async function GET(req: NextRequest, ctx: { params: Promise<RouteParams> }) {
   try {
-    const pageNum = Math.max(1, parseInt(Array.isArray(params.page) ? params.page[0] : params.page, 10) || 1)
+    const { params } = ctx
+    const { page } = await params
+    const pageNum = Math.max(1, parseInt(Array.isArray(page) ? page[0] : page, 10) || 1)
     const skip = (pageNum - 1) * CHUNK
     const { client, db } = await getDb()
     const cursor = db.collection('providers').find({}, { projection: { _id: 1, name: 1 } }).skip(skip).limit(CHUNK)

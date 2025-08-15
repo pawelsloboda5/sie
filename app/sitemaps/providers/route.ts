@@ -1,4 +1,3 @@
-import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { MongoClient } from 'mongodb'
 
@@ -13,7 +12,7 @@ async function getDb() {
 }
 
 // Simple provider sitemap (single file). We will chunk this if count grows.
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const { client, db } = await getDb()
     const cursor = db.collection('providers').find({}, { projection: { _id: 1, name: 1 } })

@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, display, address: data?.address, raw: data }, {
       headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' }
     })
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'proxy_error' }, { status: 500 })
   }
 }

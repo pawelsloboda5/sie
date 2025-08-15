@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.sie2.com'
-
 // For now this is a placeholder sitemap. Once MDX posts exist, iterate them.
 export async function GET() {
   const urls: string[] = []

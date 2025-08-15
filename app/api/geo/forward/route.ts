@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, latitude: parseFloat(first.lat), longitude: parseFloat(first.lon), raw: first }, {
       headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' }
     })
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'proxy_error' }, { status: 500 })
   }
 }

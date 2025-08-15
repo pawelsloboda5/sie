@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.sie2.com'
 
@@ -57,7 +57,7 @@ function slugifyCity(city: string, state: string): string {
   return `${c}-${state.toLowerCase()}`
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const urls: string[] = []
   for (const s of services) {
     for (const loc of cities) {

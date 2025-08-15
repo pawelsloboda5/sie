@@ -4,9 +4,9 @@ import { getServerDb } from '@/lib/server/db'
 import { extractProviderIdFromSlug } from '@/lib/utils'
 import { ObjectId } from 'mongodb'
 
-export const revalidate = 60 * 60 * 24 // 24h ISR by default
+export const revalidate = 86400 // 24h ISR by default
 
-type PageProps = { params: { slug: string } | Promise<{ slug: string }> }
+type PageProps = { params: Promise<{ slug: string }> }
 
 async function unwrapParams<T>(p: T | Promise<T>): Promise<T> { return await p }
 
@@ -54,16 +54,42 @@ export default async function ProviderPage({ params }: PageProps) {
 
   // Because `_id` is an ObjectId, we can't regex directly on it.
   // Strategy: pull a small candidate set by name, then match by short id suffix.
+  type ProviderDoc = {
+    _id: ObjectId
+    name: string
+    address?: string
+    phone?: string
+    category?: string
+    languages?: string[]
+    accepts_uninsured?: boolean
+    medicaid?: boolean
+    medicare?: boolean
+    ssn_required?: boolean
+    telehealth_available?: boolean
+    website?: string
+    location?: { coordinates?: [number, number] }
+    state?: string
+    total_services?: number
+    free_services?: number
+    free_service_ratio?: number
+    summary_text?: string
+    specialties?: string[]
+    conditions_treated?: string[]
+    service_categories?: string[]
+    free_service_names?: string[]
+    rating?: number
+  }
+
   const candidates = await db
-    .collection('providers')
+    .collection<Pick<ProviderDoc, '_id' | 'name'> & { _id: ObjectId }>('providers')
     .find({ name: nameRegex }, { projection: { name: 1, _id: 1 } })
     .limit(20)
     .toArray()
 
-  let provider = candidates.find((c: any) => String(c._id).slice(-6).toLowerCase() === (shortId || '').toLowerCase())
+  let provider = candidates.find((c) => String(c._id).slice(-6).toLowerCase() === (shortId || '').toLowerCase())
   if (!provider) {
     // Fallback: try first candidate
-    provider = candidates[0] as any
+    provider = candidates[0]
   }
 
   if (!provider) {
@@ -76,28 +102,28 @@ export default async function ProviderPage({ params }: PageProps) {
   }
 
   // Re-fetch full provider doc with all fields
-  const full = await db.collection('providers').findOne({ _id: new ObjectId(String(provider._id)) })
+  const full = await db.collection<ProviderDoc>('providers').findOne({ _id: new ObjectId(String(provider._id)) })
   const name: string = full?.name || titleCaseFromSlug(slug)
   const address: string | undefined = full?.address
   const phone: string | undefined = full?.phone
   const category: string | undefined = full?.category
-  const languages: string[] | undefined = (full as any)?.languages || []
+  const languages: string[] | undefined = full?.languages || []
   const acceptsUninsured: boolean | undefined = full?.accepts_uninsured
   const medicaid: boolean | undefined = full?.medicaid
   const medicare: boolean | undefined = full?.medicare
   const ssnRequired: boolean | undefined = full?.ssn_required
   const telehealth: boolean | undefined = full?.telehealth_available
   const website: string | undefined = full?.website
-  const coords = (full as any)?.location?.coordinates as [number, number] | undefined
-  const state: string | undefined = (full as any)?.state
-  const totalServices: number | undefined = (full as any)?.total_services
-  const freeServices: number | undefined = (full as any)?.free_services
-  const freeRatio: number | undefined = (full as any)?.free_service_ratio
-  const summaryText: string | undefined = (full as any)?.summary_text
-  const specialties: string[] = (full as any)?.specialties || []
-  const conditionsTreated: string[] = (full as any)?.conditions_treated || []
-  const serviceCategories: string[] = (full as any)?.service_categories || []
-  const freeServiceNames: string[] = (full as any)?.free_service_names || []
+  const coords = full?.location?.coordinates as [number, number] | undefined
+  const state: string | undefined = full?.state
+  const totalServices: number | undefined = full?.total_services
+  const freeServices: number | undefined = full?.free_services
+  const freeRatio: number | undefined = full?.free_service_ratio
+  const summaryText: string | undefined = full?.summary_text
+  const specialties: string[] = full?.specialties || []
+  const conditionsTreated: string[] = full?.conditions_treated || []
+  const serviceCategories: string[] = full?.service_categories || []
+  const freeServiceNames: string[] = full?.free_service_names || []
 
   // Schema.org type selection
   const schemaType = category?.toLowerCase().includes('physician') || category?.toLowerCase().includes('doctor')
@@ -106,7 +132,7 @@ export default async function ProviderPage({ params }: PageProps) {
     ? 'MedicalClinic'
     : 'LocalBusiness'
 
-  const ldJson: Record<string, any> = {
+  const ldJson: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': schemaType,
     name,
@@ -120,21 +146,52 @@ export default async function ProviderPage({ params }: PageProps) {
   }
 
   // Fetch services for this provider
+  type ServiceDoc = {
+    _id: ObjectId
+    provider_id: ObjectId
+    name: string
+    category?: string
+    description?: string
+    is_free?: boolean
+    is_discounted?: boolean
+    price_info?: string
+  }
+
   const services = await db
-    .collection('services')
+    .collection<ServiceDoc>('services')
     .find({ provider_id: new ObjectId(String(provider._id)) }, { projection: { name: 1, category: 1, description: 1, is_free: 1, is_discounted: 1, price_info: 1 } })
     .limit(100)
     .toArray()
 
   // Related providers: same category & state
   const related = await db
-    .collection('providers')
+    .collection<Pick<ProviderDoc, '_id' | 'name' | 'address'> & { _id: ObjectId }>('providers')
     .find({ _id: { $ne: new ObjectId(String(provider._id)) }, category, ...(state ? { state } : {}) }, { projection: { _id: 1, name: 1, address: 1 } })
     .limit(6)
     .toArray()
 
   // Cross-reference Businesses collection by Name + Address
-  const business = await db.collection('businesses').findOne({
+  type BusinessDoc = {
+    [key: string]: unknown
+    'Business Status'?: unknown
+    'Total Reviews'?: unknown
+    'Hours'?: unknown
+    'Booking Links'?: unknown
+    jina_description?: unknown
+    insurance_accepted?: {
+      major_providers?: string[]
+      medicaid?: boolean
+      medicare?: boolean
+      self_pay_options?: boolean
+      accepted_payment_methods?: string[]
+      notes?: string
+    }
+    eligibility_requirements?:
+      | string[]
+      | { appointment_process?: string; required_documentation?: string[] }
+  }
+
+  const business = await db.collection<BusinessDoc>('businesses').findOne({
     Name: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
     Address: new RegExp(address ? address.split(',')[0].trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '', 'i')
   })
@@ -143,7 +200,6 @@ export default async function ProviderPage({ params }: PageProps) {
     <main className="container py-10">
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ldJson) }}
       />
 
@@ -177,7 +233,7 @@ export default async function ProviderPage({ params }: PageProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="border rounded-md p-3">
             <div className="text-sm text-muted-foreground">Rating</div>
-            <div className="text-xl font-semibold">{(full as any)?.rating ?? '—'}</div>
+            <div className="text-xl font-semibold">{full?.rating ?? '—'}</div>
           </div>
           <div className="border rounded-md p-3">
             <div className="text-sm text-muted-foreground">Total services</div>
@@ -256,7 +312,7 @@ export default async function ProviderPage({ params }: PageProps) {
         <section className="mb-10">
           <h2 className="text-h3 mb-3">Services</h2>
           <ul className="space-y-2">
-            {services.map((s: any) => (
+            {services.map((s) => (
               <li key={String(s._id)} className="border rounded-md p-3">
                 <div className="font-semibold">{s.name}</div>
                 <div className="text-sm text-muted-foreground">{s.category}</div>
@@ -271,35 +327,35 @@ export default async function ProviderPage({ params }: PageProps) {
       )}
 
       {/* Business (pre-processed) supplemental info */}
-      {business && (
+      {business ? (
         <section className="mb-10">
           <h2 className="text-h3 mb-3">More Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {business['Business Status'] && (
+            {Boolean(business['Business Status']) && (
               <div className="border rounded-md p-3">
                 <div className="text-sm text-muted-foreground">Status</div>
                 <div className="font-semibold">{String(business['Business Status'])}</div>
               </div>
             )}
-            {business['Total Reviews'] && (
+            {Boolean(business['Total Reviews']) && (
               <div className="border rounded-md p-3">
                 <div className="text-sm text-muted-foreground">Reviews</div>
                 <div className="font-semibold">{String(business['Total Reviews'])}</div>
               </div>
             )}
-            {business['Hours'] && (
+            {Boolean(business['Hours']) && (
               <div className="border rounded-md p-3 md:col-span-2">
                 <div className="text-sm text-muted-foreground">Hours</div>
                 <div className="whitespace-pre-wrap text-sm">{String(business['Hours'])}</div>
               </div>
             )}
-            {business['Booking Links'] && (
+            {Boolean(business['Booking Links']) && (
               <div className="border rounded-md p-3">
                 <div className="text-sm text-muted-foreground">Booking</div>
                 <a className="underline" href={String(business['Booking Links'])} target="_blank" rel="noopener noreferrer">Schedule online</a>
               </div>
             )}
-            {business.jina_description && (
+            {Boolean(business.jina_description) && (
               <div className="border rounded-md p-3 md:col-span-2">
                 <div className="text-sm text-muted-foreground">About</div>
                 <div className="text-sm">{String(business.jina_description)}</div>
@@ -375,14 +431,14 @@ export default async function ProviderPage({ params }: PageProps) {
             </div>
           ) : null}
         </section>
-      )}
+      ) : null}
 
       {/* Related providers */}
       {related.length > 0 && (
         <section className="mb-10">
           <h2 className="text-h3 mb-3">Related providers</h2>
           <ul className="space-y-2">
-            {related.map((rp: any) => {
+            {related.map((rp) => {
               const slug = `${String(rp.name).toLowerCase().trim().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/-{2,}/g,'-').replace(/^-|-$/g,'')}-p-${String(rp._id).slice(-6)}`
               return (
                 <li key={String(rp._id)}>
