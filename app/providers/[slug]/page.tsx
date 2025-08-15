@@ -149,7 +149,7 @@ export default async function ProviderPage({ params }: PageProps) {
 
       {/* Breadcrumbs */}
       <nav className="text-sm mb-4 text-muted-foreground">
-        <Link className="hover:underline" href="/providers">Providers</Link>
+        <Link className="hover:underline" href="/app">Search</Link>
         <span className="mx-2">/</span>
         <span className="text-foreground">{name}</span>
       </nav>
