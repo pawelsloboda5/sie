@@ -194,7 +194,7 @@ export const toggleFavoriteProvider = (provider: FavoriteProvider): boolean => {
 }
 
 // Get featured service for a provider (this would normally fetch from your services API)
-export const getFeaturedServiceForProvider = async (providerId: string): Promise<string> => {
+export const getFeaturedServiceForProvider = async (): Promise<string> => {
   try {
     // In a real implementation, this would call your services API
     // For now, return a default message

@@ -244,7 +244,7 @@ return (
 {results.isFiltered ? (
 <>Found {results.totalResults} filtered results</>
 ) : (
-<>Found {results.totalResults} results for "{results.query}"</>
+<>Found {results.totalResults} results for &quot;{results.query}&quot;</>
 )}
 </h2>
 <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
@@ -322,12 +322,8 @@ Filter mode
                 topService={topService}
                 onGetDirections={(p) => handleProviderAction('directions', p)}
                 onCallProvider={(p) => handleProviderAction('call', p)}
-                onVisitWebsite={(p) => handleProviderAction('website', p)}
-                onViewDetails={(p) => handleProviderAction('details', p)}
-                onScheduleWithAI={(p) => handleProviderAction('voice-agent', p)}
-                onFavoriteToggle={(p, isFavorited) => {
-                  console.log(`Provider ${p.name} ${isFavorited ? 'added to' : 'removed from'} favorites`)
-                }}
+                onVisitWebsite={(p: Provider) => handleProviderAction('website', p)}
+                onViewDetails={(p: Provider) => handleProviderAction('details', p)}
                 showDistance={showDistance}
                 compact={compact}
               />

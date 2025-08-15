@@ -16,9 +16,7 @@ Filter,
 ChevronDown,
 DollarSign,
 Shield,
-CreditCard,
-MapPin,
-Star
+MapPin
 } from "lucide-react"
 
 interface FilterOptions {
