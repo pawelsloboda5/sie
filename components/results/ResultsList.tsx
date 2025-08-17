@@ -239,7 +239,7 @@ if (
 }
 
 return (
-<div className="h-full flex flex-col space-y-5">
+<div className="h-full flex flex-col space-y-5 w-full max-w-[95vw] mx-auto">
 <div className="flex-shrink-0 flex flex-col gap-3 sm:flex-row sm:items-center justify-between">
 <div className="space-y-1">
 <h2 className="text-xl lg:text-2xl font-semibold text-gray-900">
