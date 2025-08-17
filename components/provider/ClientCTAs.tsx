@@ -1,9 +1,8 @@
 "use client"
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Heart, Share2, Bot, Copy } from 'lucide-react'
-import { saveFavoriteProvider, type FavoriteProvider } from '@/lib/voiceAgent'
+import { Share2, Copy } from 'lucide-react'
 
 export type ClientCtasProps = {
   providerId: string
@@ -14,33 +13,7 @@ export type ClientCtasProps = {
   compact?: boolean
 }
 
-export function ClientCTAs({ providerId, name, address, phone, category, compact }: ClientCtasProps) {
-  const [saved, setSaved] = useState(false)
-
-  const favorite: FavoriteProvider = useMemo(() => ({
-    _id: providerId,
-    name,
-    address: address || '',
-    phone,
-    category: category || 'Provider',
-    savedAt: new Date(),
-    filters: {
-      freeServicesOnly: false,
-      acceptsMedicaid: false,
-      acceptsMedicare: false,
-      acceptsUninsured: false,
-      noSSNRequired: false,
-      telehealthAvailable: false,
-    },
-  }), [providerId, name, address, phone, category])
-
-  const onSave = useCallback(() => {
-    try {
-      saveFavoriteProvider(favorite)
-      setSaved(true)
-    } catch {}
-  }, [favorite])
-
+export function ClientCTAs({name, address,compact }: ClientCtasProps) {
   const onShare = useCallback(async () => {
     try {
       const url = typeof window !== 'undefined' ? window.location.href : ''
@@ -52,12 +25,6 @@ export function ClientCTAs({ providerId, name, address, phone, category, compact
       }
     } catch {}
   }, [name])
-
-  const onAgent = useCallback(() => {
-    try {
-      window.location.href = '/voice-agent'
-    } catch {}
-  }, [])
 
   const onCopyAddress = useCallback(async () => {
     try {

@@ -155,7 +155,7 @@ export default async function ProviderPage({ params }: PageProps) {
     }
   }
 
-  let ldJson: Record<string, unknown> = {
+  const ldJson: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': schemaType,
     name,
@@ -233,12 +233,13 @@ export default async function ProviderPage({ params }: PageProps) {
 
   // Now that we might have review counts, add aggregateRating if available
   if (typeof full?.rating === 'number') {
-    const reviewCountRaw = (business && (business as any)['Total Reviews']) ? Number((business as any)['Total Reviews']) : undefined
-    const reviewCount = Number.isFinite(reviewCountRaw as number) ? Number(reviewCountRaw) : undefined
+    const totalReviews = business ? business['Total Reviews'] : undefined
+    const reviewCountRaw = (typeof totalReviews === 'string' || typeof totalReviews === 'number') ? Number(totalReviews) : undefined
+    const reviewCount = Number.isFinite(reviewCountRaw ?? NaN) ? reviewCountRaw : undefined
     ldJson.aggregateRating = {
       '@type': 'AggregateRating',
       ratingValue: full.rating,
-      ...(reviewCount ? { reviewCount } : {}),
+      ...(reviewCount != null ? { reviewCount } : {}),
     }
   }
 
@@ -325,31 +326,7 @@ export default async function ProviderPage({ params }: PageProps) {
                 {address && <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1"><MapPin className="h-4 w-4" /> {address}</p>}
               </div>
             </div>
-            <div className="hidden md:flex items-center gap-2">
-              {phone && (
-                <Button asChild className="h-9">
-                  <a aria-label="Call provider" href={`tel:${phone}`}><Phone className="mr-2" /> Call</a>
-                </Button>
-              )}
-              {address && (
-                <Button asChild variant="outline" className="h-9">
-                  <a aria-label="Get directions" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`} target="_blank" rel="noopener noreferrer"><MapPin className="mr-2" /> Directions</a>
-                </Button>
-              )}
-              {website && (
-                <Button asChild variant="outline" className="h-9">
-                  <a aria-label="Visit website" href={website} target="_blank" rel="noopener noreferrer"><Globe className="mr-2" /> Website</a>
-                </Button>
-              )}
-              {/* Client actions: save, share, AI booking */}
-              <ClientCTAs
-                providerId={String(provider._id)}
-                name={name}
-                address={address}
-                phone={phone}
-                category={category}
-              />
-            </div>
+            {/* Contact actions are shown in the Contact card; removed duplicates here */}
           </div>
         </div>
       </section>
