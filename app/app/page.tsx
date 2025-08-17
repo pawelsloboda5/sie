@@ -443,24 +443,12 @@ return (
   
   <main className="flex-1 min-h-0">
     <div className="h-full flex flex-col">
-      <div className="flex-1 min-h-0 container mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-8">
+      <div className="flex-1 min-h-0 mx-auto w-full max-w-[100vw] px-3 sm:px-4 lg:px-6 py-4 lg:py-8">
         {/* Mobile quick controls */}
         <div className="lg:hidden mb-5 space-y-3">
-          {searchResults?.totalResults ? (
-            <div className="rounded-2xl border border-gray-200/70 bg-white/80 shadow-sm p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">{searchResults.totalResults} Results</h2>
-                  <p className="text-xs text-gray-500">{currentQuery && `for "${currentQuery}"`}</p>
-                </div>
-                {(filters.freeOnly || filters.acceptsUninsured || filters.acceptsMedicaid || 
-                  filters.acceptsMedicare || filters.telehealthAvailable || 
-                  filters.insuranceProviders.length > 0 || filters.serviceCategories.length > 0) && (
-                  <Badge variant="secondary" className="text-xs px-3">Filters Active</Badge>
-                )}
-              </div>
-            </div>
-          ) : null}
+        
+           
+         
 
           <div className="rounded-2xl border border-gray-200/70 bg-white/80 shadow-sm p-2">
             <div className="grid grid-cols-2 gap-2">
