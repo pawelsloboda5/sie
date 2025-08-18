@@ -326,7 +326,6 @@ export default async function ProviderPage({ params }: PageProps) {
                 {address && <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1"><MapPin className="h-4 w-4" /> {address}</p>}
               </div>
             </div>
-            {/* Contact actions are shown in the Contact card; removed duplicates here */}
           </div>
         </div>
       </section>

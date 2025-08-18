@@ -37,6 +37,8 @@ telehealth_available: boolean
 insurance_providers: string[]
 distance?: number
 searchScore?: number
+freeServicePreview?: Service[]
+services?: Service[]
 }
 
 interface Service {
@@ -136,15 +138,22 @@ return providers.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))
 }
 }, [results?.providers, results?.services, sortBy, activeFilters?.freeOnly])
 
-const getProviderTopService = (providerId: string) => {
-if (!results?.services) return null
-const providerServices = results.services.filter(s => s.provider_id === providerId)
-if (providerServices.length === 0) return null
-const free = providerServices.filter(s => s.is_free)
-if (free.length > 0) return free.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))[0]
-const discounted = providerServices.filter(s => s.is_discounted)
-if (discounted.length > 0) return discounted.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))[0]
-return providerServices.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))[0]
+const getProviderTopService = (provider: Provider) => {
+  // Prefer server-provided semantic featured service, if available
+  if (provider.freeServicePreview && provider.freeServicePreview.length > 0) {
+    return provider.freeServicePreview[0]
+  }
+  // Fallback to local heuristic
+  const sourceServices = (provider.services && provider.services.length > 0)
+    ? provider.services
+    : (results?.services || [])
+  const providerServices = sourceServices.filter(s => s.provider_id === provider._id)
+  if (providerServices.length === 0) return null
+  const free = providerServices.filter(s => s.is_free)
+  if (free.length > 0) return free.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))[0]
+  const discounted = providerServices.filter(s => s.is_discounted)
+  if (discounted.length > 0) return discounted.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))[0]
+  return providerServices.sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0))[0]
 }
 
 const handleProviderAction = (action: string, provider: Provider) => {
@@ -314,8 +323,10 @@ Filter mode
       <ScrollArea className="h-full pr-2 sm:pr-4">
         <div className="space-y-5 pb-4">
           {sortedProviders.map((provider) => {
-            const topService = getProviderTopService(provider._id)
-            const allServices = results.services.filter(s => s.provider_id === provider._id)
+            const topService = getProviderTopService(provider)
+            const allServices = (provider.services && provider.services.length > 0)
+              ? provider.services
+              : results.services.filter(s => s.provider_id === provider._id)
             return (
               <ProviderCard
                 key={provider._id}
