@@ -29,7 +29,7 @@ type PriceStat = { min?: number; max?: number; samples: PriceSample[] }
 // Remove DEV_INLINE; use env vars for production
 const AZURE_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT || ''
 const AZURE_KEY = process.env.AZURE_OPENAI_API_KEY || ''
-const AZURE_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT || process.env.AZURE_OPENAI_CHAT_MODEL || 'gpt-4.1'
+const AZURE_DEPLOYMENT = process.env.AZURE_OPENAI_CHAT_MODEL || 'gpt-4.1'
 const AZURE_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || '2025-04-01-preview'
 
 // Resolve base URL for server-to-server calls (prod-safe)
@@ -38,6 +38,16 @@ const SELF_BASE_URL =
   process.env.SITE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
   'http://localhost:3001'
+
+if (process.env.LOG_ENV === '1') {
+  console.log('ENV_DIAG', {
+    hasEndpoint: !!process.env.AZURE_OPENAI_ENDPOINT,
+    hasKey: !!process.env.AZURE_OPENAI_API_KEY,
+    model: process.env.AZURE_OPENAI_CHAT_MODEL,
+    apiVersion: process.env.AZURE_OPENAI_API_VERSION,
+    vercelEnv: process.env.VERCEL_ENV,
+  })
+}
 
 // Structured output schema for Responses API (kept for documentation/prompting blocks where needed)
 const RESPONSE_SCHEMA = {
