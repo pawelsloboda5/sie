@@ -40,7 +40,7 @@ export function ChatWindow({
   ]
 
   return (
-    <div className="relative">
+    <div className="relative w-full overflow-x-hidden">
       {navigatingTo && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur">
           <div className="glass rounded-xl px-4 py-3 border border-white/20 dark:border-white/10 text-center">
@@ -55,10 +55,10 @@ export function ChatWindow({
           </div>
         </div>
       )}
-      <div className="glass rounded-2xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden lg:h-[60vh] flex flex-col">
+      <div className="glass rounded-2xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden lg:h-[60vh] flex flex-col w-full">
         <div
           ref={scrollerRef}
-          className="flex-1 overflow-y-auto scrollbar-thin px-0 py-3 sm:p-6 space-y-4 bg-white/60 dark:bg-gray-900/40 lg:pb-0"
+          className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin pl-0 pr-3 py-3 sm:p-6 space-y-4 bg-white/60 dark:bg-gray-900/40 lg:pb-0"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 84px)' }}
         >
           {messages.length === 0 && (

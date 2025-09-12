@@ -248,7 +248,7 @@ export default function CopilotPage() {
     <div className="min-h-screen flex flex-col overflow-x-hidden bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30">
       <Header />
 
-      <main className="container mx-auto px-2 sm:px-4 lg:px-8 pt-2 pb-4 sm:pt-4 sm:pb-8 flex-1">
+      <main className="container mx-auto w-full max-w-full overflow-x-hidden px-2 sm:px-4 lg:px-8 pt-2 pb-4 sm:pt-4 sm:pb-8 flex-1">
         <div className="mb-3">
           {/* Location Bar */}
           <div className="mt-1 p-3 sm:p-4 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
