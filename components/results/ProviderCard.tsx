@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import type { ProviderUI as Provider, ServiceUI as Service } from "@/lib/types/ui"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,34 +22,7 @@ import {
   Heart
 } from "lucide-react"
 
-interface Provider {
-  _id: string
-  name: string
-  category: string
-  address: string
-  phone?: string
-  website?: string
-  email?: string
-  rating?: number
-  accepts_uninsured: boolean
-  medicaid: boolean
-  medicare: boolean
-  ssn_required: boolean
-  telehealth_available: boolean
-  insurance_providers: string[]
-  distance?: number
-  searchScore?: number
-}
-
-interface Service {
-  _id: string
-  name: string
-  category: string
-  description: string
-  is_free: boolean
-  is_discounted: boolean
-  price_info: string
-}
+// Provider and Service from UI types
 
 interface ProviderCardProps {
   provider: Provider
@@ -127,7 +101,7 @@ export function ProviderCard({
       )
     }
     
-    if (!provider.ssn_required) {
+    if (provider.ssn_required === false) {
       badges.push(
         <Badge key="no-ssn" className="bg-purple-600 text-white hover:bg-purple-700 border-0 font-medium px-2 sm:px-3 py-1 text-xs sm:text-sm">
           <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
@@ -495,7 +469,7 @@ export function ProviderCard({
         )}
 
         {/* Insurance Information */}
-        {provider.insurance_providers.length > 0 && (
+        {Array.isArray(provider.insurance_providers) && provider.insurance_providers.length > 0 && (
           <div className="space-y-2 sm:space-y-3 lg:space-y-4">
             <h4 className="text-xs sm:text-sm lg:text-base font-semibold text-foreground uppercase tracking-wide flex items-center gap-2 sm:gap-2.5 lg:gap-3">
               <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-blue-600" />

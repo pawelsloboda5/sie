@@ -99,6 +99,17 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c
 }
 
+function extractLatLon(coords?: [number, number]): { lat: number; lon: number } | undefined {
+  if (!Array.isArray(coords) || coords.length !== 2) return undefined
+  const a = coords[0]
+  const b = coords[1]
+  // Standard GeoJSON [lon, lat]
+  if (Math.abs(b) <= 90 && Math.abs(a) <= 180) return { lat: b, lon: a }
+  // If accidentally stored as [lat, lon]
+  if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lon: b }
+  return undefined
+}
+
 // Build provider filter conditions
 function buildProviderFilters(filters: FilterRequest['filters']): FilterConditions {
   const matchConditions: FilterConditions = {}
@@ -191,18 +202,17 @@ async function filterProviders(
       ...result,
       _id: result._id.toString(),
       searchScore: (result.rating * 20) + (result.free_services * 100) + (result.total_services * 10),
-      distance: location ? calculateDistance(
-        location.latitude,
-        location.longitude,
-        result.location?.coordinates?.[1] || 0,
-        result.location?.coordinates?.[0] || 0
-      ) : undefined
+      distance: location ? (() => {
+        const ll = extractLatLon(result.location?.coordinates as [number, number] | undefined)
+        return ll ? calculateDistance(location.latitude, location.longitude, ll.lat, ll.lon) : undefined
+      })() : undefined
     }))
 
     // Filter by distance if specified
-    if (location && filters.maxDistance) {
+    // Strict: with a user location, require a calculable distance and enforce maxDistance
+    if (location && typeof filters.maxDistance === 'number') {
       filteredResults = filteredResults.filter(provider => 
-        !provider.distance || provider.distance <= filters.maxDistance!
+        typeof provider.distance === 'number' && provider.distance <= filters.maxDistance!
       )
     }
 
@@ -361,11 +371,26 @@ async function performFilterSearch(
 
         // Add service providers to main provider list if not already present
         const existingProviderIds = new Set(providers.map(p => p._id.toString()))
-        const additionalProviders = Array.from(providerDetailsMap.values())
-          .filter(provider => !existingProviderIds.has(provider._id.toString()))
-          .slice(0, Math.max(0, limit - providers.length))
+        let additionalProviders = Array.from(providerDetailsMap.values())
+          .filter(provider => !existingProviderIds.has(provider._id.toString())) as ProviderResult[]
 
-        providers = [...providers, ...additionalProviders] as ProviderResult[]
+        // Compute distance for additional providers and apply strict distance filter
+        if (location && typeof filters.maxDistance === 'number') {
+          additionalProviders = additionalProviders.map((p) => {
+            const lat = p.location?.coordinates?.[1]
+            const lon = p.location?.coordinates?.[0]
+            if (typeof lat === 'number' && typeof lon === 'number') {
+              return {
+                ...p,
+                distance: calculateDistance(location.latitude, location.longitude, lat, lon)
+              } as ProviderResult
+            }
+            return p as ProviderResult
+          }).filter(p => typeof p.distance === 'number' && p.distance <= filters.maxDistance!)
+        }
+
+        // Respect limit after merging
+        providers = [...providers, ...additionalProviders].slice(0, limit) as ProviderResult[]
       }
     } else {
       console.error('Service filter failed:', serviceResults.reason)
@@ -501,6 +526,22 @@ async function performFilterSearch(
       }
     }
 
+    // Final strict distance enforcement in case any providers lack distance
+    if (location && typeof filters.maxDistance === 'number') {
+      providers = providers.map((p) => {
+        if (typeof p.distance === 'number') return p
+        const lat = p.location?.coordinates?.[1]
+        const lon = p.location?.coordinates?.[0]
+        if (typeof lat === 'number' && typeof lon === 'number') {
+          return {
+            ...p,
+            distance: calculateDistance(location.latitude, location.longitude, lat, lon)
+          } as ProviderResult
+        }
+        return p as ProviderResult
+      }).filter(p => typeof p.distance === 'number' && p.distance <= filters.maxDistance!)
+    }
+
     return {
       providers: providers.slice(0, limit),
       services: services // Return ALL services, don't limit them
@@ -533,7 +574,84 @@ export async function POST(request: NextRequest) {
 
     console.log('Filtering with criteria:', filters)
 
-    // Perform optimized filter search
+    // If this is a provider-only filter request (no service-level constraints),
+    // skip service queries entirely for speed and reliability on Cosmos/vCore
+    const providerOnly = !filters?.freeOnly && !(filters?.serviceCategories && filters.serviceCategories.length > 0)
+
+    if (providerOnly) {
+      const { client, db } = await getMongoClient()
+      try {
+        const rawProviders = await filterProviders(db, filters, location, Math.min(limit, 6))
+        const providers = rawProviders.slice(0, 6)
+
+        // Fetch services for these providers to provide context to the AI
+        const providerIds = providers.map((p) => new ObjectId(p._id))
+        const svcDocs = providerIds.length
+          ? await db.collection('services').find(
+              { provider_id: { $in: providerIds } },
+              {
+                projection: {
+                  _id: 1,
+                  provider_id: 1,
+                  name: 1,
+                  category: 1,
+                  description: 1,
+                  is_free: 1,
+                  is_discounted: 1,
+                  price_info: 1
+                }
+              }
+            ).toArray()
+          : []
+
+        const byProvider: Record<string, { _id: string; name: string; category: string; description: string; isFree: boolean; isDiscounted: boolean; priceInfoText: string }[]> = {}
+        for (const s of svcDocs) {
+          const pid = s.provider_id?.toString?.() || String(s.provider_id)
+          const svc = {
+            _id: s._id.toString(),
+            name: s.name,
+            category: s.category,
+            description: s.description,
+            isFree: !!s.is_free,
+            isDiscounted: !!s.is_discounted,
+            priceInfoText: s.price_info || ''
+          }
+          if (!byProvider[pid]) byProvider[pid] = []
+          byProvider[pid].push(svc)
+        }
+
+        const enriched = providers.map((p) => ({
+          ...p,
+          distance: p.distance || null,
+          services: byProvider[p._id] || []
+        }))
+
+        const servicesPayload = svcDocs.map((s) => ({
+            _id: s._id.toString(),
+            provider_id: s.provider_id.toString(),
+            name: s.name,
+            category: s.category,
+            description: s.description,
+            is_free: s.is_free,
+            is_discounted: s.is_discounted,
+            price_info: s.price_info
+          }))
+
+        return NextResponse.json({
+          providers: enriched,
+          services: servicesPayload,
+          query: 'Filtered Results',
+          totalResults: enriched.length,
+          provider_count: enriched.length,
+          service_count: servicesPayload.length,
+          isFiltered: true
+        })
+      } finally {
+        try { await client.close() } catch {}
+      }
+    }
+
+    // Perform optimized filter+services search when service-level constraints are present
     const searchResults = await performFilterSearch(filters, location, limit)
     
     const { providers } = searchResults

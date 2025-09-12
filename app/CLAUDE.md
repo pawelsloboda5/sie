@@ -32,3 +32,16 @@ Robots policy
 - Add further disallows for staging or internal preview paths when introduced
 
 
+2025-08-17 — Homepage revamp (phase 1)
+- Goal: Increase CTR from `/` to `/app` and `/find/[service]/[city]`.
+- Changes:
+  - Added curated “Browse care by city/service” links under hero (6 items aligned to GSC and regional focus).
+  - Kept Open Source NPI banner but ensured it lives below-the-fold.
+  - Added a mobile sticky CTA to start a search (removed later in favor of simpler footer for now; revisit after measuring).
+- Additions:
+  - Added `ValueProp` banner above the hero with simple A/B copy for clarity.
+  - Added `ResumeLastSearch` (top band) and `RecentSearches` (row below hero), powered by IndexedDB (`lib/db.ts`) to shorten repeat journeys.
+- Files touched: `app/page.tsx`, `PLAN.md`.
+- Next: Consider centralizing curated links in a config for reuse (header/footer), and GA4 events if approved.
+
+

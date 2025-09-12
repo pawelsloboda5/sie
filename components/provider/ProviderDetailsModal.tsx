@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import type { ProviderUI as Provider, ServiceUI as Service } from "@/lib/types/ui"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,34 +22,7 @@ AlertCircle,
 X
 } from "lucide-react"
 
-interface Provider {
-_id: string
-name: string
-category: string
-address: string
-phone?: string
-website?: string
-email?: string
-rating?: number
-accepts_uninsured: boolean
-medicaid: boolean
-medicare: boolean
-ssn_required: boolean
-telehealth_available: boolean
-insurance_providers: string[]
-distance?: number
-searchScore?: number
-}
-
-interface Service {
-_id: string
-name: string
-category: string
-description: string
-is_free: boolean
-is_discounted: boolean
-price_info: string
-}
+// Provider and Service from UI types
 
 interface ProviderDetailsModalProps {
 provider: Provider | null
@@ -190,12 +164,12 @@ return (
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <Pill
-              ok={provider.accepts_uninsured}
+              ok={!!provider.accepts_uninsured}
               okLabel="Accepts Uninsured"
               noLabel="Requires Insurance"
             />
-            <Pill ok={provider.medicaid} okLabel="Accepts Medicaid" noLabel="No Medicaid" />
-            <Pill ok={provider.medicare} okLabel="Accepts Medicare" noLabel="No Medicare" />
+            <Pill ok={!!provider.medicaid} okLabel="Accepts Medicaid" noLabel="No Medicaid" />
+            <Pill ok={!!provider.medicare} okLabel="Accepts Medicare" noLabel="No Medicare" />
             <Pill
               ok={!provider.ssn_required}
               okLabel="No SSN Required"
@@ -213,7 +187,7 @@ return (
         </section>
 
         {/* Insurance */}
-        {provider.insurance_providers.length > 0 && (
+        {Array.isArray(provider.insurance_providers) && provider.insurance_providers.length > 0 && (
           <>
             <Separator />
             <section className="space-y-3">

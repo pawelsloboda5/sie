@@ -35,6 +35,7 @@ resultsCount?: number
 initialQuery?: string
 initialLocation?: string
 isLocalFiltering?: boolean
+onLocationChange?: (coords?: Coordinates) => void
 }
 
 export function HeroSection({
@@ -60,9 +61,11 @@ resultsCount = 0,
 initialQuery = "",
 initialLocation = "",
 isLocalFiltering = false
+ , onLocationChange
 }: HeroSectionProps) {
 const [searchQuery, setSearchQuery] = useState(initialQuery)
 const [location, setLocation] = useState(initialLocation)
+const [coords, setCoords] = useState<Coordinates | undefined>(undefined)
 const [isSearchOpen, setIsSearchOpen] = useState(false)
 const [showSuggestions, setShowSuggestions] = useState(false)
 const [isGettingLocation, setIsGettingLocation] = useState(false)
@@ -98,6 +101,8 @@ const { latitude, longitude } = position.coords
 const address = await reverseGeocode(latitude, longitude)
 setLocation(address)
 setIsGettingLocation(false)
+ // propagate precise coordinates so distance filtering works even if the input shows a label
+ try { const c = { latitude, longitude }; setCoords(c); onLocationChange?.(c) } catch {}
 },
 (error) => {
 console.error("Error getting location:", error)
@@ -120,7 +125,7 @@ if (hasAutoRequestedLocation) {
 setSearchError("Error accessing location services.")
 }
 }
-}, [hasAutoRequestedLocation])
+}, [hasAutoRequestedLocation, onLocationChange])
 
 useEffect(() => {
 if (!initialLocation && !hasAutoRequestedLocation) {
@@ -129,13 +134,27 @@ handleGetLocation()
 }
 }, [initialLocation, hasAutoRequestedLocation, handleGetLocation])
 
+// Keep parent's coordinates in sync when user types an address
+useEffect(() => {
+  if (!onLocationChange) return
+  const handler = setTimeout(async () => {
+    try {
+      if (location && location.trim()) {
+        const coords = await parseLocationString(location)
+        if (coords) { setCoords(coords); onLocationChange(coords) }
+      }
+    } catch {}
+  }, 600)
+  return () => clearTimeout(handler)
+}, [location, onLocationChange])
+
 const handleSearch = async () => {
 if (!searchQuery.trim()) {
 setSearchError("Please enter a search query")
 return
 }
 setSearchError(null)
-const locationCoords = location ? await parseLocationString(location) : undefined
+const locationCoords = coords || (location ? await parseLocationString(location) : undefined)
 onSearch?.(searchQuery, locationCoords || undefined, filters)
 }
 

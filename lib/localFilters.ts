@@ -1,5 +1,6 @@
 import type { Coordinates } from "./utils"
 import type { CachedSearchResult } from "./db"
+import type { Provider as SharedProvider } from "./types/copilot"
 
 // Local filter options interface
 export interface LocalFilterOptions {
@@ -17,27 +18,9 @@ export interface LocalFilterOptions {
 }
 
 // Provider and Service types (mirrors the types from components)
-interface Provider {
-  _id: string
-  name: string
-  category: string
+type Provider = SharedProvider & {
   address: string
-  phone?: string
-  website?: string
-  email?: string
-  rating?: number
-  accepts_uninsured: boolean
-  medicaid: boolean
-  medicare: boolean
-  ssn_required: boolean
-  telehealth_available: boolean
-  insurance_providers: string[]
-  distance?: number
-  searchScore?: number
-  location?: {
-    type: 'Point'
-    coordinates: [number, number]
-  }
+  location?: { type: 'Point'; coordinates: [number, number] }
 }
 
 interface Service {
@@ -98,9 +81,9 @@ export function filterProvidersLocally(
   // Insurance provider filtering
   if (filters.insuranceProviders && filters.insuranceProviders.length > 0) {
     filteredProviders = filteredProviders.filter(p => 
-      p.insurance_providers.some(insurance => 
+      (p.insurance_providers?.some(insurance => 
         filters.insuranceProviders!.includes(insurance)
-      )
+      )) ?? false
     )
   }
 
@@ -119,7 +102,9 @@ export function filterProvidersLocally(
   }
 
   // Distance filtering
-  if (userLocation && filters.maxDistance) {
+  // Strict: when we have a user location, only include providers with
+  // computable distance and within maxDistance.
+  if (userLocation && typeof filters.maxDistance === 'number') {
     filteredProviders = filteredProviders.map(provider => {
       if (provider.location?.coordinates) {
         const distance = calculateDistance(
@@ -131,7 +116,7 @@ export function filterProvidersLocally(
         return { ...provider, distance }
       }
       return provider
-    }).filter(p => !p.distance || p.distance <= filters.maxDistance!)
+    }).filter(p => typeof p.distance === 'number' && p.distance <= filters.maxDistance!)
   }
 
   // FreeOnly filter - remove providers that have NO free services

@@ -8,6 +8,7 @@ import { List, Search } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { parseLocationString, type Coordinates } from "@/lib/utils"
 import { AppHeader } from "./header"
+import type { ProviderUI as Provider, ServiceUI as Service, SearchResultsUI as SearchResults } from "@/lib/types/ui"
 import {
 saveCachedSearchResult,
 getCachedSearchResult,
@@ -40,44 +41,7 @@ minRating: number
 sortBy: 'distance' | 'rating' | 'name' | 'relevance'
 }
 
-interface Provider {
-_id: string
-name: string
-category: string
-address: string
-phone?: string
-website?: string
-email?: string
-rating?: number
-accepts_uninsured: boolean
-medicaid: boolean
-medicare: boolean
-ssn_required: boolean
-telehealth_available: boolean
-insurance_providers: string[]
-distance?: number
-searchScore?: number
-}
-
-interface Service {
-_id: string
-provider_id: string
-name: string
-category: string
-description: string
-is_free: boolean
-is_discounted: boolean
-price_info: string
-searchScore?: number
-}
-
-interface SearchResults {
-providers: Provider[]
-services: Service[]
-query: string
-totalResults: number
-isFiltered?: boolean
-}
+// Provider, Service, SearchResults imported from UI types
 
 const defaultFilters: FilterOptions = {
 freeOnly: false,
@@ -185,11 +149,11 @@ try {
       filteredResults.providers,
       filteredResults.services,
       filtersToUse.sortBy || 'relevance'
-    )
+    ) as unknown as Provider[]
     
     setSearchResults({
       providers: sortedProviders,
-      services: filteredResults.services,
+      services: filteredResults.services as unknown as Service[],
       query: cachedResult.query,
       totalResults: sortedProviders.length + filteredResults.services.length,
       isFiltered: hasActiveFilters(localFilterOptions)
@@ -314,11 +278,11 @@ if (hasCachedData && originalSearchData) {
       filteredResults.providers,
       filteredResults.services,
       converted.sortBy
-    )
+    ) as unknown as Provider[]
     
     setSearchResults({
       providers: sortedProviders,
-      services: filteredResults.services,
+      services: filteredResults.services as unknown as Service[],
       query: originalSearchData.query,
       totalResults: sortedProviders.length + filteredResults.services.length,
       isFiltered: hasActiveFilters(localFilterOptions)
@@ -350,10 +314,10 @@ const handleClearFilters = () => {
 setFilters(defaultFilters)
 if (hasCachedData && originalSearchData) {
 const filtered = applyLocalFilters(originalSearchData, {}, currentLocation)
-const sorted = sortProvidersLocally(filtered.providers, filtered.services, 'relevance')
+const sorted = sortProvidersLocally(filtered.providers, filtered.services, 'relevance') as unknown as Provider[]
 setSearchResults({
 providers: sorted,
-services: filtered.services,
+services: filtered.services as unknown as Service[],
 query: originalSearchData.query,
 totalResults: sorted.length + filtered.services.length,
 isFiltered: false
@@ -384,11 +348,11 @@ category: provider.category,
 savedAt: new Date(),
 filters: {
 freeServicesOnly: false,
-acceptsMedicaid: provider.medicaid,
-acceptsMedicare: provider.medicare,
-acceptsUninsured: provider.accepts_uninsured,
-noSSNRequired: !provider.ssn_required,
-telehealthAvailable: provider.telehealth_available
+acceptsMedicaid: !!provider.medicaid,
+acceptsMedicare: !!provider.medicare,
+acceptsUninsured: !!provider.accepts_uninsured,
+noSSNRequired: provider.ssn_required === false,
+telehealthAvailable: !!provider.telehealth_available
 }
 }
 saveFavoriteProvider(favoriteProvider)
@@ -438,6 +402,9 @@ return (
       initialQuery={initialQuery}
       initialLocation={initialLocation}
       isLocalFiltering={isLocalFiltering}
+      onLocationChange={(coords) => {
+        setCurrentLocation(coords)
+      }}
     />
   </div>
   

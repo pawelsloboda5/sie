@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
+import type { ProviderUI as Provider, SearchResultsUI as SearchResults } from "@/lib/types/ui"
 import { ProviderCard } from "./ProviderCard"
 import { ProviderDetailsModal } from "../provider/ProviderDetailsModal"
 import { buildProviderSlug } from "@/lib/utils"
@@ -20,47 +21,11 @@ AlertCircle,
 RefreshCw
 } from "lucide-react"
 
-interface Provider {
-_id: string
-name: string
-category: string
-address: string
-phone?: string
-website?: string
-email?: string
-rating?: number
-accepts_uninsured: boolean
-medicaid: boolean
-medicare: boolean
-ssn_required: boolean
-telehealth_available: boolean
-insurance_providers: string[]
-distance?: number
-searchScore?: number
-freeServicePreview?: Service[]
-services?: Service[]
-}
+// Provider, Service, SearchResults imported from UI types
 
-interface Service {
-_id: string
-provider_id: string
-name: string
-category: string
-description: string
-is_free: boolean
-is_discounted: boolean
-price_info: string
-provider?: Provider
-searchScore?: number
-}
+// Service from UI types
 
-interface SearchResults {
-providers: Provider[]
-services: Service[]
-query: string
-totalResults: number
-isFiltered?: boolean
-}
+// SearchResults from UI types
 
 interface FilterOptions {
 freeOnly?: boolean

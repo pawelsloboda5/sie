@@ -13,6 +13,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.sie2.com'
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "SIE Wellness",
+  url: siteUrl,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${siteUrl}/app?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+}
+
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "SIE Wellness",
+  url: siteUrl,
+  logo: `${siteUrl}/logo_560x560.png`,
+}
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.sie2.com'),
   title: "SIE Wellness - Free & Low-Cost Healthcare Near You",
@@ -56,6 +78,12 @@ export default function RootLayout({
             gtag('js', new Date());
             gtag('config', 'G-9NF4TM973E');
           `}
+        </Script>
+        <Script id="schema-website" type="application/ld+json" strategy="afterInteractive">
+          {JSON.stringify(websiteJsonLd)}
+        </Script>
+        <Script id="schema-organization" type="application/ld+json" strategy="afterInteractive">
+          {JSON.stringify(orgJsonLd)}
         </Script>
       </head>
       <body

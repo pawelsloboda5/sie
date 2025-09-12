@@ -53,8 +53,14 @@ export async function forwardGeocode(address: string): Promise<Coordinates | und
  * @returns Promise<Coordinates | undefined> - The coordinates or undefined if parsing fails
  */
 export async function parseLocationString(locationString: string): Promise<Coordinates | undefined> {
+  // Normalize common user inputs like "street,state" → "street, state" and collapse whitespace
+  const normalized = locationString
+    .trim()
+    .replace(/\s*,\s*/g, ', ')
+    .replace(/\s+/g, ' ')
+
   // Check if it's coordinates (latitude, longitude)
-  const coordMatch = locationString.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
+  const coordMatch = normalized.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/)
   if (coordMatch) {
     return {
       latitude: parseFloat(coordMatch[1]),
@@ -63,7 +69,7 @@ export async function parseLocationString(locationString: string): Promise<Coord
   }
   
   // For text addresses, use forward geocoding
-  return await forwardGeocode(locationString)
+  return await forwardGeocode(normalized)
 }
 
 // ---------------- Provider slug utilities (SEO) ----------------

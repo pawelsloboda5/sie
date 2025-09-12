@@ -24,6 +24,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { SimpleHeroSection } from '@/components/home-page/SimpleHeroSection'
+import { RecentSearches } from '@/components/home-page/RecentSearches'
+import { LastCachedPreview } from '@/components/home-page/LastCachedPreview'
 import { Header } from '@/components/layout/Header'
 
 export default function Landing() {
@@ -41,6 +43,12 @@ export default function Landing() {
         </div>
         <SimpleHeroSection />
       </div>
+
+      {/* ---------- Recent Searches ---------- */}
+      <RecentSearches limit={6} />
+
+      {/* ---------- Last cached preview (lightweight) ---------- */}
+      <LastCachedPreview />
 
       {/* ---------- Who We Help ---------- */}
       <section id="who-we-help" className="py-24 relative">
@@ -226,7 +234,81 @@ async with NPILookupClient() as client:
                 </p>
               </div>
             </div>
-            {/* JSON-LD omitted for brevity */}
+            {/* FAQPage JSON-LD for rich results */}
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "FAQPage",
+                  mainEntity: [
+                    {
+                      "@type": "Question",
+                      name: "What is SIE Wellness Search?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text:
+                          "It’s an intelligent tool that helps you find free & low-cost healthcare: clinics, urgent care, dental, mental health, labs, immunizations, and more.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "How does it work?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text:
+                          "We organize provider data from trusted sources and our network so you can compare services, pricing, languages, hours, and accessibility in one place.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Is it free?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text:
+                          "Yes. Search is free for everyone. We may add optional premium features later.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Does it include only doctors?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text:
+                          "No—you’ll find primary care, specialists, community health centers, urgent care, pharmacies, labs, and preventive care.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Do I need insurance?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text:
+                          "No. Many listings accept uninsured patients and offer sliding-scale or free services.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Is SSN required?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text:
+                          "Many clinics do not require a Social Security Number. We label ‘No SSN’ when available.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Is telehealth available?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text:
+                          "Yes—filter for telehealth to find virtual visit options near you.",
+                      },
+                    },
+                  ],
+                }),
+              }}
+            />
           </section>
 
           <Separator className="mb-8" />

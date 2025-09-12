@@ -4,9 +4,12 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Menu, X } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 export function AppHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
+  const isCopilot = pathname?.startsWith('/copilot')
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
@@ -28,8 +31,8 @@ export function AppHeader() {
             height={32}
             className="rounded-lg"
           />
-          <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            SIE Wellness
+          <span className={isCopilot ? "text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent" : "text-xl font-bold text-gray-900 dark:text-gray-100"}>
+            {isCopilot ? 'AI Healthcare Copilot BETA' : 'SIE Wellness'}
           </span>
         </Link>
 
@@ -58,6 +61,12 @@ export function AppHeader() {
             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 transition-colors"
           >
             FAQ
+          </Link>
+          <Link
+            href="/copilot"
+            className="text-sm font-medium text-white bg-[#068282] hover:bg-[#0f766e] px-3 py-1.5 rounded-lg transition-colors"
+          >
+            AI Copilot
           </Link>
         </nav>
 
@@ -106,6 +115,13 @@ export function AppHeader() {
               className="block py-3 px-4 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-[#068282] dark:hover:text-teal-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               FAQ
+            </Link>
+            <Link
+              href="/copilot"
+              onClick={closeMobileMenu}
+              className="block py-3 px-4 text-base font-medium text-white bg-[#068282] hover:bg-[#0f766e] rounded-lg transition-colors"
+            >
+              AI Copilot
             </Link>
           </nav>
         </div>

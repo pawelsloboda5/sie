@@ -15,6 +15,20 @@ export const revalidate = 86400 // 24h ISR by default
 
 type PageProps = { params: Promise<{ slug: string }> }
 
+// Alternative services shown to the user as money-saving options
+type AlternativeItem = {
+  serviceId: ObjectId
+  providerId: ObjectId
+  providerName: string
+  serviceName: string
+  isFree?: boolean
+  isDiscounted?: boolean
+}
+
+declare global {
+  var __altCache: Map<string, { ts: number; data: AlternativeItem[] }> | undefined
+}
+
 async function unwrapParams<T>(p: T | Promise<T>): Promise<T> { return await p }
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.sie2.com'
@@ -29,7 +43,79 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await unwrapParams(params)
   const name = titleCaseFromSlug(slug)
   const title = `${name} | Provider Details`
-  const description = `Learn about ${name}. Address, hours, services, and accessibility details coming soon.`
+
+  // Build a value-forward description using nearby free/discounted services
+  let description = `Learn about ${name}. Address, hours, services, and accessibility details coming soon.`
+
+  try {
+    const db = await getServerDb()
+
+    const shortId = extractProviderIdFromSlug(slug)
+    const baseSlug = slug.split('-p-')[0]
+    const baseNamePattern = baseSlug.split('-').join('.*')
+    const nameRegex = new RegExp(baseNamePattern, 'i')
+
+    const candidates = await db
+      .collection<{ _id: ObjectId; name: string; category?: string; state?: string; free_services?: number; free_service_names?: string[] }>('providers')
+      .find({ name: nameRegex }, { projection: { name: 1, _id: 1, category: 1, state: 1, free_services: 1, free_service_names: 1 } })
+      .limit(20)
+      .toArray()
+
+    const provider = candidates.find((c) => String(c._id).slice(-6).toLowerCase() === (shortId || '').toLowerCase()) || candidates[0]
+
+    if (provider) {
+      const full = await db
+        .collection<{ _id: ObjectId; name: string; category?: string; state?: string; free_services?: number; free_service_names?: string[] }>('providers')
+        .findOne({ _id: new ObjectId(String(provider._id)) }, { projection: { name: 1, category: 1, state: 1, free_services: 1, free_service_names: 1 } })
+
+      const provName = full?.name || name
+      const freeCount = full?.free_services ?? 0
+      const freeNames = (full?.free_service_names || []).filter(Boolean)
+
+      function truncate(s: string, n: number) { return s.length <= n ? s : s.slice(0, n - 1) + '…' }
+
+      if (freeCount > 0) {
+        const examples = freeNames.slice(0, 2).join(', ')
+        const candidate = examples
+          ? `${provName}: ${freeCount} free services (e.g., ${examples}). Compare low‑cost options nearby.`
+          : `${provName}: ${freeCount} free services available. Compare low‑cost options nearby.`
+        description = truncate(candidate, 158)
+      } else {
+        // Look for nearby alternatives offering free/discounted services in same category/state
+        const rel = await db
+          .collection<{ _id: ObjectId; name: string }>('providers')
+          .find(
+            { _id: { $ne: new ObjectId(String(provider._id)) }, ...(full?.category ? { category: full.category } : {}), ...(full?.state ? { state: full.state } : {}) },
+            { projection: { _id: 1, name: 1 } }
+          )
+          .limit(10)
+          .toArray()
+
+        const relIds = rel.map((p) => p._id)
+        if (relIds.length) {
+          const alt = await db
+            .collection<{ provider_id: ObjectId; name: string; is_free?: boolean; is_discounted?: boolean }>('services')
+            .aggregate([
+              { $match: { provider_id: { $in: relIds }, $or: [{ is_free: true }, { is_discounted: true }] } },
+              { $project: { provider_id: 1, name: 1, is_free: 1, is_discounted: 1 } },
+              { $limit: 30 },
+            ])
+            .toArray()
+
+          if (alt.length) {
+            const svc = alt[0]
+            const altProv = rel.find((p) => String(p._id) === String(svc.provider_id))
+            if (altProv) {
+              const candidate = `${provName}: See nearby options — ${svc.is_free ? 'free' : 'discounted'} ${svc.name} at ${altProv.name}.`
+              description = truncate(candidate, 158)
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // Silently fall back to default description
+  }
 
   return {
     title,
@@ -108,8 +194,17 @@ export default async function ProviderPage({ params }: PageProps) {
     )
   }
 
+  const providerIdStr = String(provider._id)
+
   // Re-fetch full provider doc with all fields
-  const full = await db.collection<ProviderDoc>('providers').findOne({ _id: new ObjectId(String(provider._id)) })
+  const full = await db.collection<ProviderDoc>('providers').findOne(
+    { _id: new ObjectId(providerIdStr) },
+    { projection: { 
+      name: 1, address: 1, phone: 1, category: 1, languages: 1, accepts_uninsured: 1, medicaid: 1, medicare: 1, ssn_required: 1,
+      telehealth_available: 1, website: 1, location: 1, state: 1, total_services: 1, free_services: 1, free_service_ratio: 1,
+      summary_text: 1, specialties: 1, conditions_treated: 1, service_categories: 1, free_service_names: 1, rating: 1
+    } }
+  )
   const name: string = full?.name || titleCaseFromSlug(slug)
   const address: string | undefined = full?.address
   const phone: string | undefined = full?.phone
@@ -205,6 +300,129 @@ export default async function ProviderPage({ params }: PageProps) {
     .limit(6)
     .toArray()
 
+  // Money‑saving alternatives via non‑vector query on services (prefer free/discounted)
+  type AltService = { _id: ObjectId; provider_id: ObjectId; name: string; category?: string; is_free?: boolean; is_discounted?: boolean }
+  let alternatives: AlternativeItem[] = []
+
+  // Simple in-memory cache for alternatives (per process)
+  const ALT_CACHE_TTL_MS = 1000 * 60 * 30 // 30 minutes
+  const altCacheKey = String(provider._id)
+  if (!globalThis.__altCache) {
+    globalThis.__altCache = new Map<string, { ts: number; data: AlternativeItem[] }>()
+  }
+  const altCache: Map<string, { ts: number; data: AlternativeItem[] }> = globalThis.__altCache
+  try {
+    const cached = altCache.get(altCacheKey)
+    if (cached && Date.now() - cached.ts < ALT_CACHE_TTL_MS) {
+      alternatives = cached.data
+    } else {
+      // Helper: compute overlap score for relevance
+      const ownTokens = new Set(
+        services
+          .flatMap((s) => (s.name || '').toLowerCase().split(/[^a-z0-9]+/g))
+          .filter((t) => t && t.length > 3)
+      )
+      function nameOverlapScore(n?: string) {
+        if (!n) return 0
+        const tokens = n.toLowerCase().split(/[^a-z0-9]+/g)
+        let score = 0
+        for (const t of tokens) if (t.length > 3 && ownTokens.has(t)) score += 1
+        return score
+      }
+
+      async function fetchAltFromProviders(providerQuery: Record<string, unknown>, useCategoryFilter = true) {
+        const cands = await db
+          .collection<Pick<ProviderDoc, '_id' | 'name'> & { _id: ObjectId }>('providers')
+          .find({ _id: { $ne: new ObjectId(providerIdStr) }, ...providerQuery }, { projection: { _id: 1, name: 1 } })
+          .limit(50)
+          .toArray()
+        const candIds = cands.map((p) => p._id)
+        if (!candIds.length) return { items: [] as AltService[], map: new Map<string, { _id: ObjectId; name: string }>() }
+        const categoryFilter = useCategoryFilter && Array.isArray(serviceCategories) && serviceCategories.length > 0
+          ? { category: { $in: serviceCategories } }
+          : {}
+        const items = await db
+          .collection<AltService>('services')
+          .find({ provider_id: { $in: candIds }, $or: [{ is_free: true }, { is_discounted: true }], ...categoryFilter }, { projection: { _id: 1, provider_id: 1, name: 1, category: 1, is_free: 1, is_discounted: 1 } })
+          .limit(100)
+          .toArray()
+        const map = new Map(cands.map((p) => [p._id.toString(), p]))
+        return { items, map }
+      }
+
+      // Tiered fallbacks to ensure we always have results
+      let altItems: AltService[] = []
+      let provMap = new Map<string, { _id: ObjectId; name: string }>()
+
+      // 1) Same category + state with category overlap
+      if (category || state) {
+        const { items, map } = await fetchAltFromProviders({ ...(category ? { category } : {}), ...(state ? { state } : {}), free_services: { $gt: 0 } }, true)
+        altItems = items
+        provMap = map
+      }
+      // 1b) Drop category overlap if empty
+      if (altItems.length === 0 && (category || state)) {
+        const { items, map } = await fetchAltFromProviders({ ...(category ? { category } : {}), ...(state ? { state } : {}), free_services: { $gt: 0 } }, false)
+        altItems = items
+        provMap = map
+      }
+      // 2) Same state only
+      if (altItems.length === 0 && state) {
+        const { items, map } = await fetchAltFromProviders({ state, free_services: { $gt: 0 } })
+        altItems = items
+        provMap = map
+      }
+      // 3) Same category across all states
+      if (altItems.length === 0 && category) {
+        const { items, map } = await fetchAltFromProviders({ category, free_services: { $gt: 0 } })
+        altItems = items
+        provMap = map
+      }
+      // 4) Global free/discounted
+      if (altItems.length === 0) {
+        const items = await db
+          .collection<AltService>('services')
+          .find({ $or: [{ is_free: true }, { is_discounted: true }] }, { projection: { _id: 1, provider_id: 1, name: 1, category: 1, is_free: 1, is_discounted: 1 } })
+          .limit(100)
+          .toArray()
+        altItems = items.filter((s) => String(s.provider_id) !== providerIdStr)
+        const ids = [...new Set(altItems.map((s) => s.provider_id.toString()))].slice(0, 50).map((id) => new ObjectId(id))
+        const ps = await db
+          .collection<Pick<ProviderDoc, '_id' | 'name'> & { _id: ObjectId }>('providers')
+          .find({ _id: { $in: ids } }, { projection: { _id: 1, name: 1 } })
+          .toArray()
+        provMap = new Map(ps.map((p) => [p._id.toString(), p]))
+      }
+
+      // Rank and shape
+      altItems.sort((a, b) => {
+        const aFree = a.is_free ? 1 : 0
+        const bFree = b.is_free ? 1 : 0
+        if (aFree !== bFree) return bFree - aFree
+        const aDisc = a.is_discounted ? 1 : 0
+        const bDisc = b.is_discounted ? 1 : 0
+        if (aDisc !== bDisc) return bDisc - aDisc
+        return nameOverlapScore(b.name) - nameOverlapScore(a.name)
+      })
+
+      alternatives = altItems
+        .filter((s) => provMap.has(s.provider_id.toString()))
+        .slice(0, 6)
+        .map((s) => ({
+          serviceId: s._id,
+          providerId: s.provider_id,
+          providerName: provMap.get(s.provider_id.toString())!.name,
+          serviceName: s.name,
+          isFree: s.is_free,
+          isDiscounted: s.is_discounted,
+        }))
+
+      altCache.set(altCacheKey, { ts: Date.now(), data: alternatives })
+    }
+  } catch (e) {
+    console.error('Alternatives generation failed', e)
+  }
+
   // Cross-reference Businesses collection by Name + Address
   type BusinessDoc = {
     [key: string]: unknown
@@ -266,6 +484,40 @@ export default async function ProviderPage({ params }: PageProps) {
     <main className="container py-8 lg:py-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ldJson) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      {/* Alternatives Offer ItemList for rich results */}
+      {alternatives.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'ItemList',
+              name: `Money-saving alternatives for ${name}`,
+              itemListElement: alternatives.slice(0, 3).map((alt, idx) => {
+                const altSlug = `${String(alt.providerName).toLowerCase().trim().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/-{2,}/g,'-').replace(/^-|-$/g,'')}-p-${String(alt.providerId).slice(-6)}`
+                return {
+                  '@type': 'ListItem',
+                  position: idx + 1,
+                  item: {
+                    '@type': 'Offer',
+                    price: alt.isFree ? 0 : undefined,
+                    priceCurrency: 'USD',
+                    itemOffered: {
+                      '@type': 'Service',
+                      name: alt.serviceName,
+                      provider: {
+                        '@type': schemaType,
+                        name: alt.providerName,
+                        url: `${siteUrl}/providers/${altSlug}`,
+                      },
+                    },
+                  },
+                }
+              }),
+            }),
+          }}
+        />
+      )}
       {/* Services ItemList schema for better enrichment */}
       {services.length > 0 && (
         <script
@@ -329,6 +581,24 @@ export default async function ProviderPage({ params }: PageProps) {
           </div>
         </div>
       </section>
+
+      {alternatives.length > 0 && (
+        <section className="mb-6">
+          <div className="rounded-xl border bg-emerald-50/60 p-4">
+            <h2 className="text-h4 mb-2">Money‑saving alternatives nearby</h2>
+            <ul className="text-sm list-disc pl-5 space-y-1">
+              {alternatives.slice(0, 3).map((alt) => {
+                const altSlug = `${String(alt.providerName).toLowerCase().trim().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/-{2,}/g,'-').replace(/^-|-$/g,'')}-p-${String(alt.providerId).slice(-6)}`
+                return (
+                  <li key={String(alt.serviceId)}>
+                    <Link className="underline" href={`/providers/${altSlug}`}>{alt.providerName}</Link>: {alt.isFree ? 'free' : alt.isDiscounted ? 'discounted' : ''} {alt.serviceName}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
         <div className="lg:col-span-8 space-y-6">
