@@ -27,7 +27,7 @@ export function MessageBubble({
   return (
     <div className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'} transition-smooth`}>
       {!isUser && (
-        <div className="h-8 w-8 rounded-full overflow-hidden ring-2 ring-white/70 dark:ring-black/40 shrink-0">
+        <div className="hidden sm:block h-8 w-8 rounded-full overflow-hidden ring-2 ring-white/70 dark:ring-black/40 shrink-0">
           <Image src="/logo_560x560.png" alt="AI" width={32} height={32} className="object-cover" />
         </div>
       )}

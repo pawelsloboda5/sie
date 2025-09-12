@@ -58,8 +58,8 @@ export function ChatWindow({
       <div className="glass rounded-2xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden lg:h-[60vh] flex flex-col">
         <div
           ref={scrollerRef}
-          className="flex-1 overflow-y-auto scrollbar-thin p-4 sm:p-6 space-y-4 bg-white/60 dark:bg-gray-900/40 pb-[26vh] lg:pb-0"
-          style={{ paddingBottom: 'calc(26vh + env(safe-area-inset-bottom))' }}
+          className="flex-1 overflow-y-auto scrollbar-thin px-0 py-3 sm:p-6 space-y-4 bg-white/60 dark:bg-gray-900/40 lg:pb-0"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 84px)' }}
         >
           {messages.length === 0 && (
             <div className="text-center py-8">
@@ -80,7 +80,9 @@ export function ChatWindow({
 
           {messages.map((m, i) => (
             <div key={i} className="space-y-2">
-              <MessageBubble role={m.role} content={m.content} />
+              <div className={m.role === 'assistant' ? 'pl-0 sm:pl-0' : ''}>
+                <MessageBubble role={m.role} content={m.content} />
+              </div>
               {m.role === 'assistant' && providersByMessage?.[i]?.length ? (
                 <div className="ml-0 sm:ml-12">
                   <ProviderCards providers={providersByMessage[i]} max={6} onNavigateStart={(name) => setNavigatingTo(name)} />
@@ -113,12 +115,17 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Mobile fixed input at bottom, 20% viewport height */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-[20vh] z-20 border-t border-white/20 dark:border-white/10 bg-white/90 dark:bg-gray-900/90 backdrop-blur p-3">
-        <div className="max-w-full h-full flex items-center">
-          <div className="w-full">
-            {inputSlot}
-          </div>
+      {/* Mobile fixed input at bottom, compact height */}
+      <div
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-20 border-t border-white/20 dark:border-white/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-2 py-2"
+        style={{
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)',
+          paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
+          paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
+        }}
+      >
+        <div className="max-w-full">
+          {inputSlot}
         </div>
       </div>
     </div>

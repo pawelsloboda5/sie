@@ -49,7 +49,7 @@ export function ProviderCards({ providers, max = 6, onNavigateStart }: { provide
   const items = providers.slice(0, max)
 
   return (
-    <div className="mt-3">
+    <div className="mt-2">
       <div className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">Recommended Providers</div>
 
       {/* Grid on md+, compact carousel on small */}
@@ -136,8 +136,8 @@ export function ProviderCards({ providers, max = 6, onNavigateStart }: { provide
       </div>
 
       {/* Mobile horizontal list with persistent scrollbar */}
-      <div className="sm:hidden -mx-3 px-3 overflow-x-auto scrollbar-thin">
-        <div className="flex gap-2.5 snap-x snap-mandatory pb-2">
+      <div className="sm:hidden px-2 overflow-x-auto overflow-y-hidden scrollbar-thin">
+        <div className="flex gap-2.5 snap-x snap-mandatory pb-2 min-w-full">
           {items.map((p) => {
             const slug = buildProviderSlug(p.name, p._id)
             const go = () => { onNavigateStart?.(p.name); router.push(`/providers/${slug}`) }

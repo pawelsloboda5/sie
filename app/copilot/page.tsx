@@ -245,23 +245,23 @@ export default function CopilotPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30">
+    <div className="min-h-screen flex flex-col overflow-x-hidden bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30">
       <Header />
 
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
-        <div className="mb-5">
+      <main className="container mx-auto px-2 sm:px-4 lg:px-8 pt-2 pb-4 sm:pt-4 sm:pb-8 flex-1">
+        <div className="mb-3">
           {/* Location Bar */}
-          <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="mt-1 p-3 sm:p-4 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
+            <div className="flex items-center gap-2 mb-1">
               <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+              <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">
                 Your Location
               </span>
               {userLocation && (
-                <span className="ml-auto text-xs text-emerald-600 dark:text-emerald-400">
+                <span className="ml-auto text-[11px] text-emerald-600 dark:text-emerald-400">
                   ✓ Location set
                 </span>
               )}
@@ -276,30 +276,30 @@ export default function CopilotPage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleLocationSubmit()
                 }}
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 disabled={isGettingLocation}
               />
               <div className="flex gap-2 items-center self-stretch sm:self-auto">
                 <button
                   onClick={handleLocationSubmit}
                   disabled={!locationInput.trim() || isGettingLocation}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-2 rounded-md bg-emerald-600 text-white text-xs sm:text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Set Location
                 </button>
                 <button
                   onClick={handleAutoLocation}
                   disabled={isGettingLocation}
-                  className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="px-3 py-2 rounded-md bg-teal-600 text-white text-xs sm:text-sm font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
                 >
                   {isGettingLocation ? (
                     <>
-                      <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                      <span className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></span>
                       Getting...
                     </>
                   ) : (
                     <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                       </svg>
                       Auto Detect
@@ -308,7 +308,7 @@ export default function CopilotPage() {
                 </button>
                 <button
                   onClick={handleReset}
-                  className="ml-auto sm:ml-0 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white/80 dark:bg-gray-900/70 hover:bg-white dark:hover:bg-gray-900"
+                  className="ml-auto sm:ml-0 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-700 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white/80 dark:bg-gray-900/70 hover:bg-white dark:hover:bg-gray-900"
                 >
                   Reset Conversation
                 </button>
@@ -319,7 +319,7 @@ export default function CopilotPage() {
           </div>
         </div>
 
-        <div className={`grid grid-cols-1 ${showDebugUI ? 'lg:grid-cols-3' : ''} gap-6 lg:gap-8 items-start`}>
+        <div className={`grid grid-cols-1 ${showDebugUI ? 'lg:grid-cols-3' : ''} gap-4 lg:gap-8 items-start`}>
           <div className={showDebugUI ? 'lg:col-span-2' : ''}>
             <ChatWindow
               messages={messages}
