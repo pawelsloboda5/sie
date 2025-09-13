@@ -676,7 +676,7 @@ SINGLE PROVIDER PROFILE - Write a detailed, helpful response about ${providers[0
 - List 3-4 specific services with exact prices (mix of free and paid)
 - Mention location and distance if available
 - Note insurance acceptance naturally
-- End with contact info or next steps` : `
+- Do NOT include calls-to-action or contact instructions. Do NOT print phone numbers, emails, or URLs.` : `
 WRITE A NATURAL, HELPFUL RESPONSE:
 
 1. Start with a friendly opener like:
@@ -700,7 +700,7 @@ WRITE A NATURAL, HELPFUL RESPONSE:
    - "Crown Dental Care offers comprehensive services, with basic fillings from $45..."
    - "For budget-conscious patients, Pearle Vision provides free adjustments plus affordable treatments..."
    
-5. End with helpful context:
+5. End with helpful context (no calls-to-action):
    - "Most accept self-pay patients"
    - "Several offer payment plans"
    - "All are within X miles of your location"
@@ -708,7 +708,7 @@ WRITE A NATURAL, HELPFUL RESPONSE:
 PLUS: Include a short Top Pick spotlight (3-4 sentences) about the best overall provider you recommend first.
 - Explain why it’s the top choice (price, free services, distance, ratings, insurance fit).
 - Mention 2–3 concrete services with prices and any free options.
-- Add a clear next step (call or website) and distance if available.`}
+- Optionally note distance if available. Do NOT include calls-to-action or contact instructions; avoid phone numbers, emails, or URLs.`}
 
 CRITICAL REQUIREMENTS:
 - Write naturally, NOT like a bulleted list
@@ -719,6 +719,10 @@ CRITICAL REQUIREMENTS:
 - Ground your answer strictly in FULL_SEARCH_CONTEXT. Do not invent prices or claims.
 - Prefer providers that are most relevant to the question (vector-ranked), then weigh affordability and distance.
 - If key info is missing (e.g., location), end with one short clarifying question.
+
+STYLE AND SAFETY:
+- Do NOT include calls-to-action or direct contact instructions. Avoid words/phrases like "call", "book", "schedule", "email", "visit the website", "get started".
+- Do NOT print phone numbers, email addresses, or URLs in the answer. Keep contact details on the provider card only.
 
 Return JSON:
 - "answer": Your natural, conversational response (3-6 providers)
@@ -746,7 +750,7 @@ Remember: People need options with clear pricing to make informed decisions.`,
     if (providers.length === 1) {
       const p = providers[0]
       return {
-        answer: `${p.name} is located at ${p.address || 'address not available'}. They offer ${p.services?.length || 'various'} services${p.free_services ? ` including ${p.free_services} free options` : ''}. ${p.accepts_uninsured ? 'They accept uninsured patients.' : ''} Call ${p.phone || 'them'} for more information.`,
+        answer: `${p.name} is located at ${p.address || 'address not available'}. They offer ${p.services?.length || 'various'} services${p.free_services ? ` including ${p.free_services} free options` : ''}. ${p.accepts_uninsured ? 'They accept uninsured patients.' : ''} Contact details are available on the provider card.`,
         selected_provider_ids: [String(p._id || p.id)]
       }
     }
@@ -1151,7 +1155,7 @@ export async function POST(req: NextRequest) {
       // Keep model output as-is; our prompt now requests bullet lines + 2–3 sentence summary
       answerText = summary.answer
     } else if (directProvider) {
-      // Generate a provider-specific response if LLM failed
+      // Generate a provider-specific response if LLM failed (no calls-to-action)
       const p = directProvider
       const services: Service[] = Array.isArray(p.services) ? p.services : []
       const freeServices = services.filter((s) => s.isFree)
@@ -1160,7 +1164,7 @@ export async function POST(req: NextRequest) {
       lines.push(`**${p.name}**`)
       if (p.addressLine) lines.push(`📍 ${p.addressLine}`)
       else if (p.city && p.state) lines.push(`📍 ${p.city}, ${p.state}`)
-      if (p.phone) lines.push(`📞 ${p.phone}`)
+      // No phone/email/URL in fallback; keep contact in provider card only
       if (p.insurance?.selfPayOptions) lines.push(`✅ Accepts self-pay patients`)
       if (p.insurance?.medicaid) lines.push(`✅ Accepts Medicaid`)
       if (p.insurance?.medicare) lines.push(`✅ Accepts Medicare`)
@@ -1195,7 +1199,7 @@ export async function POST(req: NextRequest) {
           lines.push(`...and ${services.length - 5} more services`)
         }
       } else {
-        lines.push('No specific service listings available. Call for details.')
+        lines.push('No specific service listings available. See provider card for details.')
       }
       
       answerText = lines.join('\n')
