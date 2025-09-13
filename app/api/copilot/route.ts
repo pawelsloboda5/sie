@@ -31,6 +31,7 @@ const AZURE_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT || ''
 const AZURE_KEY = process.env.AZURE_OPENAI_API_KEY || ''
 const AZURE_DEPLOYMENT = process.env.AZURE_OPENAI_CHAT_MODEL || 'gpt-4.1'
 const AZURE_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || '2025-04-01-preview'
+const RESULT_LIMIT = Number(process.env.COPILOT_RESULT_LIMIT || 4)
 
 // Resolve base URL for server-to-server calls (prod-safe)
 const SELF_BASE_URL =
@@ -658,6 +659,7 @@ async function summarizeWithSearchContext(
   const styleHash = Math.abs(seedStr.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0))
   const styleHint = STYLE_HINTS[styleHash % STYLE_HINTS.length]
 
+  const SUM_TOKENS = Number(process.env.COPILOT_SUMMARY_TOKENS || 800)
   const body = {
     model: AZURE_DEPLOYMENT,
     instructions: `You are SIE Wellness Copilot, a friendly healthcare assistant helping people find affordable care.
@@ -727,7 +729,7 @@ Remember: People need options with clear pricing to make informed decisions.`,
     tools: [],
     tool_choice: 'none',
     text: { format: { type: 'json_schema', name: 'copilot_response', schema: RESPONSE_SCHEMA, strict: true } },
-    max_output_tokens: 900
+    max_output_tokens: SUM_TOKENS
   }
 
   const res = await fetch(url, {
@@ -929,7 +931,7 @@ export async function POST(req: NextRequest) {
         query: decidedQuery,
         location: derivedLocation,
         filters: decidedFilters,
-        limit: 6
+        limit: RESULT_LIMIT
       })
       // If sparse results and we are hybrid, try filter-only fallback once
       if (routeDecision?.route === 'hybrid') {
@@ -951,11 +953,11 @@ export async function POST(req: NextRequest) {
         query: decidedQuery,
         location: derivedLocation,
         filters: decidedFilters,
-        limit: 6
+        limit: RESULT_LIMIT
       })
     }
 
-    const providers: Provider[] = Array.isArray(searchResponse?.providers) ? searchResponse!.providers : []
+    const providers: Provider[] = Array.isArray(searchResponse?.providers) ? (searchResponse!.providers as Provider[]).slice(0, RESULT_LIMIT) : []
 
     // 5) If they asked a referential follow-up like "which of those ..." and we have prior providers,
     // try to satisfy from context first by matching service tokens. Only if no matches are found,
@@ -1061,7 +1063,7 @@ export async function POST(req: NextRequest) {
       ? (withPrice.length ? withPrice.filter((p) => contextProviders.some((c) => String(c._id || c.id) === String(p._id || p.id))) : (contextProviders as unknown as ProviderWithPrice[]))
       : withPrice
 
-    const rankedProviders: ProviderWithPrice[] = rankForQuery(intentDetected, baseForRanking, userState, flavor)
+    const rankedProviders: ProviderWithPrice[] = rankForQuery(intentDetected, baseForRanking, userState, flavor).slice(0, RESULT_LIMIT)
 
     // 7) Summarize with search context (provider-profile aware)
     const directProvider = findProviderByName(query, rankedProviders as Provider[])
@@ -1069,7 +1071,7 @@ export async function POST(req: NextRequest) {
     // If asking about a specific provider, focus ONLY on that provider
     const providersForLLM: Provider[] = directProvider 
       ? [directProvider]
-      : (rankedProviders as Provider[])
+      : (rankedProviders as Provider[]).slice(0, RESULT_LIMIT)
     
     // If the router selected filter_only, skip the Azure summarizer entirely
     // and rely on the deterministic fallback text.

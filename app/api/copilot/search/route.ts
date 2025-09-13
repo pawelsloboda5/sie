@@ -5,6 +5,7 @@ import type { Provider as ProviderType, Service as ServiceType, ServicePrice as 
 
 // Tuneable caps
 const CANDIDATE_LIMIT = Number(process.env.COPILOT_SEARCH_CANDIDATES || 400)
+const RESULT_LIMIT = Number(process.env.COPILOT_RESULT_LIMIT || 4)
 // Default to server-side vector search unless explicitly disabled
 const ENABLE_SERVER_VECTOR = process.env.COPILOT_SERVER_VECTOR
   ? process.env.COPILOT_SERVER_VECTOR === 'true'
@@ -24,6 +25,9 @@ const MONGODB_DB = process.env.MONGODB_DB || 'sie-db'
 
 let cachedClient: MongoClient | null = null
 let cachedDb: Db | null = null
+// Cached existence check to avoid listing collections per request
+const VALIDATE_COLLECTIONS = process.env.COPILOT_VALIDATE_COLLECTIONS === 'true'
+let HAS_PRICES_ONLY: boolean | null = null
 
 async function getDatabase(): Promise<Db> {
   if (cachedDb) return cachedDb
@@ -258,7 +262,7 @@ export async function POST(req: NextRequest) {
       query = '', 
       location,
       filters = {},
-      limit = 6
+      limit = RESULT_LIMIT
     } = body
     
     console.log('Copilot search request:', { query, filters, location })
@@ -270,21 +274,21 @@ export async function POST(req: NextRequest) {
     const db = await getDatabase()
     const collection = db.collection('prices-only')
     
-    // Check if collection exists
-    const collections = await db.listCollections().toArray()
-    const collectionExists = collections.some(c => c.name === 'prices-only')
-    if (!collectionExists) {
-      console.error('Collection "prices-only" not found in database. Available collections:', collections.map(c => c.name))
-      return NextResponse.json({
-        error: 'Database collection not found',
-        providers: [],
-        provider_count: 0,
-        service_count: 0,
-        debug: {
-          message: 'The prices-only collection does not exist in the database',
-          availableCollections: collections.map(c => c.name)
-        }
-      }, { status: 500 })
+    // Optional one-time validation of the collection existence
+    if (VALIDATE_COLLECTIONS) {
+      if (HAS_PRICES_ONLY === null) {
+        const found = await db.listCollections({ name: 'prices-only' }, { nameOnly: true }).toArray()
+        HAS_PRICES_ONLY = found.length > 0
+      }
+      if (!HAS_PRICES_ONLY) {
+        return NextResponse.json({
+          error: 'Database collection not found',
+          providers: [],
+          provider_count: 0,
+          service_count: 0,
+          debug: { message: 'The prices-only collection does not exist in the database' }
+        }, { status: 500 })
+      }
     }
     
     // Build MongoDB query and aggregation pipeline (geo + text + filters)
@@ -473,7 +477,7 @@ export async function POST(req: NextRequest) {
       ranked.sort((a, b) => (b.__score ?? -Infinity) - (a.__score ?? -Infinity))
 
       // Limit and sanitize
-      const limited = ranked.slice(0, limit)
+      const limited = ranked.slice(0, Math.min(limit, RESULT_LIMIT))
       const sanitizedProviders = limited.map((p: Ranked) => {
         const { __sim: _sim, __score: _score, ...rest } = p
         void _sim; void _score
@@ -490,8 +494,8 @@ export async function POST(req: NextRequest) {
       console.log(`Search results (server vector merged): returned=${sanitizedProviders.length}`)
 
       return NextResponse.json({
-        providers: sanitizedProviders,
-        provider_count: sanitizedProviders.length,
+        providers: sanitizedProviders.slice(0, RESULT_LIMIT),
+        provider_count: Math.min(sanitizedProviders.length, RESULT_LIMIT),
         service_count: sanitizedProviders.reduce((sum: number, p: { services?: Service[] }) => sum + (p.services?.length || 0), 0),
         total_available: ranked.length,
         search_params: { query, expanded_terms: expandedTerms, location, filters }
@@ -648,7 +652,7 @@ export async function POST(req: NextRequest) {
     
     // Limit results
     const rankedList: Ranked[] = (usedServerVector ? (processedProviders as unknown as Ranked[]) : (queryEmbedding ? reranked : (processedProviders as unknown as Ranked[])))
-    const limitedProviders: Ranked[] = rankedList.slice(0, Math.min(limit, 6))
+    const limitedProviders: Ranked[] = rankedList.slice(0, Math.min(limit, RESULT_LIMIT))
     
     console.log(`Search results: ${providers.length} total, ${skippedCount} skipped, ${processedProviders.length} matched, ${limitedProviders.length} returned`)
     
@@ -670,8 +674,8 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({
-      providers: sanitizedProviders.slice(0, 6),
-      provider_count: Math.min(limitedProviders.length, 6),
+      providers: sanitizedProviders.slice(0, RESULT_LIMIT),
+      provider_count: Math.min(limitedProviders.length, RESULT_LIMIT),
       service_count: totalServices,
       total_available: rankedList.length,
       search_params: {
