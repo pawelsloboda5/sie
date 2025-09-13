@@ -78,10 +78,22 @@ export function ChatWindow({
             </div>
           )}
 
-          {messages.map((m, i) => (
+          {messages.map((m, i) => {
+            const provs = (m.role === 'assistant' ? providersByMessage?.[i] : undefined) || []
+            const providerNames = Array.from(new Set(provs.map(p => p?.name).filter(Boolean))) as string[]
+            const serviceNames = Array.from(new Set(
+              provs.flatMap(p => (Array.isArray(p?.services) ? p.services : [])
+                .map(s => s?.name)
+                .filter(Boolean))
+            )) as string[]
+            return (
             <div key={i} className="space-y-2">
               <div className={m.role === 'assistant' ? 'pl-0 sm:pl-0' : ''}>
-                <MessageBubble role={m.role} content={m.content} />
+                <MessageBubble 
+                  role={m.role} 
+                  content={m.content}
+                  highlights={m.role === 'assistant' ? { providers: providerNames, services: serviceNames, highlightPrices: true } : undefined}
+                />
               </div>
               {m.role === 'assistant' && providersByMessage?.[i]?.length ? (
                 <div className="ml-0 sm:ml-12">
@@ -89,7 +101,7 @@ export function ChatWindow({
                 </div>
               ) : null}
             </div>
-          ))}
+          )})}
 
           {isThinking && (
             <div className="flex items-center gap-3">

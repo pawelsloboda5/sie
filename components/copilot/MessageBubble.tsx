@@ -6,21 +6,74 @@ import Image from 'next/image'
 export function MessageBubble({
   role,
   content,
+  highlights,
 }: {
   role: 'user' | 'assistant'
   content: string
+  highlights?: { providers?: string[]; services?: string[]; highlightPrices?: boolean }
 }) {
   const isUser = role === 'user'
 
+  function escapeHtml(s: string): string {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+
+  function escapeRegExp(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
+
+  // Apply <strong> to providers/services/prices, preserving any existing HTML or **bold**
+  function applyHighlights(html: string): string {
+    if (!highlights || (!highlights.providers?.length && !highlights.services?.length && !highlights.highlightPrices)) {
+      return html
+    }
+
+    // Build regex patterns (sorted by length desc to avoid partial overlaps)
+    const termToPattern = (term: string) => {
+      const escaped = escapeRegExp(term.trim()).replace(/\s+/g, '\\s+')
+      // Word-ish boundaries: start or non-alnum before; non-alnum or end after
+      return new RegExp(`(^|[^A-Za-z0-9])(${escaped})(?=[^A-Za-z0-9]|$)`, 'gi')
+    }
+
+    const providerPatterns = (highlights.providers || [])
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length)
+      .map(termToPattern)
+
+    const servicePatterns = (highlights.services || [])
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length)
+      .map(termToPattern)
+
+    // Price regex: $12, $12.50, $12-20, $12 - $20, $1,200 etc.
+    const priceRegex = /\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?(?:\s?-\s?\$?\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)?/g
+
+    // Process only text nodes by splitting on tags
+    const parts = html.split(/(<[^>]+>)/g)
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i] as string
+      if (!part || part.startsWith('<')) continue
+      let t = part
+      for (const re of providerPatterns) {
+        t = t.replace(re, (_m, pre: string, match: string) => `${pre}<strong>${match}</strong>`)
+      }
+      for (const re of servicePatterns) {
+        t = t.replace(re, (_m, pre: string, match: string) => `${pre}<strong>${match}</strong>`)
+      }
+      if (highlights.highlightPrices) {
+        t = t.replace(priceRegex, (m) => `<strong>${m}</strong>`)
+      }
+      parts[i] = t
+    }
+    return parts.join('')
+  }
+
   function renderMessageText(text: string): { __html: string } {
-    const escapeHtml = (s: string) => s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-    // Minimal markdown: **bold** and newlines
+    // Minimal markdown: **bold** and newlines, then apply highlights on text nodes
     const escaped = escapeHtml(text || '')
     const withBold = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    const withBreaks = withBold.replace(/\n/g, '<br/>')
+    const withHighlights = applyHighlights(withBold)
+    const withBreaks = withHighlights.replace(/\n/g, '<br/>')
     return { __html: withBreaks }
   }
 
