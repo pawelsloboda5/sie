@@ -338,6 +338,27 @@ export default function CopilotPage() {
            
           </div>
           )}
+          {userLocation && (
+            <div className="hidden md:block mt-1 p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
+              <div className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                Your Location: <span className="font-normal text-gray-800 dark:text-gray-100">{userLocation.display || `${userLocation.city || 'Unknown'}, ${userLocation.state || ''}`}</span>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => { try { window.location.hash = 'new-location'; window.scrollTo({ top: 0, behavior: 'smooth' }); window.dispatchEvent(new CustomEvent('sie:copilot:open-location')); } catch {} }}
+                  className="px-3 py-2 rounded-md bg-emerald-600 text-white text-xs sm:text-sm font-medium hover:bg-emerald-700 transition-colors"
+                >
+                  New Location
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-700 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white/80 dark:bg-gray-900/70 hover:bg-white dark:hover:bg-gray-900"
+                >
+                  Reset Conversation
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className={`grid grid-cols-1 ${showDebugUI ? 'lg:grid-cols-3' : ''} gap-4 lg:gap-8 items-start w-full max-w-full overflow-x-hidden`}>

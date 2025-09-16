@@ -120,9 +120,11 @@ const ROUTER_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    route: { type: 'string', enum: ['filter_only', 'service_search', 'hybrid'] },
+    route: { type: 'string', enum: ['filter_only', 'service_search', 'hybrid', 'provider_profile'] },
     // optional normalized query for service search
     service_query: { type: ['string', 'null'] },
+    // optional provider name when the user asks about a specific provider
+    provider_name: { type: ['string', 'null'] },
     // filters extracted from the prompt
     filters: {
       type: 'object',
@@ -143,8 +145,9 @@ const ROUTER_SCHEMA = {
 } as const
 
 async function routeWithLLM(question: string, state: UserState): Promise<{
-  route: 'filter_only' | 'service_search' | 'hybrid'
+  route: 'filter_only' | 'service_search' | 'hybrid' | 'provider_profile'
   service_query?: string | null
+  provider_name?: string | null
   filters?: SearchFilters
 } | null> {
   try {
@@ -159,6 +162,7 @@ Rules:
 - If the question is filter-only (e.g., mentions SSN/no SSN; Medicaid/Medicare; uninsured/self-pay; specific carriers like Cigna, Aetna, UHC, BCBS) and does not clearly ask for a service, choose route = "filter_only" and set filters accordingly.
 - If the question clearly asks for a service (e.g., dental, mammogram, STI testing, therapy, primary care, vision, pharmacy) choose route = "service_search" and set service_query to the normalized service phrase. Include any affordability/insurance filters.
 - If both service intent and filter constraints are present, choose route = "hybrid" and set service_query plus filters.
+- If the question is clearly about a specific provider by name (e.g., "Tell me more about Hopeful Core Therapy"), choose route = "provider_profile" and set provider_name to the provider’s name string. Do not invent insuranceProviders here.
 - Keep JSON concise. Do NOT explain.`
 
     const body = {
@@ -764,11 +768,12 @@ Return JSON:
   }
 }
 
-type ExecReturn = GeoForwardResult | GeoReverseResult | SearchResponse | FilterResponse | { error: string }
+type ExecReturn = GeoForwardResult | GeoReverseResult | SearchResponse | FilterResponse | { providers: Provider[] } | { error: string }
 async function execTool(name: 'geo_forward', args: { q: string; country?: string }): Promise<GeoForwardResult>
 async function execTool(name: 'geo_reverse', args: { lat: number; lon: number }): Promise<GeoReverseResult>
 async function execTool(name: 'search_providers', args: { query: string; location?: Coordinates; filters?: SearchFilters; limit?: number }): Promise<SearchResponse>
 async function execTool(name: 'filter_providers', args: { filters?: SearchFilters; location?: Coordinates; limit?: number }): Promise<FilterResponse>
+async function execTool(name: 'provider_by_name', args: { name: string; location?: Coordinates; limit?: number }): Promise<{ providers: Provider[] }>
 async function execTool(name: string, args: unknown): Promise<ExecReturn> {
   try {
     if (name === 'geo_forward') {
@@ -811,6 +816,21 @@ async function execTool(name: string, args: unknown): Promise<ExecReturn> {
         })
       })
       return await r.json() as FilterResponse
+    }
+    if (name === 'provider_by_name') {
+      const base = SELF_BASE_URL
+      const a = args as { name: string; location?: Coordinates; limit?: number }
+      const r = await fetch(`${base}/api/copilot/provider`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: a.name,
+          location: a.location,
+          limit: Math.min(a.limit || 3, 5)
+        })
+      })
+      const data = await r.json() as { providers: Provider[] }
+      return data
     }
   } catch (e: unknown) {
     return { error: (e as Error).message }
@@ -889,6 +909,22 @@ export async function POST(req: NextRequest) {
       ...(routeDecision?.filters || {})
     }
 
+    // Sanitize LLM-injected carriers: only allow carriers explicitly requested by the user
+    const askedCarriers = Array.isArray(userState.insurance_providers) && userState.insurance_providers.length
+      ? userState.insurance_providers
+      : undefined
+    if (decidedFilters.insuranceProviders) {
+      if (!askedCarriers || askedCarriers.length === 0) {
+        // Drop carriers suggested by LLM if user didn't ask
+        delete decidedFilters.insuranceProviders
+        console.log('Sanitized carriers: removed LLM-suggested insuranceProviders since user did not specify any')
+      } else {
+        // Force carriers to exactly what user asked
+        decidedFilters.insuranceProviders = askedCarriers
+        console.log('Sanitized carriers: enforcing user-specified insuranceProviders', askedCarriers)
+      }
+    }
+
     // Ensure filter_only never sends an empty filters object (avoid 400)
     if (routeDecision?.route === 'filter_only') {
       const hasAny = decidedFilters && Object.values(decidedFilters).some(v => v !== undefined && v !== null && !(Array.isArray(v) && v.length === 0))
@@ -909,6 +945,29 @@ export async function POST(req: NextRequest) {
 
     const decidedQuery = (routeDecision?.service_query && routeDecision.service_query.trim()) || effectiveQuery
 
+    // If router indicates provider profile, try to resolve provider from prior context first
+    let profileDirectProvider: Provider | null = null
+    if (routeDecision?.route === 'provider_profile') {
+      const providerHint = (routeDecision as { provider_name?: string | null })?.provider_name || null
+      if (Array.isArray(contextProviders) && contextProviders.length) {
+        const foundFromContext = findProviderByName(providerHint || query, contextProviders)
+        if (foundFromContext) {
+          profileDirectProvider = foundFromContext
+          console.log('Provider profile resolved from contextProviders:', { name: profileDirectProvider.name })
+        }
+      }
+      // Fallback to DB by name if not found in context
+      if (!profileDirectProvider) {
+        const fetched = await execTool('provider_by_name', { name: providerHint || query, location: derivedLocation, limit: 1 }) as unknown as { providers?: Provider[] }
+        if (Array.isArray(fetched?.providers) && fetched.providers.length) {
+          profileDirectProvider = fetched.providers[0]!
+          console.log('Provider profile fetched by name from DB:', { name: profileDirectProvider.name })
+        } else {
+          console.log('Provider profile not found by name; will continue without direct provider')
+        }
+      }
+    }
+
     // 5) Execute retrieval according to route
     let searchResponse: SearchResponse | FilterResponse | null = null
     if (routeDecision?.route === 'filter_only') {
@@ -918,6 +977,19 @@ export async function POST(req: NextRequest) {
         location: derivedLocation,
         limit: 12
       })
+    } else if (routeDecision?.route === 'provider_profile') {
+      // Skip large search; we'll summarize the single provider if available, otherwise do a light fallback search
+      if (!profileDirectProvider) {
+        // Light fallback search to provide some options if name lookup failed
+        searchResponse = await execTool('search_providers', {
+          query: decidedQuery,
+          location: derivedLocation,
+          filters: decidedFilters,
+          limit: 6
+        })
+      } else {
+        searchResponse = { providers: [profileDirectProvider], provider_count: 1, service_count: Array.isArray(profileDirectProvider.services) ? profileDirectProvider.services.length : 0 }
+      }
     } else if (routeDecision?.route === 'service_search' || routeDecision?.route === 'hybrid') {
       searchResponse = await execTool('search_providers', {
         query: decidedQuery,
@@ -1058,7 +1130,7 @@ export async function POST(req: NextRequest) {
     const rankedProviders: ProviderWithPrice[] = rankForQuery(intentDetected, baseForRanking, userState, flavor).slice(0, RESULT_LIMIT)
 
     // 7) Summarize with search context (provider-profile aware)
-    const directProvider = findProviderByName(query, rankedProviders as Provider[])
+    const directProvider = profileDirectProvider || findProviderByName(query, (Array.isArray(contextProviders) && contextProviders.length ? (contextProviders as Provider[]) : (rankedProviders as Provider[])))
     
     // If asking about a specific provider, focus ONLY on that provider
     const providersForLLM: Provider[] = directProvider 
@@ -1195,9 +1267,12 @@ export async function POST(req: NextRequest) {
       answerText = naturalFallback(userState, rankedProviders, selectedIds || [], query)
     }
 
-    // Reorder providers according to selected ids
+    // Reorder providers according to selected ids, but if a direct provider is present, return ONLY that provider
     let finalProviders: Provider[] = rankedProviders as Provider[]
-    if (Array.isArray(selectedIds) && selectedIds.length) {
+    if (directProvider) {
+      finalProviders = [directProvider]
+      console.log('Final providers set to single direct provider:', { name: directProvider.name })
+    } else if (Array.isArray(selectedIds) && selectedIds.length) {
       const byId = new Map<string, Provider>((rankedProviders as Provider[]).map((p) => [String(p._id || p.id), p]))
       const picked = selectedIds.map((id) => byId.get(String(id))).filter((p): p is Provider => Boolean(p))
       if (picked.length) finalProviders = picked
@@ -1214,9 +1289,11 @@ export async function POST(req: NextRequest) {
 
     // Compute debug counts with sensible fallbacks when upstream doesn't provide them
     const sr = searchResponse
-    const debugProviderCount = sr && 'provider_count' in (sr as SearchResponse)
-      ? ((sr as SearchResponse).provider_count ?? finalProviders.length)
-      : (sr && 'total_count' in (sr as FilterResponse) ? ((sr as FilterResponse).total_count ?? finalProviders.length) : finalProviders.length)
+    const debugProviderCount = directProvider
+      ? 1
+      : (sr && 'provider_count' in (sr as SearchResponse)
+        ? ((sr as SearchResponse).provider_count ?? finalProviders.length)
+        : (sr && 'total_count' in (sr as FilterResponse) ? ((sr as FilterResponse).total_count ?? finalProviders.length) : finalProviders.length))
     let debugServiceCount: number | undefined = sr && 'service_count' in (sr as SearchResponse) ? (sr as SearchResponse).service_count : undefined
     if (typeof debugServiceCount !== 'number' || Number.isNaN(debugServiceCount)) {
       try {
