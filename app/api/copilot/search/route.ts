@@ -4,7 +4,7 @@ import { generateEmbedding } from '@/lib/server/embedding'
 import type { Provider as ProviderType, Service as ServiceType, ServicePrice as ServicePriceType } from '@/lib/types/copilot'
 
 // Tuneable caps
-const CANDIDATE_LIMIT = Number(process.env.COPILOT_SEARCH_CANDIDATES || 400)
+const CANDIDATE_LIMIT = Number(process.env.COPILOT_SEARCH_CANDIDATES || 200)
 const RESULT_LIMIT = Number(process.env.COPILOT_RESULT_LIMIT || 4)
 // Default to server-side vector search unless explicitly disabled
 const ENABLE_SERVER_VECTOR = process.env.COPILOT_SERVER_VECTOR
@@ -13,11 +13,14 @@ const ENABLE_SERVER_VECTOR = process.env.COPILOT_SERVER_VECTOR
 const VECTOR_PATH = process.env.COPILOT_VECTOR_PATH || 'embedding'
 const SERVICE_COLLECTION = process.env.COPILOT_SERVICE_COLLECTION || 'prices-only-services'
 const SERVICE_VECTOR_FIELD = process.env.COPILOT_SERVICE_VECTOR_FIELD || 'embedding'
-const VECTOR_K = Number(process.env.COPILOT_VECTOR_K || 120)
-const SERVICE_VECTOR_K = Number(process.env.COPILOT_SERVICE_VECTOR_K || 120)
+const VECTOR_K = Number(process.env.COPILOT_VECTOR_K || 50)
+const SERVICE_VECTOR_K = Number(process.env.COPILOT_SERVICE_VECTOR_K || 100)
 const VECTOR_N_PROBES = process.env.COPILOT_VECTOR_NPROBES
   ? Number(process.env.COPILOT_VECTOR_NPROBES)
   : 2
+const SERVICE_VECTOR_N_PROBES = process.env.COPILOT_SERVICE_VECTOR_NPROBES
+  ? Number(process.env.COPILOT_SERVICE_VECTOR_NPROBES)
+  : VECTOR_N_PROBES
 
 // MongoDB connection (using same pattern as main search)
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017'
@@ -109,6 +112,14 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 // Extract price range from services
+function extractDollarAmounts(raw?: string): number[] {
+  if (typeof raw !== 'string') return []
+  const matches = raw.match(/\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g) || []
+  return matches
+    .map((m) => Number(m.replace(/[^0-9.]/g, '')))
+    .filter((n) => Number.isFinite(n) && n > 0 && n < 100000)
+}
+
 function extractPriceRange(services: Service[]): { min: number | null, max: number | null } {
   let minPrice: number | null = null
   let maxPrice: number | null = null
@@ -117,24 +128,23 @@ function extractPriceRange(services: Service[]): { min: number | null, max: numb
     if (service.isFree) {
       minPrice = 0
     }
-    
     if (service.price) {
-      if (typeof service.price.min === 'number') {
-        if (minPrice === null || service.price.min < minPrice) {
-          minPrice = service.price.min
+      const dollars = extractDollarAmounts(service.price.raw)
+      if (dollars.length) {
+        const localMin = Math.min(...dollars)
+        const localMax = Math.max(...dollars)
+        if (minPrice === null || localMin < minPrice) minPrice = localMin
+        if (maxPrice === null || localMax > maxPrice) maxPrice = localMax
+      } else {
+        if (typeof service.price.flat === 'number') {
+          if (minPrice === null || service.price.flat < minPrice) minPrice = service.price.flat
+          if (maxPrice === null || service.price.flat > maxPrice) maxPrice = service.price.flat
         }
-      }
-      if (typeof service.price.flat === 'number') {
-        if (minPrice === null || service.price.flat < minPrice) {
-          minPrice = service.price.flat
+        if (typeof service.price.min === 'number') {
+          if (minPrice === null || service.price.min < minPrice) minPrice = service.price.min
         }
-        if (maxPrice === null || service.price.flat > maxPrice) {
-          maxPrice = service.price.flat
-        }
-      }
-      if (typeof service.price.max === 'number') {
-        if (maxPrice === null || service.price.max > maxPrice) {
-          maxPrice = service.price.max
+        if (typeof service.price.max === 'number') {
+          if (maxPrice === null || service.price.max > maxPrice) maxPrice = service.price.max
         }
       }
     }
@@ -152,16 +162,16 @@ function findCheapestService(services: Service[]): Service | null {
     if (service.isFree) {
       return service // Free is always cheapest
     }
-    
     if (service.price) {
+      const dollars = extractDollarAmounts(service.price.raw)
       let price: number | null = null
-      
-      if (typeof service.price.flat === 'number') {
+      if (dollars.length) {
+        price = Math.min(...dollars)
+      } else if (typeof service.price.flat === 'number') {
         price = service.price.flat
       } else if (typeof service.price.min === 'number') {
         price = service.price.min
       }
-      
       if (price !== null && price < lowestPrice) {
         lowestPrice = price
         cheapest = service
@@ -347,7 +357,7 @@ export async function POST(req: NextRequest) {
             vector: queryEmbedding,
             path: SERVICE_VECTOR_FIELD,
             k: SERVICE_VECTOR_K,
-            ...(typeof VECTOR_N_PROBES === 'number' ? { nProbes: VECTOR_N_PROBES } : {})
+            ...(typeof SERVICE_VECTOR_N_PROBES === 'number' ? { nProbes: SERVICE_VECTOR_N_PROBES } : {})
           },
           returnStoredSource: true
         }
@@ -479,8 +489,8 @@ export async function POST(req: NextRequest) {
       // Limit and sanitize
       const limited = ranked.slice(0, Math.min(limit, RESULT_LIMIT))
       const sanitizedProviders = limited.map((p: Ranked) => {
-        const { __sim: _sim, __score: _score, ...rest } = p
-        void _sim; void _score
+        const { __sim: _sim, __score: _score, __bestService: _bestService, cheapestService, ...rest } = p
+        void _sim; void _score; void _bestService
         const cleanedServices: Service[] | undefined = Array.isArray(rest.services)
           ? (rest.services as (ServiceWithEmbedding | Service)[]).map((s) => {
               const { embedding: _embedding, ...svc } = s as ServiceWithEmbedding
@@ -488,7 +498,13 @@ export async function POST(req: NextRequest) {
               return svc as Service
             })
           : undefined
-        return { ...rest, services: cleanedServices }
+        let cleanedCheapest: Service | undefined
+        if (cheapestService) {
+          const { embedding: _emb2, ...svc } = (cheapestService as unknown as ServiceWithEmbedding)
+          void _emb2
+          cleanedCheapest = svc as Service
+        }
+        return { ...rest, services: cleanedServices, ...(cleanedCheapest ? { cheapestService: cleanedCheapest } : {}) }
       })
 
       console.log(`Search results (server vector merged): returned=${sanitizedProviders.length}`)
@@ -607,7 +623,13 @@ export async function POST(req: NextRequest) {
     function finalScore(p: { services?: Service[]; distance?: number; rating?: number }, sim: number): number {
       const hasFree = p.services?.some(s => s.isFree) ? 1 : 0
       const cheapestVals = (p.services || [])
-        .map(s => (typeof s.price?.flat === 'number' ? s.price!.flat : s.price?.min))
+        .map(s => {
+          const dollars = extractDollarAmounts((s as unknown as { price?: { raw?: string } }).price?.raw)
+          if (dollars.length) return Math.min(...dollars)
+          if (typeof s.price?.flat === 'number') return s.price.flat
+          if (typeof s.price?.min === 'number') return s.price.min
+          return undefined
+        })
         .filter((v): v is number => typeof v === 'number')
       const cheapest = cheapestVals.length ? Math.min(...cheapestVals) : undefined
       const priceBoost = hasFree ? 0.2 : (cheapest ? Math.min(0.15, 50 / (50 + cheapest)) : 0)
@@ -661,8 +683,8 @@ export async function POST(req: NextRequest) {
     
     // Sanitize embeddings from response payload (provider/service level)
     const sanitizedProviders = limitedProviders.map((p) => {
-      const { __sim: _sim, __score: _score, ...rest } = p as Ranked
-      void _sim; void _score
+      const { __sim: _sim, __score: _score, __bestService: _bestService, cheapestService, ...rest } = p as Ranked & { __bestService?: unknown; cheapestService?: ServiceWithEmbedding | Service }
+      void _sim; void _score; void _bestService
       const services: Service[] | undefined = Array.isArray((rest as Provider).services)
         ? ((rest as Provider).services as (ServiceWithEmbedding | Service)[]).map((s) => {
             const { embedding: _embedding, ...svc } = s as ServiceWithEmbedding
@@ -670,7 +692,13 @@ export async function POST(req: NextRequest) {
             return svc as Service
           })
         : (rest as Provider).services
-      return { ...rest, services }
+      let cleanedCheapest: Service | undefined
+      if (cheapestService) {
+        const { embedding: _emb2, ...svc } = (cheapestService as ServiceWithEmbedding)
+        void _emb2
+        cleanedCheapest = svc as Service
+      }
+      return { ...rest, services, ...(cleanedCheapest ? { cheapestService: cleanedCheapest } : {}) }
     })
 
     return NextResponse.json({

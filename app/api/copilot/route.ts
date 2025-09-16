@@ -297,83 +297,81 @@ function naturalFallback(state: UserState, providers: Provider[], selectedIds: s
     return qTokens.some((t) => blob.includes(t))
   }
   const toPrice = (s: Service | undefined) => {
-    if (!s || !s.price) return null
-    if (typeof s.price.flat === 'number') return `$${s.price.flat}`
-    if (typeof s.price.min === 'number' && typeof s.price.max === 'number') return `$${s.price.min}-${s.price.max}`
-    if (typeof s.price.min === 'number') return `from $${s.price.min}`
-    return null
+    if (!s) return null
+    const info = priceInfoFromService(s)
+    return info.text
   }
+
+  // TL;DR opener first
+  const serviceType = (qTokens.length ? qTokens.join(' ') : (state.service_terms?.join(' ') || 'care'))
+  const tldr = `TL;DR: Found ${sel.length} ${serviceType} options near you.`
+  lines.push(tldr)
+
   for (const p of sel) {
     const services: Service[] = Array.isArray(p?.services) ? p.services : []
-    // Prefer a service that matches the query tokens
-    const match = services.find((s) => matchesQuery(s))
-    const free = services.find((s) => s?.isFree)
-    const priced = services.find((s) => !s?.isFree && s?.price && (s.price.flat || s.price.min))
-    const dist = typeof p?.distance === 'number' ? ` (${p.distance.toFixed(1)} mi)` : ''
-    let highlight = ''
-    if (match) {
-      const pr = toPrice(match)
-      highlight = `${String(match.name || 'service').toLowerCase()}${pr ? ` ${pr}` : ''}`
-    } else if (free) {
-      highlight = `FREE ${String(free.name || 'service').toLowerCase()}`
-      if (priced) {
-        const pr = toPrice(priced)
-        if (pr) highlight += `; ${String(priced.name || 'service').toLowerCase()} ${pr}`
-      }
-    } else if (priced) {
-      const pr = toPrice(priced)
-      highlight = `${String(priced.name || 'service').toLowerCase()} ${pr || ''}`.trim()
-    } else if (services.length > 0) {
-      highlight = `${services.length} services`
-    } else {
-      highlight = 'call for pricing'
+    // Prefer a service that matches the query tokens, and a second notable service
+    const primary = services.find((s) => matchesQuery(s))
+    const fallbackPaid = services.find((s) => !s?.isFree && s?.price && (s.price.flat || s.price.min))
+    const fallbackFree = services.find((s) => s?.isFree)
+    const secondary = primary && fallbackFree && fallbackFree !== primary ? fallbackFree : (primary && fallbackPaid && fallbackPaid !== primary ? fallbackPaid : (fallbackPaid || fallbackFree))
+    const distStr = typeof p?.distance === 'number' ? `${p.distance.toFixed(1)} mi` : ''
+
+    // Provider header
+    lines.push(`**${p.name}**`)
+
+    // Services bullet
+    const svcParts: string[] = []
+    if (primary) {
+      const pr = toPrice(primary)
+      svcParts.push(`${String(primary.name || 'service')}${pr ? ` ${pr}` : ''}`.trim())
+    } else if (fallbackFree || fallbackPaid) {
+      const s = fallbackFree || fallbackPaid!
+      const pr = toPrice(s)
+      svcParts.push(`${String(s.name || 'service')}${pr ? ` ${pr}` : ''}`.trim())
     }
-    lines.push(`• ${p.name} — ${highlight}${dist}`)
+    if (secondary && secondary !== primary) {
+      const pr2 = toPrice(secondary)
+      svcParts.push(`${String(secondary.name || 'service')}${pr2 ? ` ${pr2}` : ''}`.trim())
+    }
+    if (svcParts.length) lines.push(`- Services: ${svcParts.join(', ')}`)
+
+    // Features bullet (2–3 items)
+    const features: string[] = []
+    if (p.insurance?.selfPayOptions) features.push('Self-pay')
+    if (p.insurance?.medicaid) features.push('Medicaid')
+    if (p.insurance?.medicare) features.push('Medicare')
+    // Include up to one carrier mention if available
+    if (Array.isArray(p.insurance?.majorProviders) && p.insurance!.majorProviders!.length && features.length < 3) {
+      const firstCarrier = String(p.insurance!.majorProviders![0])
+      if (firstCarrier) features.push(firstCarrier)
+    }
+    if (distStr && features.length < 3) features.push(distStr)
+    if (p.telehealth?.available && features.length < 3) features.push('Telehealth')
+    if (features.length) lines.push(`- Features: ${features.slice(0, 3).join(' • ')}`)
   }
 
-  const serviceType = (qTokens.length ? qTokens.join(' ') : (state.service_terms?.join(' ') || 'care'))
-  const topNames = sel.slice(0, 2).map((p) => p?.name).filter(Boolean)
-  let summary = `I found affordable ${serviceType} options near you.`
-  if (topNames.length) summary += ` Start with ${topNames.join(' or ')} for strong value.`
-  const uninsured = sel.filter((p) => p.insurance?.selfPayOptions).length
-  const medicaid = sel.filter((p) => p.insurance?.medicaid).length
-  if (medicaid > 0 || uninsured > 0) {
-    const parts: string[] = []
-    if (medicaid > 0) parts.push('Medicaid')
-    if (uninsured > 0) parts.push('self-pay')
-    summary += ` Many accept ${parts.join(' and ')} patients.`
-  }
-
-  // Top Pick spotlight (more detailed paragraph about the best provider)
+  // Top Pick spotlight (short and optional)
   let spotlight = ''
   if (sel.length > 0) {
     const top = sel[0]
     const services: Service[] = Array.isArray(top?.services) ? top.services : []
     const bestFree = services.find((s) => s?.isFree)
     const bestPaid = services.find((s) => !s?.isFree && s?.price && (s.price.flat || s.price.min))
-    const toPrice = (s: Service | undefined) => {
-      if (!s || !s.price) return null
-      if (typeof s.price.flat === 'number') return `$${s.price.flat}`
-      if (typeof s.price.min === 'number' && typeof s.price.max === 'number') return `$${s.price.min}-${s.price.max}`
-      if (typeof s.price.min === 'number') return `from $${s.price.min}`
-      return null
-    }
-    const priceStr = toPrice(bestPaid)
+    const priceStr = bestPaid ? toPrice(bestPaid) : null
     const dist = typeof top?.distance === 'number' ? `${top.distance.toFixed(1)} miles away` : undefined
     const accepts: string[] = []
     if (top?.insurance?.selfPayOptions) accepts.push('self-pay')
     if (top?.insurance?.medicaid) accepts.push('Medicaid')
     if (top?.insurance?.medicare) accepts.push('Medicare')
     const acceptsStr = accepts.length ? ` Accepts ${accepts.join(', ')}.` : ''
-    const freeStr = bestFree ? ` Offers FREE ${String(bestFree.name || 'services').toLowerCase()}.` : ''
+    const freeStr = bestFree ? ` Offers FREE ${String(bestFree.name || 'services')}.` : ''
     const paidStr = bestPaid ? ` ${String(bestPaid.name || 'service')} ${priceStr ? priceStr : ''}.` : ''
     const ratingStr = typeof top?.rating === 'number' ? ` Rated ${top.rating.toFixed(1)}★.` : ''
     const where = top?.addressLine || (top?.city && top?.state ? `${top.city}, ${top.state}` : '')
-    spotlight = `\n\nTop Pick: ${top.name}${where ? ` — ${where}` : ''}${dist ? ` (${dist})` : ''}.${freeStr}${paidStr}${acceptsStr}${ratingStr} `
-      + `${top?.phone ? `Call ${top.phone}` : 'Visit the website'} for details.`
+    spotlight = `\n\nTop Pick: ${top.name}${where ? ` — ${where}` : ''}${dist ? ` (${dist})` : ''}.${freeStr}${paidStr}${acceptsStr}${ratingStr}`
   }
 
-  return `${lines.join('\n')}${spotlight}\n\nSummary: ${summary}`
+  return `${lines.join('\n')}${spotlight}`
 }
 
 function normalizeName(s: string): string {
@@ -468,18 +466,47 @@ async function extractStateFromConversation(messages: Message[], prev?: Partial<
   }
 }
 
+// ===== Price extraction helpers (avoid minute/time hallucinations) =====
+function extractDollarAmounts(raw?: string): number[] {
+  if (typeof raw !== 'string') return []
+  const matches = raw.match(/\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g) || []
+  return matches
+    .map((m) => Number(m.replace(/[^0-9.]/g, '')))
+    .filter((n) => Number.isFinite(n) && n > 0 && n < 100000)
+}
+
+function priceInfoFromService(s: Service): { text: string | null; numeric: number | null } {
+  if (!s) return { text: null, numeric: null }
+  if (s.isFree) return { text: 'FREE', numeric: 0 }
+  const raw = (s as unknown as { price?: { raw?: string } }).price?.raw
+  const dollars = extractDollarAmounts(raw)
+  if (dollars.length) {
+    const min = Math.min(...dollars)
+    const max = Math.max(...dollars)
+    return { text: min === max ? `$${min}` : `$${min}-${max}`, numeric: min }
+  }
+  // Fallbacks only if clearly numeric price fields exist
+  if (typeof s?.price?.flat === 'number') return { text: `$${s.price.flat}`, numeric: s.price.flat }
+  if (typeof s?.price?.min === 'number' && typeof s?.price?.max === 'number') {
+    const min = s.price.min
+    const max = s.price.max
+    // Guard against common minute markers by requiring reasonable spread and values
+    if (min > 0 && max > 0 && max >= min && max <= 100000) {
+      return { text: min === max ? `$${min}` : `$${min}-${max}`, numeric: min }
+    }
+  }
+  if (typeof s?.price?.min === 'number') {
+    const min = s.price.min
+    if (min > 0 && min <= 100000) return { text: `from $${min}`, numeric: min }
+  }
+  return { text: null, numeric: null }
+}
+
 function collectPriceStats(services: Service[]): PriceStat {
   const samples: PriceSample[] = []
   for (const s of Array.isArray(services) ? services : []) {
-    if (s?.isFree) {
-      samples.push({ name: s?.name || 'Service', price: 0 })
-    } else if (s?.price) {
-      if (typeof s.price.flat === 'number') {
-        samples.push({ name: s?.name || 'Service', price: s.price.flat })
-      } else if (typeof s.price.min === 'number') {
-        samples.push({ name: s?.name || 'Service', price: s.price.min })
-      }
-    }
+    const info = priceInfoFromService(s)
+    if (info.numeric !== null) samples.push({ name: s?.name || 'Service', price: info.numeric })
   }
   if (!samples.length) return { samples: [] }
   const values = samples.map(x => x.price)
@@ -536,10 +563,7 @@ function buildSummarizerContext(providers: Provider[], state: UserState): Summar
     const priced: SummarizerServicePreview[] = services
       .map((s) => ({ 
         name: s?.name, 
-        price_info: s?.price ? 
-          (typeof s.price.flat === 'number' ? `$${s.price.flat}` : 
-           typeof s.price.min === 'number' ? `$${s.price.min}${typeof s.price.max === 'number' ? `-${s.price.max}` : '+'}` : null) : 
-          null,
+        price_info: priceInfoFromService(s).text,
         isFree: !!s?.isFree, 
         isDiscounted: !!s?.isDiscounted 
       }))
@@ -555,10 +579,7 @@ function buildSummarizerContext(providers: Provider[], state: UserState): Summar
               name: s?.name, 
               isFree: !!s?.isFree, 
               isDiscounted: !!s?.isDiscounted, 
-              price_info: s?.price ? 
-                (typeof s.price.flat === 'number' ? `$${s.price.flat}` : 
-                 typeof s.price.min === 'number' ? `$${s.price.min}${typeof s.price.max === 'number' ? `-${s.price.max}` : '+'}` : null) : 
-                null 
+              price_info: priceInfoFromService(s).text 
             }))
             .slice(0, 8)
           // Get a mix of free and priced services for variety
@@ -570,11 +591,7 @@ function buildSummarizerContext(providers: Provider[], state: UserState): Summar
         name: s?.name, 
         isFree: !!s?.isFree, 
         isDiscounted: !!s?.isDiscounted, 
-        price_info: s?.price ? 
-          (typeof s.price.flat === 'number' ? `$${s.price.flat}` : 
-           typeof s.price.min === 'number' ? `$${s.price.min}${typeof s.price.max === 'number' ? `-${s.price.max}` : '+'}` : 
-           null) : 
-          null 
+        price_info: priceInfoFromService(s).text 
       }))
           const carrierMatches: string[] = Array.isArray(p.insurance?.majorProviders)
       ? p.insurance!.majorProviders!.filter((ip: string) => asked.includes((ip || '').toLowerCase())).slice(0, 3)
@@ -659,7 +676,10 @@ async function summarizeWithSearchContext(
   const styleHash = Math.abs(seedStr.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0))
   const styleHint = STYLE_HINTS[styleHash % STYLE_HINTS.length]
 
-  const SUM_TOKENS = Number(process.env.COPILOT_SUMMARY_TOKENS || 800)
+  // Keep multi-provider concise; allow richer single-provider profiles
+  const SUM_TOKENS = providers.length > 1
+    ? Number(process.env.COPILOT_SUMMARY_TOKENS_MULTI || 450)
+    : Number(process.env.COPILOT_SUMMARY_TOKENS || 800)
   const body = {
     model: AZURE_DEPLOYMENT,
     instructions: `You are SIE Wellness Copilot, a friendly healthcare assistant helping people find affordable care.
@@ -670,6 +690,7 @@ Available: ${providers.length} providers
 ${focusProvider ? `Focus: ${focusProvider.name}` : ''}
 Tone: ${styleHint}
 
+
 ${providers.length === 1 ? `
 SINGLE PROVIDER PROFILE - Write a detailed, helpful response about ${providers[0].name}:
 - Start with: "${providers[0].name} offers..."
@@ -677,58 +698,25 @@ SINGLE PROVIDER PROFILE - Write a detailed, helpful response about ${providers[0
 - Mention location and distance if available
 - Note insurance acceptance naturally
 - Do NOT include calls-to-action or contact instructions. Do NOT print phone numbers, emails, or URLs.` : `
-WRITE A NATURAL, HELPFUL RESPONSE:
+WRITE A CONCISE, SCANNABLE ANSWER:
 
-1. Start with a friendly opener like:
-   - "I found some great options for dental care near you..."
-   - "Here are affordable dental providers in your area..."
-   - "For low-cost dental care, these providers stand out..."
-
-2. For each provider (mention 3-6), write naturally:
-   - Don't just list names - describe what makes them good
-   - Mix FREE services with affordable paid options
-   - Use natural language: "starting at $X", "as low as $X", "offers free X"
-   - Vary your sentence structure
-   
-3. Service examples to mention:
-   - FREE services: consultations, exams, cleanings
-   - Affordable services: fillings ($25-200), cleanings ($50-150), x-rays ($20-80)
-   - Premium services: crowns ($400-800), implants ($1000+)
-   
-4. Make it conversational and helpful:
-   - "A Gentle Touch stands out with free consultations and cleanings starting at just $75..."
-   - "Crown Dental Care offers comprehensive services, with basic fillings from $45..."
-   - "For budget-conscious patients, Pearle Vision provides free adjustments plus affordable treatments..."
-   
-5. End with helpful context (no calls-to-action):
-   - "Most accept self-pay patients"
-   - "Several offer payment plans"
-   - "All are within X miles of your location"
-
-PLUS: Include a short Top Pick spotlight (3-4 sentences) about the best overall provider you recommend first.
-- Explain why it’s the top choice (price, free services, distance, ratings, insurance fit).
-- Mention 2–3 concrete services with prices and any free options.
-- Optionally note distance if available. Do NOT include calls-to-action or contact instructions; avoid phone numbers, emails, or URLs.`}
+1) Start with one TL;DR sentence summarizing count and affordability (e.g., "TL;DR: Found 5 therapy options under $60 within 10 miles").
+2) For each provider (3–6 total), format exactly like this:
+   **Provider Name**
+   - Services: list the service that best matches the user’s request first (e.g., "individual therapy from $45"), then 1 other notable service with price or "Free consult" if present.
+   - Features: include 2–3 items from [Self-pay, Medicaid/Medicare or top 1–2 carriers, Telehealth, distance like "6.1 mi"]. Avoid more than 3 features.
+3) End with a short Top Pick mini-spotlight (2–3 sentences) explaining why it’s best (price/free options/distance/insurance), with 2–3 concrete services+prices.
 
 CRITICAL REQUIREMENTS:
-- Write naturally, NOT like a bulleted list
-- Mix FREE and PAID services (at least 4 providers should have prices, not just "FREE")
-- Vary your language - don't repeat the same phrases
-- Be specific about prices but conversational in tone
-- Select 3-6 providers for variety
-- Ground your answer strictly in FULL_SEARCH_CONTEXT. Do not invent prices or claims.
-- Prefer providers that are most relevant to the question (vector-ranked), then weigh affordability and distance.
-- If key info is missing (e.g., location), end with one short clarifying question.
-
-STYLE AND SAFETY:
-- Do NOT include calls-to-action or direct contact instructions. Avoid words/phrases like "call", "book", "schedule", "email", "visit the website", "get started".
-- Do NOT print phone numbers, email addresses, or URLs in the answer. Keep contact details on the provider card only.
+- Services must be directly related to the user’s request; always show a concrete price or "Free".
+- Keep bullets compact; no paragraphs inside bullets.
+- Ground strictly in FULL_SEARCH_CONTEXT; no invented claims.
+- No calls-to-action; do not print phone numbers, emails, or URLs.
+- If key info is missing (e.g., location), append one short clarifying question.`}
 
 Return JSON:
-- "answer": Your natural, conversational response (3-6 providers)
-- "selected_provider_ids": Array of ALL provider IDs mentioned
-
-Remember: People need options with clear pricing to make informed decisions.`,
+- "answer": your TL;DR + bullets + optional Top Pick mini-spotlight
+- "selected_provider_ids": Array of ALL provider IDs mentioned`,
     input,
     tools: [],
     tool_choice: 'none',
