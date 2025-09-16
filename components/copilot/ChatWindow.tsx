@@ -40,7 +40,7 @@ export function ChatWindow({
   ]
 
   return (
-    <div className="relative w-full overflow-x-hidden">
+    <div className="relative w-full max-w-full overflow-x-hidden">
       {navigatingTo && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur">
           <div className="glass rounded-xl px-4 py-3 border border-white/20 dark:border-white/10 text-center">
@@ -55,10 +55,10 @@ export function ChatWindow({
           </div>
         </div>
       )}
-      <div className="glass rounded-2xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden lg:h-[60vh] flex flex-col w-full">
+      <div className="glass rounded-2xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden lg:h-[60vh] flex flex-col w-full max-w-full">
         <div
           ref={scrollerRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin pl-0 pr-3 py-3 sm:p-6 space-y-4 bg-white/60 dark:bg-gray-900/40 lg:pb-0"
+          className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin pl-0 pr-3 py-3 sm:p-6 space-y-4 bg-white/60 dark:bg-gray-900/40 lg:pb-0 max-w-full"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 84px)' }}
         >
           {messages.length === 0 && (
@@ -87,8 +87,8 @@ export function ChatWindow({
                 .filter(Boolean))
             )) as string[]
             return (
-            <div key={i} className="space-y-2">
-              <div className={m.role === 'assistant' ? 'pl-0 sm:pl-0' : ''}>
+            <div key={i} className="space-y-2 min-w-0 max-w-full">
+              <div className={m.role === 'assistant' ? 'pl-0 sm:pl-0 min-w-0 max-w-full' : 'min-w-0 max-w-full'}>
                 <MessageBubble 
                   role={m.role} 
                   content={m.content}
@@ -96,7 +96,7 @@ export function ChatWindow({
                 />
               </div>
               {m.role === 'assistant' && providersByMessage?.[i]?.length ? (
-                <div className="ml-0 sm:ml-12">
+                <div className="ml-0 sm:ml-12 max-w-full overflow-x-hidden">
                   <ProviderCards providers={providersByMessage[i]} max={6} onNavigateStart={(name) => setNavigatingTo(name)} />
                 </div>
               ) : null}

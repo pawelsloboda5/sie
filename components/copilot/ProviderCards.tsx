@@ -50,7 +50,7 @@ export function ProviderCards({ providers, max = 6, onNavigateStart }: { provide
   const isSingle = items.length === 1
 
   return (
-    <div className="mt-2">
+    <div className="mt-2 w-full max-w-full overflow-x-hidden">
       <div className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">Recommended Providers</div>
 
       {/* Grid on md+, compact carousel on small */}
@@ -138,7 +138,7 @@ export function ProviderCards({ providers, max = 6, onNavigateStart }: { provide
 
       {/* Mobile: if one card, render full-width without carousel; otherwise keep horizontal carousel */}
       {isSingle ? (
-        <div className="sm:hidden px-2">
+        <div className="sm:hidden px-2 w-full max-w-full">
           {items.map((p) => {
             const slug = buildProviderSlug(p.name, p._id)
             const go = () => { onNavigateStart?.(p.name); router.push(`/providers/${slug}`) }
@@ -218,7 +218,7 @@ export function ProviderCards({ providers, max = 6, onNavigateStart }: { provide
           })}
         </div>
       ) : (
-        <div className="sm:hidden px-2 overflow-x-auto overflow-y-hidden scrollbar-thin">
+        <div className="sm:hidden px-2 overflow-x-auto overflow-y-hidden scrollbar-thin w-full max-w-full">
           <div className="flex gap-2.5 snap-x snap-mandatory pb-2 min-w-full max-w-full">
             {items.map((p) => {
               const slug = buildProviderSlug(p.name, p._id)

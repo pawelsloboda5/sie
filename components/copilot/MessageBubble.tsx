@@ -45,8 +45,8 @@ export function MessageBubble({
       .sort((a, b) => b.length - a.length)
       .map(termToPattern)
 
-    // Price regex: $12, $12.50, $12-20, $12 - $20, $1,200 etc.
-    const priceRegex = /\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?(?:\s?-\s?\$?\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)?/g
+    // Price regex: $12, $12.50, $12-20, $12 – $20, $12—$20, $12 to $20, $1,200 etc.
+    const priceRegex = /\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?(?:\s?(?:-|\u2013|\u2014|to)\s?\$?\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)?/gi
 
     // Process only text nodes by splitting on tags
     const parts = html.split(/(<[^>]+>)/g)
@@ -68,17 +68,54 @@ export function MessageBubble({
     return parts.join('')
   }
 
+  // Convert the Services line into mobile-friendly blocks (each service on a new line on mobile)
+  function formatServicesLines(html: string): string {
+    try {
+      const lines = html.split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i] as string
+        // Match any prefix (including bullets) before "Services:" then capture the remainder
+        const match = line.match(/^(.*?)(Services:\s*)(.+)$/i)
+        if (!match) continue
+        const prefix = match[1] || ''
+        const label = match[2] || 'Services: '
+        const rest = match[3] || ''
+        const parts = rest.split(/;\s*/).filter(Boolean)
+        if (parts.length <= 1) continue
+        const rebuilt = prefix + label + parts.map((p, idx) => {
+          const sep = idx < parts.length - 1 ? '<span class="hidden sm:inline">; </span>' : ''
+          return `<span class="block sm:inline">${p}</span>${sep}`
+        }).join('')
+        lines[i] = rebuilt
+      }
+      return lines.join('\n')
+    } catch {
+      return html
+    }
+  }
+
+  // Collapse extra blank lines before Features
+  function collapseFeatureGaps(input: string): string {
+    try {
+      return (input || '').replace(/\n\s*\n\s*(-\s*Features:)/gi, '\n$1')
+    } catch {
+      return input
+    }
+  }
+
   function renderMessageText(text: string): { __html: string } {
-    // Minimal markdown: **bold** and newlines, then apply highlights on text nodes
-    const escaped = escapeHtml(text || '')
+    // Normalize spacing, then minimal markdown: **bold** and newlines, then apply highlights on text nodes
+    const normalized = collapseFeatureGaps(text || '')
+    const escaped = escapeHtml(normalized)
     const withBold = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     const withHighlights = applyHighlights(withBold)
-    const withBreaks = withHighlights.replace(/\n/g, '<br/>')
+    const withServices = formatServicesLines(withHighlights)
+    const withBreaks = withServices.replace(/\n/g, '<br/>')
     return { __html: withBreaks }
   }
 
   return (
-    <div className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'} transition-smooth`}>
+    <div className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'} transition-smooth w-full max-w-full`}>
       {!isUser && (
         <div className="hidden sm:block h-8 w-8 rounded-full overflow-hidden ring-2 ring-white/70 dark:ring-black/40 shrink-0">
           <Image src="/logo_560x560.png" alt="AI" width={32} height={32} className="object-cover" />
@@ -87,11 +124,11 @@ export function MessageBubble({
       <div
         className={
           isUser
-            ? 'max-w-[85%] sm:max-w-[70%] rounded-xl rounded-br-sm bg-[#068282] text-white px-4 py-3 shadow-md animate-in fade-in slide-in-from-right-2'
-            : 'max-w-[85%] sm:max-w-[70%] rounded-xl rounded-bl-sm glass border border-white/20 dark:border-white/10 px-4 py-3 shadow md:shadow-lg animate-in fade-in slide-in-from-left-2'
+            ? 'max-w-[85%] sm:max-w-[70%] rounded-xl rounded-br-sm bg-[#068282] text-white px-4 py-3 shadow-md animate-in fade-in slide-in-from-right-2 min-w-0'
+            : 'max-w-[85%] sm:max-w-[70%] rounded-xl rounded-bl-sm glass border border-white/20 dark:border-white/10 px-4 py-3 shadow md:shadow-lg animate-in fade-in slide-in-from-left-2 min-w-0'
         }
       >
-        <div className="whitespace-pre-wrap break-words leading-relaxed" dangerouslySetInnerHTML={renderMessageText(content)} />
+        <div className="whitespace-pre-wrap break-words break-all sm:break-words leading-relaxed text-[14px] sm:text-[18px] [line-height:1.55] sm:[line-height:1.6]" dangerouslySetInnerHTML={renderMessageText(content)} />
       </div>
     </div>
   )

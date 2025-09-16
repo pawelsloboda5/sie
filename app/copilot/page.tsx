@@ -71,6 +71,25 @@ export default function CopilotPage() {
     } catch {}
   }, [])
 
+  // Listen for header-triggered open-location event to render and focus location UI
+  useEffect(() => {
+    function onOpenLocation() {
+      try {
+        setUserLocation(null)
+        const el = document.getElementById('new-location')
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      } catch {}
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('sie:copilot:open-location', onOpenLocation as EventListener)
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('sie:copilot:open-location', onOpenLocation as EventListener)
+      }
+    }
+  }, [])
+
   const handleAutoLocation = async () => {
     setIsGettingLocation(true)
     try {
@@ -248,9 +267,10 @@ export default function CopilotPage() {
     <div className="min-h-screen flex flex-col overflow-x-hidden bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30">
       <Header />
 
-      <main className="container mx-auto w-full max-w-full overflow-x-hidden px-2 sm:px-4 lg:px-8 pt-2 pb-4 sm:pt-4 sm:pb-8 flex-1">
-        <div className="mb-3">
-          {/* Location Bar */}
+      <main className="container mx-auto w-full max-w-full max-w-[100vw] overflow-x-hidden overscroll-x-none px-2 sm:px-4 lg:px-8 pt-2 pb-4 sm:pt-4 sm:pb-8 flex-1">
+        <div className="mb-3" id="new-location">
+          {/* Location Bar (hidden on copilot if location set; header shows controls) */}
+          {!(userLocation) && (
           <div className="mt-1 p-3 sm:p-4 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
             <div className="flex items-center gap-2 mb-1">
               <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -317,10 +337,11 @@ export default function CopilotPage() {
             
            
           </div>
+          )}
         </div>
 
-        <div className={`grid grid-cols-1 ${showDebugUI ? 'lg:grid-cols-3' : ''} gap-4 lg:gap-8 items-start`}>
-          <div className={showDebugUI ? 'lg:col-span-2' : ''}>
+        <div className={`grid grid-cols-1 ${showDebugUI ? 'lg:grid-cols-3' : ''} gap-4 lg:gap-8 items-start w-full max-w-full overflow-x-hidden`}>
+          <div className={showDebugUI ? 'lg:col-span-2 min-w-0' : 'min-w-0'}>
             <ChatWindow
               messages={messages}
               providersByMessage={providersByMessage}
@@ -336,7 +357,7 @@ export default function CopilotPage() {
           </div>
 
           {showDebugUI && (
-            <aside className="hidden lg:block sticky top-24 space-y-3">
+            <aside className="hidden lg:block sticky top-24 space-y-3 min-w-0 max-w-full">
               <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-gray-900/60 backdrop-blur p-4">
                 <div className="text-sm font-semibold mb-2">Latest Recommendations</div>
                 <ProviderCards providers={providersByMessage[messages.length - 1] || []} max={6} />
