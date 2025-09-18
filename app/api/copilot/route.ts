@@ -216,13 +216,30 @@ Rules:
   }
 }
 
-function decideRouteFallback(question: string, state: UserState): {
-  route: 'filter_only' | 'service_search' | 'hybrid'
+function decideRouteFallback(
+  question: string,
+  state: UserState,
+  contextProviders?: Provider[]
+): {
+  route: 'filter_only' | 'service_search' | 'hybrid' | 'provider_profile'
   service_query?: string | null
+  provider_name?: string | null
 } {
   const s = String(question || '').toLowerCase()
   const hasService = Array.isArray(state.service_terms) && state.service_terms.length > 0
   const mentionsFilterOnly = /(\bssn\b|no\s*ssn|medicaid|medicare|uninsured|self\s*pay|self-pay|insurance|cigna|aetna|uhc|united|kaiser|anthem|bcbs|blue\s*(cross|shield))/i.test(s)
+
+  // Heuristic: if the query seems to reference a specific provider from prior context, treat as provider_profile
+  try {
+    if (Array.isArray(contextProviders) && contextProviders.length) {
+      const found = findProviderByName(question, contextProviders)
+      if (found) {
+        return { route: 'provider_profile', provider_name: found.name }
+      }
+    }
+  } catch {
+    // ignore
+  }
 
   if (!hasService && mentionsFilterOnly) return { route: 'filter_only' }
   if (hasService && mentionsFilterOnly) return { route: 'hybrid', service_query: state.service_terms!.join(' ') }
@@ -407,55 +424,67 @@ function findProviderByName(query: string, providers: Provider[]): Provider | nu
   const q = normalizeName(query)
   if (!q) return null
 
-  // Only consider provider-profile phrasing; avoid generic service phrases
+  // Consider provider-profile phrasing but also allow fuzzy matching against prior providers
   const patterns = [
     /tell\s+me\s+(?:more\s+)?about\s+(.+)/,
+    /tell\s+me\s+about\s+(.+)/,
     /what\s+(?:services\s+)?(?:do|does)\s+(.+?)\s+(?:offer|provide|have)/,
     /info(?:rmation)?\s+(?:on|about)\s+(.+)/,
     /details?\s+(?:about|on)\s+(.+)/,
-    /services\s+at\s+(.+)/
+    /services\s+at\s+(.+)/,
+    /what\s+about\s+(.+)/,
+    /how\s+about\s+(.+)/,
+    /does\s+(.+?)\s+(?:accept|take|have|offer)\b/,
+    /is\s+(.+?)\s+(?:good|open|available|taking|accepting)\b/
   ]
 
   let nameHint: string | null = null
   for (const pat of patterns) {
     const m = q.match(pat)
-    if (m?.[1]) { 
+    if (m?.[1]) {
       nameHint = m[1].trim()
       break
     }
   }
 
-  // If we didn't detect explicit provider-profile phrasing, do not try to infer
-  if (!nameHint) return null
-
   // Reject generic phrases that are actually service categories
   const genericTokens = new Set(['mental','health','clinic','center','care','services','medical','hospital','urgent','primary','dental','therapy','counseling','behavioral'])
-  const qTokens = nameHint.split(' ').filter(Boolean).filter(t => t !== 'the' && t.length > 1)
-  const nonGenericCount = qTokens.filter(t => !genericTokens.has(t)).length
-  if (qTokens.length < 2 || nonGenericCount === 0) return null
+  const toTokens = (s: string) => s.split(' ').filter(Boolean).filter(t => t !== 'the' && t.length > 1)
 
   const candidates = providers.map((p) => ({ p, n: normalizeName(String(p.name || '')) }))
 
-  // Exact substring match
-  const exact = candidates.find(c => c.n && nameHint && c.n.includes(nameHint))
-  if (exact) return exact.p
+  // 1) If we have a nameHint, try exact substring on normalized names
+  if (nameHint) {
+    const exact = candidates.find(c => c.n && c.n.includes(nameHint as string))
+    if (exact) return exact.p
+  }
 
-  // Token overlap (stricter threshold)
-  const qTokenSet = new Set(qTokens)
-  let best: Provider | null = null
-  let bestScore = 0
+  // 2) Token overlap matching against nameHint tokens if present; else against full query tokens
+  const qTokensRaw = toTokens(nameHint || q)
+  const qTokens = qTokensRaw.filter(t => !genericTokens.has(t))
+  if (qTokens.length) {
+    let best: Provider | null = null
+    let bestScore = 0
+    for (const c of candidates) {
+      const t = new Set(toTokens(c.n))
+      const overlap = qTokens.filter(x => t.has(x)).length
+      const score = overlap / Math.max(1, Math.min(qTokens.length, t.size))
+      if (score > bestScore) {
+        best = c.p
+        bestScore = score
+      }
+    }
+    if (best && bestScore >= 0.5) return best
+  }
 
+  // 3) Fallback: if the normalized query contains a long substring of any provider name
   for (const c of candidates) {
-    const t = new Set(c.n.split(' ').filter(Boolean).filter(x => x !== 'the' && x.length > 1))
-    const overlap = [...qTokenSet].filter(x => t.has(x)).length
-    const score = overlap / Math.max(1, qTokenSet.size)
-    if (score > bestScore) { 
-      best = c.p
-      bestScore = score
+    if (c.n.length >= 6 && (q.includes(c.n) || c.n.includes(q))) {
+      return c.p
     }
   }
 
-  return bestScore >= 0.66 ? best : null
+  return null
 }
 // Removed unused helpers: summarizeProviderServices, selectProvidersFromContextByService, pickProvidersByState
 
@@ -1109,7 +1138,7 @@ export async function POST(req: NextRequest) {
 
             // 4) Decide routing
             let routeDecision = await routeWithLLM(query, userState)
-            if (!routeDecision) routeDecision = decideRouteFallback(query, userState)
+            if (!routeDecision) routeDecision = decideRouteFallback(query, userState, contextProviders)
 
             const decidedFilters = { ...filtersFromState, ...(routeDecision?.filters || {}) }
             const askedCarriers = Array.isArray(userState.insurance_providers) && userState.insurance_providers.length ? userState.insurance_providers : undefined
@@ -1449,7 +1478,7 @@ export async function POST(req: NextRequest) {
     // 4) Decide routing: filter_only vs service_search vs hybrid
     let routeDecision = await routeWithLLM(query, userState)
     if (!routeDecision) {
-      routeDecision = decideRouteFallback(query, userState)
+      routeDecision = decideRouteFallback(query, userState, contextProviders)
     }
 
     // Normalize filters from decision + state
