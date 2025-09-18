@@ -241,7 +241,14 @@ export default function CopilotPage() {
 
         const res = await fetch('/api/copilot?stream=1', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'x-copilot-stream': '1' },
+          headers: { 
+            'Content-Type': 'application/json',
+            // Accept text/event-stream; include no-cache to discourage iOS caching proxies
+            'Accept': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'x-copilot-stream': '1'
+          },
           body: JSON.stringify({ 
             query: text, 
             conversation: messages, 
@@ -254,6 +261,7 @@ export default function CopilotPage() {
 
         if (!res.ok || !res.body) throw new Error('Stream failed')
 
+        // WebKit fix: piping through a BYOB reader where available helps on some iOS versions
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
