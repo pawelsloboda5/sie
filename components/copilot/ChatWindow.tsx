@@ -70,6 +70,7 @@ export function ChatWindow({
         <div
           ref={scrollerRef}
           className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin px-4 py-4 sm:p-6 space-y-4 bg-transparent lg:pb-0 max-w-full"
+          data-chat-scroller
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 128px)' }}
         >
           {messages.length === 0 && (

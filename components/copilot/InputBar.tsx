@@ -50,13 +50,28 @@ export function InputBar({ onSubmit, size = 'compact' }: { onSubmit: (text: stri
         ref={textareaRef}
         className={`
           w-full min-w-0 bg-transparent outline-none text-gray-700 dark:text-gray-100 resize-none
-          ${size === 'hero' ? 'text-[15px] sm:text-base min-h-[4.5rem] leading-relaxed' : 'text-[14px] sm:text-[15px] h-auto'} 
+          ${size === 'hero' ? 'text-[16px] sm:text-base min-h-[4.5rem] leading-relaxed' : 'text-[16px] h-auto'} 
           placeholder:text-gray-400 dark:placeholder:text-gray-500
         `}
         placeholder="Ask your healthcare question..."
         value={text}
         onChange={handleTextChange}
-        onFocus={() => setFocused(true)}
+        onFocus={() => {
+          setFocused(true)
+          try {
+            // Ensure the chat area is scrolled to the bottom when focusing the input on mobile
+            const scroller = document.querySelector('[data-chat-scroller]') as HTMLElement | null
+            if (scroller) {
+              scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' })
+              // Run a second pass after keyboard opens to counter iOS layout shifts
+              setTimeout(() => {
+                try { scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' }) } catch {}
+              }, 250)
+            } else {
+              window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' })
+            }
+          } catch {}
+        }}
         onBlur={() => setFocused(false)}
         onKeyDown={handleKeyDown}
         rows={size === 'hero' ? 3 : 1}
