@@ -33,9 +33,7 @@ export default function CopilotPage() {
   const [locationInput, setLocationInput] = useState('')
   const [isGettingLocation, setIsGettingLocation] = useState(false)
 
-  function isChatMessage(m: unknown): m is ChatMessage {
-    return !!m && typeof (m as { content?: unknown }).content === 'string' && ((m as { role?: unknown }).role === 'user' || (m as { role?: unknown }).role === 'assistant')
-  }
+  
 
   // Load and persist conversation locally so the model keeps context across navigations
   const STORAGE_KEY = 'sie:copilot:conversation'
