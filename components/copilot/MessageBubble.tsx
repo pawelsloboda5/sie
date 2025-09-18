@@ -128,7 +128,7 @@ export function MessageBubble({
             : 'max-w-[85%] sm:max-w-[70%] rounded-xl rounded-bl-sm glass border border-white/20 dark:border-white/10 px-4 py-3 shadow md:shadow-lg animate-in fade-in slide-in-from-left-2 min-w-0'
         }
       >
-        <div className="whitespace-pre-wrap break-words break-all sm:break-words leading-relaxed text-[14px] sm:text-[18px] [line-height:1.55] sm:[line-height:1.6]" dangerouslySetInnerHTML={renderMessageText(content)} />
+        <div className="whitespace-pre-wrap break-normal sm:break-words leading-relaxed text-[14px] sm:text-[18px] [line-height:1.55] sm:[line-height:1.6]" dangerouslySetInnerHTML={renderMessageText(content)} />
       </div>
     </div>
   )
