@@ -684,8 +684,8 @@ async function summarizeWithSearchContext(
 
   // Keep multi-provider concise; allow richer single-provider profiles
   const SUM_TOKENS = providers.length > 1
-    ? Number(process.env.COPILOT_SUMMARY_TOKENS_MULTI || 450)
-    : Number(process.env.COPILOT_SUMMARY_TOKENS || 800)
+    ? Number(process.env.COPILOT_SUMMARY_TOKENS_MULTI || 350)
+    : Number(process.env.COPILOT_SUMMARY_TOKENS || 600)
   const body = {
     model: AZURE_DEPLOYMENT,
     instructions: `You are SIE Wellness Copilot, a friendly healthcare assistant helping people find affordable care.

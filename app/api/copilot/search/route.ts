@@ -15,8 +15,8 @@ const ENABLE_SERVER_VECTOR = process.env.COPILOT_SERVER_VECTOR
 const VECTOR_PATH = process.env.COPILOT_VECTOR_PATH || 'embedding'
 const SERVICE_COLLECTION = process.env.COPILOT_SERVICE_COLLECTION || 'prices-only-services'
 const SERVICE_VECTOR_FIELD = process.env.COPILOT_SERVICE_VECTOR_FIELD || 'embedding'
-const VECTOR_K = Number(process.env.COPILOT_VECTOR_K || 50)
-const SERVICE_VECTOR_K = Number(process.env.COPILOT_SERVICE_VECTOR_K || 100)
+const VECTOR_K = Number(process.env.COPILOT_VECTOR_K || 40)
+const SERVICE_VECTOR_K = Number(process.env.COPILOT_SERVICE_VECTOR_K || 80)
 const VECTOR_N_PROBES = process.env.COPILOT_VECTOR_NPROBES
   ? Number(process.env.COPILOT_VECTOR_NPROBES)
   : 2
