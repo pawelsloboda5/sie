@@ -19,7 +19,10 @@ type UserLocation = {
 export default function CopilotPage() {
   // Build-time flag exposed via next.config.ts → env.NEXT_PUBLIC_DEBUG_AI_COPILOT
   const showDebugUI = (process.env.NEXT_PUBLIC_DEBUG_AI_COPILOT === 'true' || process.env.NEXT_PUBLIC_DEBUG_AI_COPILOT === '1')
-  const enableStreaming = (process.env.NEXT_PUBLIC_COPILOT_STREAM === 'true' || process.env.NEXT_PUBLIC_COPILOT_STREAM === '1')
+  // Default to streaming unless explicitly disabled via NEXT_PUBLIC_COPILOT_STREAM=false/0
+  const supportsStreams = typeof ReadableStream !== 'undefined'
+  const streamingDisabledEnv = (process.env.NEXT_PUBLIC_COPILOT_STREAM === 'false' || process.env.NEXT_PUBLIC_COPILOT_STREAM === '0')
+  const enableStreaming = supportsStreams && !streamingDisabledEnv
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isThinking, setIsThinking] = useState(false)
@@ -177,15 +180,15 @@ export default function CopilotPage() {
   const handleSend = async (text: string) => {
     if (!text.trim()) return
     const next: ChatMessage[] = [...messages, { role: 'user', content: text }]
-    setMessages(next)
     setIsThinking(true)
 
     try {
+      // Optimistically add an empty assistant draft bubble in ALL modes (streaming and non-streaming)
+      const assistantIdx = next.length
+      const withAssistantDraft: ChatMessage[] = [...next, { role: 'assistant', content: '' }]
+      setMessages(withAssistantDraft)
+
       if (enableStreaming) {
-        // Optimistically append an empty assistant message to stream into
-        const assistantIdx = next.length
-        const withAssistantDraft: ChatMessage[] = [...next, { role: 'assistant', content: '' }]
-        setMessages(withAssistantDraft)
 
         let draft = ''
         let rawJson = ''
@@ -361,34 +364,27 @@ export default function CopilotPage() {
       const providers = (data?.providers as Provider[]) || []
       const nextState: CopilotUserState | null = data?.state || null
       const nextDebug: CopilotDebugInfo | null = data?.debug || null
-      // Prefer server conversation if present; filter to user/assistant only
-      const returned = Array.isArray(data?.conversation) ? (data.conversation as ChatMessage[]) : []
-      // Prefer server conversation; otherwise, append assistant to our local optimistic list
-      const merged: ChatMessage[] = (returned.length ? returned : [...next, { role: 'assistant', content: answer }])
-        .filter(isChatMessage)
-      // Collapse any accidental consecutive duplicates (same role and content)
-      const filtered: ChatMessage[] = []
-      for (const m of merged) {
-        const last = filtered[filtered.length - 1]
-        if (last && last.role === m.role && last.content === m.content) continue
-        filtered.push(m)
-      }
 
-      setMessages(filtered)
-      if (nextState) setState(nextState)
-      setDebug(nextDebug)
-      // Map providers to the last assistant message index
-      const lastAssistantIndex = [...filtered].reverse().findIndex(m => m.role === 'assistant')
-      const absoluteIdx = lastAssistantIndex === -1 ? filtered.length - 1 : filtered.length - 1 - lastAssistantIndex
+      // Update the assistant draft bubble with final text
+      setMessages((prev) => {
+        const copy = [...prev]
+        copy[assistantIdx] = { role: 'assistant', content: answer }
+        return copy
+      })
+      // Attach providers for this assistant turn
       setProvidersByMessage((prev) => {
-        const nextMap = { ...prev, [absoluteIdx]: providers }
+        const nextMap = { ...prev, [assistantIdx]: providers }
         try { window.localStorage.setItem(PROVIDERS_KEY, JSON.stringify(nextMap)) } catch {}
         return nextMap
       })
+      if (nextState) setState(nextState)
+      if (nextDebug) setDebug(nextDebug)
 
-      // Persist conversation locally
+      // Persist conversation locally (our current in-memory conversation)
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+        const now = JSON.parse(JSON.stringify(withAssistantDraft)) as ChatMessage[]
+        now[assistantIdx] = { role: 'assistant', content: answer }
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(now))
         if (nextState) window.localStorage.setItem(STATE_KEY, JSON.stringify(nextState))
       } catch {}
     } catch {
