@@ -70,7 +70,7 @@ export function ChatWindow({
         <div
           ref={scrollerRef}
           className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin px-4 py-4 sm:p-6 space-y-4 bg-transparent lg:pb-0 max-w-full"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 84px)' }}
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 128px)' }}
         >
           {messages.length === 0 && (
             <div className="text-center py-6">
@@ -127,7 +127,7 @@ export function ChatWindow({
         </div>
 
         {/* Desktop input area (inline) */}
-        <div className="hidden lg:block p-4 bg-transparent">
+        <div className="hidden lg:block p-4 bg-transparent mt-4">
           <div className="w-full">
             {inputSlot}
           </div>

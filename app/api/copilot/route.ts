@@ -33,7 +33,7 @@ const AZURE_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT || ''
 const AZURE_KEY = process.env.AZURE_OPENAI_API_KEY || ''
 const AZURE_DEPLOYMENT = process.env.AZURE_OPENAI_CHAT_MODEL || 'gpt-4.1'
 const AZURE_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || '2025-04-01-preview'
-const RESULT_LIMIT = Number(process.env.COPILOT_RESULT_LIMIT || 4)
+const RESULT_LIMIT = Number(process.env.COPILOT_RESULT_LIMIT || 6)
 
 // Resolve base URL for server-to-server calls (prod-safe)
 const SELF_BASE_URL =

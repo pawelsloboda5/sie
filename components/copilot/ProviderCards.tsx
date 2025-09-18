@@ -50,7 +50,7 @@ export function ProviderCards({ providers, max = 6, onNavigateStart }: { provide
   const isSingle = items.length === 1
 
   return (
-    <div className="mt-2 w-full max-w-full overflow-x-hidden">
+    <div className="mt-2 w-full max-w-full overflow-x-hidden pb-4 mb-2">
       <div className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">Recommended Providers</div>
 
       {/* Grid on md+, compact carousel on small */}
@@ -151,7 +151,7 @@ export function ProviderCards({ providers, max = 6, onNavigateStart }: { provide
                 tabIndex={0}
                 role="button"
                 aria-label={`${p.name} details`}
-                className="w-full max-w-full overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow-md transition-all cursor-pointer focus:outline-none"
+                className="w-full max-w-full rounded-xl bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow-md transition-all cursor-pointer focus:outline-none"
               >
                 <div className="flex items-start gap-2.5">
                   <div className="flex-1 min-w-0">

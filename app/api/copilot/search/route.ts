@@ -24,6 +24,14 @@ const SERVICE_VECTOR_N_PROBES = process.env.COPILOT_SERVICE_VECTOR_NPROBES
   ? Number(process.env.COPILOT_SERVICE_VECTOR_NPROBES)
   : VECTOR_N_PROBES
 
+// Fallback to general services collection when prices-only recall is low
+const GENERAL_SERVICE_COLLECTION = process.env.GENERAL_SERVICE_COLLECTION || 'services'
+const GENERAL_SERVICE_VECTOR_FIELD = process.env.GENERAL_SERVICE_VECTOR_FIELD || 'service_vector'
+const GENERAL_SERVICE_VECTOR_K = Number(process.env.GENERAL_SERVICE_VECTOR_K || 60)
+const GENERAL_SERVICE_VECTOR_N_PROBES = process.env.GENERAL_SERVICE_VECTOR_NPROBES
+  ? Number(process.env.GENERAL_SERVICE_VECTOR_NPROBES)
+  : VECTOR_N_PROBES
+
 // MongoDB connection (using same pattern as main search)
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017'
 const MONGODB_DB = process.env.MONGODB_DB || 'sie-db'
@@ -364,7 +372,11 @@ export async function POST(req: NextRequest) {
           returnStoredSource: true
         }
       }
-      const svcPipeline: Document[] = [svcSearchStage, { $match: { ...mongoQuery } }, { $limit: CANDIDATE_LIMIT }]
+      // IMPORTANT: Do NOT apply provider-level filters to the services collection here.
+      // Many provider filters (e.g., insurance.medicaid) don't exist on service docs,
+      // which previously caused the services vector search to return 0 results.
+      // We will filter providers AFTER we merge service hits back to their providers.
+      const svcPipeline: Document[] = [svcSearchStage, { $limit: CANDIDATE_LIMIT }]
 
       // Execute both searches
       const svcCollection = db.collection(SERVICE_COLLECTION)
@@ -478,6 +490,27 @@ export async function POST(req: NextRequest) {
       type ReadyMerged = MergedEntry & { name: string; category: string; services: Service[] }
       let processedProviders: ReadyMerged[] = Array.from(mergedMap.values()).filter((e): e is ReadyMerged => typeof e.name === 'string' && typeof e.category === 'string' && Array.isArray(e.services))
 
+      // Apply provider-level filters post-merge so service hits can seed providers first
+      if (processedProviders.length && filters) {
+        processedProviders = processedProviders.filter((p) => {
+          // Insurance filters
+          if (filters.acceptsMedicaid && !(p.insurance && p.insurance.medicaid === true)) return false
+          if (filters.acceptsMedicare && !(p.insurance && p.insurance.medicare === true)) return false
+          if ((filters.acceptsUninsured || filters.selfPayOptions) && !(p.insurance && p.insurance.selfPayOptions === true)) return false
+          // Telehealth
+          if (filters.telehealthAvailable && !(p.telehealth && p.telehealth.available === true)) return false
+          // Free-only (provider must have at least one free service)
+          if (filters.freeOnly && !(Array.isArray(p.services) && p.services.some((s) => (s as Service).isFree))) return false
+          // Specific insurance carriers
+          if (Array.isArray(filters.insuranceProviders) && filters.insuranceProviders.length) {
+            const asked = filters.insuranceProviders.map((c: string) => (c || '').toLowerCase())
+            const provCarriers = Array.isArray(p.insurance?.majorProviders) ? p.insurance!.majorProviders!.map((x: string) => (x || '').toLowerCase()) : []
+            if (!provCarriers.some((x) => asked.includes(x))) return false
+          }
+          return true
+        })
+      }
+
       // Apply distance filter
       if (filters.maxDistance && location) {
         processedProviders = processedProviders.filter(p => p.distance !== undefined && (p.distance as number) <= filters.maxDistance)
@@ -506,15 +539,166 @@ export async function POST(req: NextRequest) {
           void _emb2
           cleanedCheapest = svc as Service
         }
-        return { ...rest, services: cleanedServices, ...(cleanedCheapest ? { cheapestService: cleanedCheapest } : {}) }
+        return { ...rest, services: cleanedServices || [], ...(cleanedCheapest ? { cheapestService: cleanedCheapest } : {}) }
       })
 
-      console.log(`Search results (server vector merged): returned=${sanitizedProviders.length}`)
+      // If prices-only providers are sparse, top up from the general services collection
+      const targetLimit = Math.min(Number(limit || RESULT_LIMIT), RESULT_LIMIT)
+      let finalProviders: Provider[] = sanitizedProviders.slice(0, targetLimit)
+      if (finalProviders.length < targetLimit && queryEmbedding) {
+        try {
+          const existingIds = new Set(finalProviders.map((p) => String(p._id || p.id)))
+
+          // Run a smaller vector search over the general services collection
+          const genSvcStage: Document = {
+            $search: {
+              cosmosSearch: {
+                vector: queryEmbedding,
+                path: GENERAL_SERVICE_VECTOR_FIELD,
+                k: GENERAL_SERVICE_VECTOR_K,
+                ...(typeof GENERAL_SERVICE_VECTOR_N_PROBES === 'number' ? { nProbes: GENERAL_SERVICE_VECTOR_N_PROBES } : {})
+              },
+              returnStoredSource: true
+            }
+          }
+          const genSvcPipeline: Document[] = [genSvcStage, { $limit: CANDIDATE_LIMIT }]
+          type GeneralServiceDoc = {
+            _id?: ObjectId | string
+            provider_id?: ObjectId | string
+            name?: string
+            category?: string
+            description?: string
+            is_free?: boolean
+            is_discounted?: boolean
+            price_info?: string
+          }
+          const genSvcColl = db.collection(GENERAL_SERVICE_COLLECTION)
+          const genSvcDocs = await genSvcColl.aggregate(genSvcPipeline).toArray() as unknown as GeneralServiceDoc[]
+
+          // Group services by provider
+          const byProv = new Map<string, GeneralServiceDoc[]>()
+          for (const s of genSvcDocs) {
+            const pid = String((s.provider_id as unknown as ObjectId | string) || '')
+            if (!pid) continue
+            if (!byProv.has(pid)) byProv.set(pid, [])
+            if ((byProv.get(pid) as GeneralServiceDoc[]).length < 16) (byProv.get(pid) as GeneralServiceDoc[]).push(s)
+          }
+
+          // Fetch provider documents from general providers collection
+          const candidateIds = Array.from(byProv.keys()).filter((id) => !existingIds.has(id))
+          const objectIds: ObjectId[] = candidateIds
+            .filter((id) => typeof id === 'string' && id.length === 24)
+            .map((id) => new ObjectId(id))
+          const generalProvidersColl = db.collection('providers')
+          type GeneralProviderDoc = {
+            _id: ObjectId | string
+            name?: string
+            category?: string
+            address?: string
+            phone?: string
+            website?: string
+            email?: string
+            rating?: number
+            total_services?: number
+            free_services?: number
+            accepts_uninsured?: boolean
+            medicaid?: boolean
+            medicare?: boolean
+            ssn_required?: boolean
+            telehealth_available?: boolean
+            insurance_providers?: string[]
+            location?: { type: string; coordinates: [number, number] }
+            state?: string
+            city?: string
+            postalCode?: string
+          }
+          const genProvDocs = objectIds.length
+            ? await generalProvidersColl.find({ _id: { $in: objectIds } }).limit(CANDIDATE_LIMIT).toArray() as unknown as GeneralProviderDoc[]
+            : []
+
+          // Build Provider objects and apply provider-level filters
+          function passesFilters(p: GeneralProviderDoc, pid: string): boolean {
+            if (filters.acceptsMedicaid && !p.medicaid) return false
+            if (filters.acceptsMedicare && !p.medicare) return false
+            if ((filters.acceptsUninsured || filters.selfPayOptions) && !p.accepts_uninsured) return false
+            if (filters.telehealthAvailable && !p.telehealth_available) return false
+            if (Array.isArray(filters.insuranceProviders) && filters.insuranceProviders.length) {
+              const asked = filters.insuranceProviders.map((c: string) => (c || '').toLowerCase())
+              const provCarriers = Array.isArray(p.insurance_providers) ? p.insurance_providers.map((x: string) => (x || '').toLowerCase()) : []
+              if (!provCarriers.some((x) => asked.includes(x))) return false
+            }
+            if (filters.freeOnly) {
+              const svcs = byProv.get(pid) || []
+              if (!svcs.some((s) => !!s.is_free)) return false
+            }
+            return true
+          }
+
+          const built: Provider[] = []
+          for (const doc of genProvDocs) {
+            const pid = String(doc._id)
+            const svcs = byProv.get(pid) || []
+            if (!passesFilters(doc, pid)) continue
+            const servicesMapped: Service[] = svcs.map((s) => ({
+              name: String(s.name || ''),
+              category: String(s.category || ''),
+              description: s.description ? String(s.description) : undefined,
+              price: s.price_info ? { raw: String(s.price_info) } : undefined,
+              priceInfoText: s.price_info ? String(s.price_info) : undefined,
+              isFree: !!s.is_free,
+              isDiscounted: !!s.is_discounted
+            }))
+            const provider: Provider = {
+              _id: pid,
+              name: String(doc.name || 'Provider'),
+              category: String(doc.category || 'Clinic'),
+              phone: doc.phone,
+              website: doc.website,
+              email: doc.email,
+              rating: doc.rating,
+              address: doc.address,
+              addressLine: doc.address,
+              city: doc.city as string | undefined,
+              state: doc.state as string | undefined,
+              postalCode: doc.postalCode as string | undefined,
+              location: doc.location as { type: string; coordinates: [number, number] } | undefined,
+              services: servicesMapped,
+              insurance: {
+                medicaid: !!doc.medicaid,
+                medicare: !!doc.medicare,
+                selfPayOptions: !!doc.accepts_uninsured,
+                majorProviders: Array.isArray(doc.insurance_providers) ? doc.insurance_providers : []
+              },
+              telehealth: { available: !!doc.telehealth_available },
+            }
+            // Distance
+            if (location && provider.location?.coordinates) {
+              const [lon, lat] = provider.location.coordinates
+              provider.distance = calculateDistance(location.latitude, location.longitude, lat, lon)
+            }
+            built.push(provider)
+            if (finalProviders.length + built.length >= targetLimit) break
+          }
+
+          // Merge and dedupe by id
+          const mergedMap = new Map<string, Provider>(finalProviders.map((p) => [String(p._id || p.id), p]))
+          for (const p of built) {
+            const id = String(p._id || p.id)
+            if (!mergedMap.has(id)) mergedMap.set(id, p)
+            if (mergedMap.size >= targetLimit) break
+          }
+          finalProviders = Array.from(mergedMap.values()).slice(0, targetLimit)
+        } catch (e) {
+          console.error('General services fallback failed:', e)
+        }
+      }
+
+      console.log(`Search results (server vector merged): returned=${finalProviders.length}`)
 
       return NextResponse.json({
-        providers: sanitizedProviders.slice(0, RESULT_LIMIT),
-        provider_count: Math.min(sanitizedProviders.length, RESULT_LIMIT),
-        service_count: sanitizedProviders.reduce((sum: number, p: { services?: Service[] }) => sum + (p.services?.length || 0), 0),
+        providers: finalProviders,
+        provider_count: Math.min(finalProviders.length, targetLimit),
+        service_count: finalProviders.reduce((sum: number, p: { services?: Service[] }) => sum + (p.services?.length || 0), 0),
         total_available: ranked.length,
         search_params: { query, expanded_terms: expandedTerms, location, filters }
       })
