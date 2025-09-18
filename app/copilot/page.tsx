@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Header } from '@/components/layout/Header'
+import { CopilotHeader } from '@/components/layout/CopilotHeader'
 import { ChatWindow, type ChatMessage } from '@/components/copilot/ChatWindow'
 import { InputBar } from '@/components/copilot/InputBar'
 import { ProviderCards } from '@/components/copilot/ProviderCards'
@@ -416,16 +416,16 @@ export default function CopilotPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30">
-      <Header />
+    <div className="min-h-screen flex flex-col overflow-x-hidden bg-gradient-to-b from-[#E6FFFA] via-[#F0FDFA] to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+      <CopilotHeader />
 
-      <main className="container mx-auto w-full max-w-full max-w-[100vw] overflow-x-hidden overscroll-x-none px-2 sm:px-4 lg:px-8 pt-2 pb-4 sm:pt-4 sm:pb-8 flex-1">
+      <main className="w-full max-w-full overflow-x-hidden overscroll-x-none px-0 sm:px-4 lg:px-8 pt-2 pb-4 sm:pt-4 sm:pb-8 flex-1">
         <div className="mb-3" id="new-location">
           {/* Location Bar (hidden on copilot if location set; header shows controls) */}
           {!(userLocation) && (
-          <div className="mt-1 p-3 sm:p-4 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
+          <div className="mt-1 mx-4 p-4 sm:p-5 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur shadow-md">
             <div className="flex items-center gap-2 mb-1">
-              <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#068282] dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -433,7 +433,7 @@ export default function CopilotPage() {
                 Your Location
               </span>
               {userLocation && (
-                <span className="ml-auto text-[11px] text-emerald-600 dark:text-emerald-400">
+                <span className="ml-auto text-[11px] text-[#068282] dark:text-emerald-400 font-medium">
                   ✓ Location set
                 </span>
               )}
@@ -448,21 +448,21 @@ export default function CopilotPage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleLocationSubmit()
                 }}
-                className="flex-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#068282]/30 focus:border-[#068282]/50 transition-all"
                 disabled={isGettingLocation}
               />
               <div className="flex gap-2 items-center self-stretch sm:self-auto">
                 <button
                   onClick={handleLocationSubmit}
                   disabled={!locationInput.trim() || isGettingLocation}
-                  className="px-3 py-2 rounded-md bg-emerald-600 text-white text-xs sm:text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#068282] to-emerald-600 text-white text-xs sm:text-sm font-medium hover:shadow-lg transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all"
                 >
                   Set Location
                 </button>
                 <button
                   onClick={handleAutoLocation}
                   disabled={isGettingLocation}
-                  className="px-3 py-2 rounded-md bg-teal-600 text-white text-xs sm:text-sm font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-xs sm:text-sm font-medium hover:shadow-lg transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all flex items-center gap-1.5"
                 >
                   {isGettingLocation ? (
                     <>
@@ -480,7 +480,7 @@ export default function CopilotPage() {
                 </button>
                 <button
                   onClick={handleReset}
-                  className="ml-auto sm:ml-0 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-700 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white/80 dark:bg-gray-900/70 hover:bg-white dark:hover:bg-gray-900"
+                  className="ml-auto sm:ml-0 px-4 py-2.5 rounded-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur border border-white/30 dark:border-white/20 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-800/70 transition-all"
                 >
                   Reset Conversation
                 </button>
@@ -491,20 +491,20 @@ export default function CopilotPage() {
           </div>
           )}
           {userLocation && (
-            <div className="hidden md:block mt-1 p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
-              <div className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                Your Location: <span className="font-normal text-gray-800 dark:text-gray-100">{userLocation.display || `${userLocation.city || 'Unknown'}, ${userLocation.state || ''}`}</span>
+            <div className="hidden md:block mt-1 mx-4 p-4 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur shadow-md">
+              <div className="text-sm font-semibold bg-gradient-to-r from-[#068282] to-emerald-600 bg-clip-text text-transparent">
+                Your Location: <span className="font-normal text-gray-700 dark:text-gray-200">{userLocation.display || `${userLocation.city || 'Unknown'}, ${userLocation.state || ''}`}</span>
               </div>
               <div className="mt-2 flex gap-2">
                 <button
                   onClick={() => { try { window.location.hash = 'new-location'; window.scrollTo({ top: 0, behavior: 'smooth' }); window.dispatchEvent(new CustomEvent('sie:copilot:open-location')); } catch {} }}
-                  className="px-3 py-2 rounded-md bg-emerald-600 text-white text-xs sm:text-sm font-medium hover:bg-emerald-700 transition-colors"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#068282] to-emerald-600 text-white text-xs sm:text-sm font-medium hover:shadow-lg transform hover:scale-[1.02] transition-all"
                 >
                   New Location
                 </button>
                 <button
                   onClick={handleReset}
-                  className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-700 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white/80 dark:bg-gray-900/70 hover:bg-white dark:hover:bg-gray-900"
+                  className="px-4 py-2.5 rounded-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur border border-white/30 dark:border-white/20 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-white/70 dark:hover:bg-gray-800/70 transition-all"
                 >
                   Reset Conversation
                 </button>
@@ -514,7 +514,7 @@ export default function CopilotPage() {
         </div>
 
         <div className={`grid grid-cols-1 ${showDebugUI ? 'lg:grid-cols-3' : ''} gap-4 lg:gap-8 items-start w-full max-w-full overflow-x-hidden`}>
-          <div className={showDebugUI ? 'lg:col-span-2 min-w-0' : 'min-w-0'}>
+          <div className={showDebugUI ? 'lg:col-span-2 min-w-0' : 'w-full min-w-0'}>
             <ChatWindow
               messages={messages}
               providersByMessage={providersByMessage}
@@ -523,7 +523,7 @@ export default function CopilotPage() {
               onReset={handleReset}
               inputSlot={
                 <div className="flex items-center justify-between gap-2">
-                  <InputBar onSubmit={handleSend} />
+                  <InputBar onSubmit={handleSend} size={messages.length === 0 ? 'hero' : 'compact'} />
                 </div>
               }
             />
@@ -531,8 +531,8 @@ export default function CopilotPage() {
 
           {showDebugUI && (
             <aside className="hidden lg:block sticky top-24 space-y-3 min-w-0 max-w-full">
-              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-gray-900/60 backdrop-blur p-4">
-                <div className="text-sm font-semibold mb-2">Latest Recommendations</div>
+              <div className="rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur shadow-lg p-4">
+                <div className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-200">Latest Recommendations</div>
                 <ProviderCards providers={providersByMessage[messages.length - 1] || []} max={6} />
               </div>
               <StatePanel state={state} debug={debug} />

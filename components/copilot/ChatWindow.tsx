@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import type { Provider } from '@/lib/types/copilot'
 import { MessageBubble } from './MessageBubble'
 import { ProviderCards } from './ProviderCards'
+import Image from 'next/image'
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
@@ -26,23 +27,34 @@ export function ChatWindow({
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null)
   void onReset
 
+  // No in-chat settings; header owns settings. Keep only minimal state here.
+
   useEffect(() => {
     if (!scrollerRef.current) return
     scrollerRef.current.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, isThinking, providersByMessage])
 
+  void Image
+
   const prompts = [
     'Therapy near me for cheap',
     'Low-cost dental care near me',
-    'Clinics that do not require SSN',
+    'Cheap physical exams',
     'Mental health clinics that accept Medicaid',
   ]
+
+  const greeting = (() => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 18) return 'Good afternoon'
+    return 'Good evening'
+  })()
 
   return (
     <div className="relative w-full max-w-full overflow-x-hidden">
       {navigatingTo && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-          <div className="glass rounded-xl px-4 py-3 border border-white/20 dark:border-white/10 text-center">
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl">
+          <div className="rounded-2xl bg-gradient-to-br from-white/80 to-white/60 dark:from-gray-900/80 dark:to-gray-900/60 backdrop-blur-xl px-5 py-4 border border-white/50 dark:border-white/20 text-center shadow-2xl">
             <div className="flex items-center justify-center gap-2 mb-2">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-bounce" />
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-bounce [animation-delay:120ms]" />
@@ -54,21 +66,27 @@ export function ChatWindow({
           </div>
         </div>
       )}
-      <div className="glass rounded-2xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden lg:h-[60vh] flex flex-col w-full max-w-full">
+      <div className="bg-transparent lg:h-[65vh] flex flex-col w-full max-w-full">
         <div
           ref={scrollerRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin pl-0 pr-3 py-3 sm:p-6 space-y-4 bg-white/60 dark:bg-gray-900/40 lg:pb-0 max-w-full"
+          className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin px-4 py-4 sm:p-6 space-y-4 bg-transparent lg:pb-0 max-w-full"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 84px)' }}
         >
           {messages.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground mb-4">Try one of these to get started</p>
-              <div className="flex flex-wrap justify-center gap-2">
+            <div className="text-center py-6">
+              <div className="mx-auto mb-3 h-14 w-14 rounded-full overflow-hidden ring-2 ring-white/50 dark:ring-white/20 shadow-lg">
+                <Image src="/logo_560x560.png" alt="SIE" width={56} height={56} className="object-cover" />
+              </div>
+              <h1 className="text-[18px] font-semibold text-gray-800 dark:text-gray-100">
+                {greeting}, how can I help you find affordable care and prices?
+              </h1>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Choose a prompt or ask your own question</p>
+              <div className="mt-4 flex flex-col gap-3 max-w-sm mx-auto">
                 {prompts.map((p) => (
                   <button
                     key={p}
                     onClick={() => onPromptClick(p)}
-                    className="btn-capability hover-lift-sm rounded-full"
+                    className="rounded-xl px-4 py-3.5 text-[13px] text-left font-medium bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transform hover:scale-[1.01] transition-all"
                   >
                     {p}
                   </button>
@@ -109,7 +127,7 @@ export function ChatWindow({
         </div>
 
         {/* Desktop input area (inline) */}
-        <div className="hidden lg:block p-3 sm:p-4 border-t border-white/20 dark:border-white/10 bg-white/70 dark:bg-gray-900/60">
+        <div className="hidden lg:block p-4 bg-transparent">
           <div className="w-full">
             {inputSlot}
           </div>
@@ -118,7 +136,7 @@ export function ChatWindow({
 
       {/* Mobile fixed input at bottom, compact height */}
       <div
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-20 border-t border-white/20 dark:border-white/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-2 py-2"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl px-3 py-3 shadow-lg"
         style={{
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)',
           paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',

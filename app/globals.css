@@ -473,18 +473,18 @@
     @apply transition-transform duration-200 ease-in-out hover:scale-[1.02];
   }
   
-  /* Glass Effect */
+  /* Enhanced Glass Effect */
   .glass {
-    @apply bg-background/80 backdrop-blur-md border border-border/40 transition-all duration-200;
+    @apply bg-gradient-to-br from-white/60 to-white/40 dark:from-gray-900/60 dark:to-gray-900/40 backdrop-blur-xl border border-white/50 dark:border-white/20 transition-all duration-200;
   }
   
   /* Subtle focus-within effect for glass containers */
   .glass:focus-within {
-    @apply border-primary/30 shadow-lg;
+    @apply border-[#068282]/40 shadow-[0_0_30px_rgba(6,130,130,0.2)];
   }
   
   .glass-strong {
-    @apply bg-background/95 backdrop-blur-lg border border-border/60;
+    @apply bg-gradient-to-br from-white/90 to-white/70 dark:from-gray-900/90 dark:to-gray-900/70 backdrop-blur-xl border border-white/60 dark:border-white/30;
   }
   
   /* Gradient Text */
@@ -503,6 +503,42 @@
     @apply flex items-center bg-white rounded-2xl shadow-xl border border-border/20;
     min-height: 4rem;
   }
+
+/* ThinkAI-like minimalist mobile tweaks */
+@layer utilities {
+  .thinkai-card {
+    @apply rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 shadow-sm;
+  }
+  .thinkai-prompt {
+    @apply rounded-xl px-3 py-2 text-[12px] font-medium bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700;
+  }
+  
+  /* Glass morphism utilities */
+  .glass-button {
+    @apply bg-white/30 dark:bg-white/10 backdrop-blur-md border border-white/20 dark:border-white/10;
+  }
+  
+  .glass-card {
+    @apply bg-gradient-to-br from-white/70 to-white/50 dark:from-gray-900/70 dark:to-gray-900/50 backdrop-blur-xl border border-white/50 dark:border-white/20 shadow-2xl;
+  }
+  
+  .glass-input {
+    @apply bg-white/50 dark:bg-gray-800/50 backdrop-blur border border-white/30 dark:border-white/20;
+  }
+  
+  .gradient-brand {
+    @apply bg-gradient-to-r from-[#068282] to-emerald-600;
+  }
+  
+  .gradient-brand-text {
+    @apply bg-gradient-to-r from-[#068282] to-emerald-600 bg-clip-text text-transparent;
+  }
+  
+  /* Enhanced focus states for glass inputs */
+  .glass-focus {
+    @apply focus:ring-2 focus:ring-[#068282]/30 focus:border-[#068282]/50 transition-all;
+  }
+}
   
   /* Print Styles */
   @media print {

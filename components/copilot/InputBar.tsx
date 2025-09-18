@@ -1,31 +1,80 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
+import { Send } from 'lucide-react'
 
-export function InputBar({ onSubmit }: { onSubmit: (text: string) => void }) {
+export function InputBar({ onSubmit, size = 'compact' }: { onSubmit: (text: string) => void; size?: 'hero' | 'compact' }) {
   const [text, setText] = useState('')
+  const [focused, setFocused] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleSend = () => {
     if (!text.trim()) return
     onSubmit(text)
     setText('')
+    // Reset textarea height after sending
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Send on Enter without shift
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value)
+    // Auto-resize textarea
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+    }
   }
 
   return (
-    <div className="hero-search-bar w-full max-w-full flex items-center gap-2 rounded-xl shadow-lg border border-white/30 dark:border-white/10 bg-white/70 dark:bg-gray-900/60 backdrop-blur p-2">
-      <input
-        className="w-full min-w-0 bg-transparent outline-none px-3 py-2 text-sm sm:text-base placeholder:text-gray-400"
-        placeholder="Ask your healthcare question…"
+    <div 
+      className={`
+        w-full max-w-full flex items-start gap-3 
+        ${size === 'hero' ? 'rounded-3xl' : 'rounded-full'}
+        bg-white dark:bg-gray-900 
+        shadow-lg transition-all duration-300
+        ${focused ? 'shadow-xl' : ''}
+        ${size === 'hero' ? 'px-5 py-4 min-h-32' : 'px-4 py-3 min-h-14'}
+      `}
+    >
+      <textarea
+        ref={textareaRef}
+        className={`
+          w-full min-w-0 bg-transparent outline-none text-gray-700 dark:text-gray-100 resize-none
+          ${size === 'hero' ? 'text-[15px] sm:text-base min-h-[4.5rem] leading-relaxed' : 'text-[14px] sm:text-[15px] h-auto'} 
+          placeholder:text-gray-400 dark:placeholder:text-gray-500
+        `}
+        placeholder="Ask your healthcare question..."
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            handleSend()
-          }
-        }}
+        onChange={handleTextChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onKeyDown={handleKeyDown}
+        rows={size === 'hero' ? 3 : 1}
+        style={{ height: size === 'hero' ? 'auto' : '1.5rem' }}
       />
-      <button onClick={handleSend} className="btn-hero whitespace-nowrap shrink-0">Send</button>
+      <button 
+        onClick={handleSend} 
+        className={`
+          flex items-center gap-2 rounded-full bg-[#5EEAD4] hover:bg-[#4DD4BF] 
+          text-gray-800 font-medium transition-all shrink-0
+          disabled:opacity-50 disabled:cursor-not-allowed
+          ${size === 'hero' ? 'px-5 py-3 text-[15px] self-end' : 'px-5 py-2.5 text-[14px]'}
+        `}
+        disabled={!text.trim()}
+      >
+        <span>Send</span>
+        <Send className="h-4 w-4" />
+      </button>
     </div>
   )
 }

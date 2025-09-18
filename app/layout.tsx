@@ -65,6 +65,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Mobile viewport: disable zoom to keep layout consistent on small screens */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <link rel="icon" href="/logo_560x560.png" sizes="any" />
         {/* Google Tag (gtag.js) */}
         <Script
@@ -87,7 +89,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[radial-gradient(1200px_400px_at_50%_-100px,theme(colors.emerald.50),transparent)] dark:bg-[radial-gradient(1200px_400px_at_50%_-100px,theme(colors.emerald.900/30),transparent)]`}
       >
         {children}
       </body>

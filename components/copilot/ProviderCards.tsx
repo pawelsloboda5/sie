@@ -67,7 +67,7 @@ export function ProviderCards({ providers, max = 6, onNavigateStart }: { provide
               tabIndex={0}
               role="button"
               aria-label={`${p.name} details`}
-              className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 p-3 shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all cursor-pointer focus:outline-none"
+              className="rounded-xl bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow-md transition-all cursor-pointer focus:outline-none"
             >
             <div className="flex items-start gap-2.5">
               <div className="flex-1 min-w-0">
@@ -151,7 +151,7 @@ export function ProviderCards({ providers, max = 6, onNavigateStart }: { provide
                 tabIndex={0}
                 role="button"
                 aria-label={`${p.name} details`}
-                className="w-full max-w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 p-3 shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all cursor-pointer focus:outline-none"
+                className="w-full max-w-full overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow-md transition-all cursor-pointer focus:outline-none"
               >
                 <div className="flex items-start gap-2.5">
                   <div className="flex-1 min-w-0">
@@ -232,7 +232,7 @@ export function ProviderCards({ providers, max = 6, onNavigateStart }: { provide
                   tabIndex={0}
                   role="button"
                   aria-label={`${p.name} details`}
-                  className="snap-start min-w-[85%] max-w-[90%] rounded-lg border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 p-3 shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all cursor-pointer focus:outline-none"
+                  className="snap-start min-w-[85%] max-w-[90%] rounded-xl bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow-md transition-all cursor-pointer focus:outline-none"
                 >
                 <div className="flex items-start gap-2.5">
                   <div className="flex-1 min-w-0">

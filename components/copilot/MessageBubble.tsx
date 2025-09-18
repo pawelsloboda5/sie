@@ -132,15 +132,15 @@ export function MessageBubble({
   return (
     <div className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'} transition-smooth w-full max-w-full`}>
       {!isUser && (
-        <div className="hidden sm:block h-8 w-8 rounded-full overflow-hidden ring-2 ring-white/70 dark:ring-black/40 shrink-0">
+        <div className="hidden sm:block h-8 w-8 rounded-full overflow-hidden shadow-sm shrink-0">
           <Image src="/logo_560x560.png" alt="AI" width={32} height={32} className="object-cover" />
         </div>
       )}
       <div
         className={
           isUser
-            ? 'max-w-[85%] sm:max-w-[70%] rounded-xl rounded-br-sm bg-[#068282] text-white px-4 py-3 shadow-md animate-in fade-in slide-in-from-right-2 min-w-0'
-            : 'max-w-[85%] sm:max-w-[70%] rounded-xl rounded-bl-sm glass border border-white/20 dark:border-white/10 px-4 py-3 shadow md:shadow-lg animate-in fade-in slide-in-from-left-2 min-w-0'
+            ? 'max-w-[85%] sm:max-w-[70%] rounded-2xl rounded-br-sm bg-[#068282] text-white px-4 py-3 shadow-md animate-in fade-in slide-in-from-right-2 min-w-0'
+            : 'max-w-[85%] sm:max-w-[70%] rounded-2xl rounded-bl-sm bg-white dark:bg-gray-800 px-4 py-3 shadow-md animate-in fade-in slide-in-from-left-2 min-w-0'
         }
       >
         {isTyping && (!content || content.trim() === '') ? (
