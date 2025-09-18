@@ -31,6 +31,8 @@ const GENERAL_SERVICE_VECTOR_K = Number(process.env.GENERAL_SERVICE_VECTOR_K || 
 const GENERAL_SERVICE_VECTOR_N_PROBES = process.env.GENERAL_SERVICE_VECTOR_NPROBES
   ? Number(process.env.GENERAL_SERVICE_VECTOR_NPROBES)
   : VECTOR_N_PROBES
+// Enforce a default distance cap when user location is present
+const MAX_DISTANCE_MI = Number(process.env.COPILOT_MAX_DISTANCE_MI || 100)
 
 // MongoDB connection (using same pattern as main search)
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017'
@@ -511,9 +513,12 @@ export async function POST(req: NextRequest) {
         })
       }
 
-      // Apply distance filter
-      if (filters.maxDistance && location) {
-        processedProviders = processedProviders.filter(p => p.distance !== undefined && (p.distance as number) <= filters.maxDistance)
+      // Apply distance filter (use explicit filter if provided, else env default)
+      if (location) {
+        const cap = typeof filters.maxDistance === 'number' ? filters.maxDistance : MAX_DISTANCE_MI
+        if (typeof cap === 'number' && Number.isFinite(cap) && cap > 0) {
+          processedProviders = processedProviders.filter(p => typeof p.distance === 'number' && (p.distance as number) <= cap)
+        }
       }
 
       // Rank by similarity blended with affordability and distance
@@ -675,6 +680,13 @@ export async function POST(req: NextRequest) {
             if (location && provider.location?.coordinates) {
               const [lon, lat] = provider.location.coordinates
               provider.distance = calculateDistance(location.latitude, location.longitude, lat, lon)
+            }
+            // Enforce distance cap for fallback providers as well
+            if (location && typeof provider.distance === 'number') {
+              const cap = typeof filters.maxDistance === 'number' ? filters.maxDistance : MAX_DISTANCE_MI
+              if (typeof cap === 'number' && Number.isFinite(cap) && cap > 0 && provider.distance > cap) {
+                continue
+              }
             }
             built.push(provider)
             if (finalProviders.length + built.length >= targetLimit) break

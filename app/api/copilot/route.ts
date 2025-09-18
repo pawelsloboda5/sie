@@ -406,20 +406,17 @@ function normalizeName(s: string): string {
 function findProviderByName(query: string, providers: Provider[]): Provider | null {
   const q = normalizeName(query)
   if (!q) return null
-  
-  // Common phrasings
+
+  // Only consider provider-profile phrasing; avoid generic service phrases
   const patterns = [
     /tell\s+me\s+(?:more\s+)?about\s+(.+)/,
     /what\s+(?:services\s+)?(?:do|does)\s+(.+?)\s+(?:offer|provide|have)/,
     /info(?:rmation)?\s+(?:on|about)\s+(.+)/,
     /details?\s+(?:about|on)\s+(.+)/,
-    /services\s+at\s+(.+)/,
-    /(.+?)\s+services/,
-    /(.+?)\s+clinic/,
-    /(.+?)\s+center/
+    /services\s+at\s+(.+)/
   ]
-  
-  let nameHint = q
+
+  let nameHint: string | null = null
   for (const pat of patterns) {
     const m = q.match(pat)
     if (m?.[1]) { 
@@ -427,29 +424,38 @@ function findProviderByName(query: string, providers: Provider[]): Provider | nu
       break
     }
   }
-  
+
+  // If we didn't detect explicit provider-profile phrasing, do not try to infer
+  if (!nameHint) return null
+
+  // Reject generic phrases that are actually service categories
+  const genericTokens = new Set(['mental','health','clinic','center','care','services','medical','hospital','urgent','primary','dental','therapy','counseling','behavioral'])
+  const qTokens = nameHint.split(' ').filter(Boolean).filter(t => t !== 'the' && t.length > 1)
+  const nonGenericCount = qTokens.filter(t => !genericTokens.has(t)).length
+  if (qTokens.length < 2 || nonGenericCount === 0) return null
+
   const candidates = providers.map((p) => ({ p, n: normalizeName(String(p.name || '')) }))
-  
+
   // Exact substring match
-  const exact = candidates.find(c => nameHint && c.n.includes(nameHint))
+  const exact = candidates.find(c => c.n && nameHint && c.n.includes(nameHint))
   if (exact) return exact.p
-  
-  // Token overlap (fuzzy matching)
-  const qTokens = new Set(nameHint.split(' ').filter(Boolean).filter(t => t !== 'the' && t.length > 1))
+
+  // Token overlap (stricter threshold)
+  const qTokenSet = new Set(qTokens)
   let best: Provider | null = null
   let bestScore = 0
-  
+
   for (const c of candidates) {
     const t = new Set(c.n.split(' ').filter(Boolean).filter(x => x !== 'the' && x.length > 1))
-    const overlap = [...qTokens].filter(x => t.has(x)).length
-    const score = overlap / Math.max(1, qTokens.size)
+    const overlap = [...qTokenSet].filter(x => t.has(x)).length
+    const score = overlap / Math.max(1, qTokenSet.size)
     if (score > bestScore) { 
       best = c.p
       bestScore = score
     }
   }
-  
-  return bestScore >= 0.5 ? best : null
+
+  return bestScore >= 0.66 ? best : null
 }
 // Removed unused helpers: summarizeProviderServices, selectProvidersFromContextByService, pickProvidersByState
 
@@ -1243,7 +1249,10 @@ export async function POST(req: NextRequest) {
               : withPrice
             const rankedProviders: ProviderWithPrice[] = rankForQuery(intentDetected, baseForRanking, userState, flavor).slice(0, RESULT_LIMIT)
 
-            const directProvider = profileDirectProvider || findProviderByName(query, (Array.isArray(contextProviders) && contextProviders.length ? (contextProviders as Provider[]) : (rankedProviders as Provider[])))
+            // Only attempt provider name resolution if the intent is ProviderProfile
+            const directProvider = profileDirectProvider || (intentDetected === 'ProviderProfile'
+              ? findProviderByName(query, (Array.isArray(contextProviders) && contextProviders.length ? (contextProviders as Provider[]) : (rankedProviders as Provider[])))
+              : null)
             const providersForLLM: Provider[] = directProvider ? [directProvider] : (rankedProviders as Provider[]).slice(0, RESULT_LIMIT)
 
             // 6) Stream summarization unless filter_only
@@ -1670,7 +1679,10 @@ export async function POST(req: NextRequest) {
     const rankedProviders: ProviderWithPrice[] = rankForQuery(intentDetected, baseForRanking, userState, flavor).slice(0, RESULT_LIMIT)
 
     // 7) Summarize with search context (provider-profile aware)
-    const directProvider = profileDirectProvider || findProviderByName(query, (Array.isArray(contextProviders) && contextProviders.length ? (contextProviders as Provider[]) : (rankedProviders as Provider[])))
+    // Only attempt provider name resolution if the intent is ProviderProfile
+    const directProvider = profileDirectProvider || (intentDetected === 'ProviderProfile'
+      ? findProviderByName(query, (Array.isArray(contextProviders) && contextProviders.length ? (contextProviders as Provider[]) : (rankedProviders as Provider[])))
+      : null)
     
     // If asking about a specific provider, focus ONLY on that provider
     const providersForLLM: Provider[] = directProvider 
