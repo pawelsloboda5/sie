@@ -1,5 +1,7 @@
+export const runtime = 'nodejs'
+export const preferredRegion = ['iad1']
 import { NextRequest, NextResponse } from 'next/server'
-import { MongoClient, ObjectId } from 'mongodb'
+import { MongoClient, ObjectId, Db } from 'mongodb'
 
 // Types based on our data schema
 interface FilterRequest {
@@ -63,27 +65,23 @@ interface ProviderResult {
   free_services?: number   // Add this line
 }
 
-// MongoDB connection - fresh connection each time
-async function getMongoClient() {
-  const uri = process.env.MONGODB_URI
-  if (!uri) {
-    throw new Error('MONGODB_URI environment variable not set')
-  }
-  
-  // Fresh MongoDB client with optimized settings for Azure Cosmos DB
-  const client = new MongoClient(uri, {
-    maxPoolSize: 5, // Reduced pool size for better connection management
-    serverSelectionTimeoutMS: 8000, // Further reduced timeout for filter operations
-    socketTimeoutMS: 8000, // Further reduced timeout
-    connectTimeoutMS: 8000, // Further reduced timeout
-    maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-    retryWrites: true, // Automatically retry write operations
+// MongoDB connection - module scoped reuse
+let _client: MongoClient | null = null
+let _db: Db | null = null
+
+async function getDb(): Promise<Db> {
+  if (_db && _client) return _db
+  const uri = process.env.COSMOS_DB_CONNECTION_STRING || process.env.MONGODB_URI
+  if (!uri) throw new Error('COSMOS_DB_CONNECTION_STRING or MONGODB_URI not set')
+  _client = new MongoClient(uri, {
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 8000,
+    socketTimeoutMS: 15000,
+    retryWrites: true,
   })
-  
-  await client.connect()
-  const db = client.db('sie-db')
-  
-  return { client, db }
+  await _client.connect()
+  _db = _client.db(process.env.DB_NAME || 'sie-db')
+  return _db
 }
 
 // Helper function to calculate distance (client-side for better performance)
@@ -320,7 +318,7 @@ async function performFilterSearch(
   location?: { latitude: number, longitude: number },
   limit: number = 20
 ) {
-  const { client, db } = await getMongoClient()
+  const db = await getDb()
   
   try {
     // Run provider and service filters in parallel with shorter timeouts
@@ -550,13 +548,6 @@ async function performFilterSearch(
   } catch (error) {
     console.error('Database filter error:', error)
     throw error
-  } finally {
-    // Always close the connection
-    try {
-      await client.close()
-    } catch (closeError) {
-      console.error('Error closing MongoDB connection:', closeError)
-    }
   }
 }
 
@@ -579,8 +570,7 @@ export async function POST(request: NextRequest) {
     const providerOnly = !filters?.freeOnly && !(filters?.serviceCategories && filters.serviceCategories.length > 0)
 
     if (providerOnly) {
-      const { client, db } = await getMongoClient()
-      try {
+      const db = await getDb()
         const rawProviders = await filterProviders(db, filters, location, Math.min(limit, 6))
         const providers = rawProviders.slice(0, 6)
 
@@ -646,9 +636,6 @@ export async function POST(request: NextRequest) {
           service_count: servicesPayload.length,
           isFiltered: true
         })
-      } finally {
-        try { await client.close() } catch {}
-      }
     }
 
     // Perform optimized filter+services search when service-level constraints are present

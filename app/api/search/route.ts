@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+export const preferredRegion = ['iad1']
 import { NextRequest, NextResponse } from 'next/server'
 import { MongoClient, ObjectId, Db } from 'mongodb'
 import { generateEmbedding } from '@/lib/server/embedding'

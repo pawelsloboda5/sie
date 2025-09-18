@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+export const preferredRegion = ['iad1']
 import { NextRequest, NextResponse } from 'next/server'
 import { MongoClient, Db, type Document, type ObjectId } from 'mongodb'
 import type { Provider as ProviderType, Service as ServiceType } from '@/lib/types/copilot'

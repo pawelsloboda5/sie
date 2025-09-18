@@ -1,3 +1,5 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
 import { NextRequest, NextResponse } from 'next/server'
 
 // Azure Maps configuration
