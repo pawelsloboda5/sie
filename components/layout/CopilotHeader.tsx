@@ -231,7 +231,7 @@ export function CopilotHeader() {
                   <span className="font-medium">SieAI Copilot</span>
                 </button>
                 <button
-                  onClick={() => { router.push('/providers'); setMenuOpen(false) }}
+                  onClick={() => { router.push('/app'); setMenuOpen(false) }}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
                 >
                   <Search className="h-5 w-5 text-[#068282]" />
