@@ -7,10 +7,12 @@ export function MessageBubble({
   role,
   content,
   highlights,
+  isTyping,
 }: {
   role: 'user' | 'assistant'
   content: string
   highlights?: { providers?: string[]; services?: string[]; highlightPrices?: boolean }
+  isTyping?: boolean
 }) {
   const isUser = role === 'user'
 
@@ -105,7 +107,20 @@ export function MessageBubble({
 
   function renderMessageText(text: string): { __html: string } {
     // Normalize spacing, then minimal markdown: **bold** and newlines, then apply highlights on text nodes
-    const normalized = collapseFeatureGaps(text || '')
+    // If the stream accidentally contains a JSON-like wrapper, strip leading/trailing braces and leading "answer":
+    const stripped = (() => {
+      const t = text || ''
+      // Quick checks to avoid heavy parsing
+      if (t.startsWith('{') && t.includes('"answer"')) {
+        // Remove outermost braces and any leading answer key
+        const inner = t.replace(/^\{\s*\"answer\"\s*:\s*\"?/i, '').replace(/\"\s*\}\s*$/i, '')
+        return inner
+      }
+      return t
+    })()
+    // Convert sentences to new lines for readability during stream
+    const sentenceBreaks = stripped.replace(/\.\s+/g, '.\n')
+    const normalized = collapseFeatureGaps(sentenceBreaks)
     const escaped = escapeHtml(normalized)
     const withBold = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     const withHighlights = applyHighlights(withBold)
@@ -128,7 +143,15 @@ export function MessageBubble({
             : 'max-w-[85%] sm:max-w-[70%] rounded-xl rounded-bl-sm glass border border-white/20 dark:border-white/10 px-4 py-3 shadow md:shadow-lg animate-in fade-in slide-in-from-left-2 min-w-0'
         }
       >
-        <div className="whitespace-pre-wrap break-normal sm:break-words leading-relaxed text-[14px] sm:text-[18px] [line-height:1.55] sm:[line-height:1.6]" dangerouslySetInnerHTML={renderMessageText(content)} />
+        {isTyping && (!content || content.trim() === '') ? (
+          <div className="flex items-center gap-1.5 py-0.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-bounce" />
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:120ms]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:240ms]" />
+          </div>
+        ) : (
+          <div className="whitespace-pre-wrap break-normal sm:break-words leading-relaxed text-[14px] sm:text-[18px] [line-height:1.55] sm:[line-height:1.6]" dangerouslySetInnerHTML={renderMessageText(content)} />
+        )}
       </div>
     </div>
   )

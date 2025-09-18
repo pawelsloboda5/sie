@@ -52,6 +52,25 @@ if (process.env.LOG_ENV === '1') {
   })
 }
 
+// ===== SSE Utilities =====
+const textEncoder = new TextEncoder()
+function sseLine(data: unknown): Uint8Array {
+  try {
+    return textEncoder.encode(`data: ${JSON.stringify(data)}\n\n`)
+  } catch {
+    // Fallback to string coercion
+    return textEncoder.encode(`data: ${String(data)}\n\n`)
+  }
+}
+
+function sseHeaders(): HeadersInit {
+  return {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+  }
+}
+
 // Structured output schema for Responses API (kept for documentation/prompting blocks where needed)
 const RESPONSE_SCHEMA = {
   type: 'object',
@@ -770,6 +789,174 @@ Return JSON:
   }
 }
 
+// Streaming variant: proxies OpenAI/Azure Responses SSE events to client via onDelta callback, returns final parsed JSON or text
+async function streamSummarizeWithSearchContext(
+  question: string,
+  effectiveQuery: string,
+  state: UserState,
+  searchJson: { providers?: Provider[]; focus_provider_id?: string | null },
+  mode: Intent,
+  flavor: ComparatorFlavor | undefined,
+  onDelta: (event: { type: string; [k: string]: unknown }) => void
+): Promise<SummarizeResult> {
+  const url = `${AZURE_ENDPOINT}/openai/responses?api-version=${AZURE_API_VERSION}`
+  const providers: Provider[] = Array.isArray(searchJson?.providers) ? (searchJson.providers as Provider[]) : []
+  const full = buildSummarizerContext(providers, state)
+  let focusProvider: Provider | null = null
+  if (searchJson && typeof searchJson.focus_provider_id === 'string') {
+    focusProvider = providers.find((p) => String(p._id || p.id) === String(searchJson.focus_provider_id)) || null
+  }
+  const context = { ...full, focus_provider: focusProvider || null }
+
+  const input = [
+    { role: 'user', content: [{ type: 'input_text', text: `Question: ${question}` }] },
+    { role: 'assistant', content: [{ type: 'output_text', text: `EFFECTIVE_QUERY: ${effectiveQuery}` }] },
+    { role: 'assistant', content: [{ type: 'output_text', text: `STATE_JSON:\n${JSON.stringify(state)}` }] },
+    { role: 'assistant', content: [{ type: 'output_text', text: `MODE: ${mode}${flavor ? ` (${flavor})` : ''}` }] },
+    { role: 'assistant', content: [{ type: 'output_text', text: `FULL_SEARCH_CONTEXT:\n${JSON.stringify(context)}` }] }
+  ]
+
+  const STYLE_HINTS = [
+    'Keep tone warm and encouraging.',
+    'Keep tone practical and direct.',
+    'Keep tone reassuring and simple.',
+    'Keep tone upbeat and action-oriented.'
+  ]
+  const seedStr = `${question}|${JSON.stringify(state || {})}`
+  const styleHash = Math.abs(seedStr.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0))
+  const styleHint = STYLE_HINTS[styleHash % STYLE_HINTS.length]
+
+  const SUM_TOKENS = providers.length > 1
+    ? Number(process.env.COPILOT_SUMMARY_TOKENS_MULTI || 350)
+    : Number(process.env.COPILOT_SUMMARY_TOKENS || 600)
+
+  const instructions = `You are SIE Wellness Copilot, a friendly healthcare assistant helping people find affordable care.
+
+Question: ${question}
+Mode: ${mode}
+Available: ${providers.length} providers
+${focusProvider ? `Focus: ${focusProvider.name}` : ''}
+Tone: ${styleHint}
+
+
+${providers.length === 1 ? `
+SINGLE PROVIDER PROFILE - Write a detailed, helpful response about ${providers[0].name}:
+- Start with: "${providers[0].name} offers..."
+- List 3-4 specific services with exact prices (mix of free and paid)
+- Mention location and distance if available
+- Note insurance acceptance naturally
+- Do NOT include calls-to-action or contact instructions. Do NOT print phone numbers, emails, or URLs.` : `
+WRITE A CONCISE, SCANNABLE ANSWER:
+
+1) Start with one TL;DR sentence summarizing count and affordability (e.g., "TL;DR: Found 5 therapy options under $60 within 10 miles").
+2) For each provider (3–6 total), format exactly like this:
+   **Provider Name**
+   - Services: list the service that best matches the user’s request first (e.g., "individual therapy from $45"), then 1 other notable service with price or "Free consult" if present.
+   - Features: include 2–3 items from [Self-pay, Medicaid/Medicare or top 1–2 carriers, Telehealth, distance like "6.1 mi"]. Avoid more than 3 features.
+3) End with a short Top Pick mini-spotlight (2–3 sentences) explaining why it’s best (price/free options/distance/insurance), with 2–3 concrete services+prices.
+
+CRITICAL REQUIREMENTS:
+- Services must be directly related to the user’s request; always show a concrete price or "Free".
+- Keep bullets compact; no paragraphs inside bullets.
+- Ground strictly in FULL_SEARCH_CONTEXT; no invented claims.
+- No calls-to-action; do not print phone numbers, emails, or URLs.
+- If key info is missing (e.g., location), append one short clarifying question.`}
+
+Return JSON:
+- "answer": your TL;DR + bullets + optional Top Pick mini-spotlight
+- "selected_provider_ids": Array of ALL provider IDs mentioned`
+
+  const body = {
+    model: AZURE_DEPLOYMENT,
+    instructions,
+    input,
+    tools: [],
+    tool_choice: 'none',
+    text: { format: { type: 'json_schema', name: 'copilot_response', schema: RESPONSE_SCHEMA, strict: true } },
+    max_output_tokens: SUM_TOKENS,
+    // Enable streaming if provider supports it (OpenAI Responses API-compatible)
+    stream: true
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'api-key': AZURE_KEY as string, 'Accept': 'text/event-stream' },
+      body: JSON.stringify(body)
+    })
+
+    // If not streaming or request failed, bail to non-streaming path
+    const ct = res.headers.get('content-type') || ''
+    if (!res.ok || !ct.includes('text/event-stream')) {
+      // Fallback: call non-streaming path and emit once
+      const fallback = await summarizeWithSearchContext(question, effectiveQuery, state, searchJson, mode, flavor)
+      if (typeof fallback?.answer === 'string' && fallback.answer) {
+        // Emit as one delta for smoother UX
+        onDelta({ type: 'response.output_text.delta', delta: fallback.answer, item_id: 'msg_fallback', output_index: 0, content_index: 0 })
+      }
+      return fallback
+    }
+
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+    let lastText = ''
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      // SSE events are separated by double newlines
+      let idx: number
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const chunk = buffer.slice(0, idx)
+        buffer = buffer.slice(idx + 2)
+        const lines = chunk.split('\n')
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed || !trimmed.startsWith('data:')) continue
+          const jsonStr = trimmed.slice(5).trim()
+          if (!jsonStr || jsonStr === '[DONE]') continue
+          try {
+            const event = JSON.parse(jsonStr) as { type?: string; [k: string]: unknown }
+            if (event && typeof event === 'object' && typeof event.type === 'string') {
+              // Forward text deltas and key lifecycle events
+              if (event.type === 'response.output_text.delta' && typeof (event as { delta?: unknown }).delta === 'string') {
+                lastText += String((event as { delta: string }).delta)
+                onDelta(event as { type: string })
+              } else if (
+                event.type === 'response.created' ||
+                event.type === 'response.in_progress' ||
+                event.type === 'response.content_part.added' ||
+                event.type === 'response.content_part.done' ||
+                event.type === 'response.output_text.done' ||
+                event.type === 'response.completed' ||
+                event.type === 'response.failed' ||
+                event.type === 'response.incomplete'
+              ) {
+                onDelta(event as { type: string })
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+
+    // Try to parse final JSON from accumulated text if it looks like JSON
+    let parsed: SummarizeResult | null = null
+    const trimmed = (lastText || '').trim()
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try { parsed = JSON.parse(trimmed) as SummarizeResult } catch { parsed = null }
+    }
+    return parsed || { answer: lastText || undefined }
+  } catch (e) {
+    console.error('Streaming summarizer error:', e)
+    // Fallback to natural summary-less return
+    return { answer: undefined }
+  }
+}
+
 type ExecReturn = GeoForwardResult | GeoReverseResult | SearchResponse | FilterResponse | { providers: Provider[] } | { error: string }
 async function execTool(name: 'geo_forward', args: { q: string; country?: string }): Promise<GeoForwardResult>
 async function execTool(name: 'geo_reverse', args: { lat: number; lon: number }): Promise<GeoReverseResult>
@@ -843,6 +1030,13 @@ async function execTool(name: string, args: unknown): Promise<ExecReturn> {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+    const url = new URL(req.url)
+    const streamRequested = Boolean(
+      body?.stream === true ||
+      url.searchParams.get('stream') === '1' ||
+      (req.headers.get('accept') || '').includes('text/event-stream') ||
+      req.headers.get('x-copilot-stream') === '1'
+    )
     const query: string = (body?.query || '').toString()
     const conversation: Message[] = Array.isArray(body?.conversation) ? body.conversation as Message[] : []
     const prevState: Partial<UserState> | undefined = body?.state && typeof body.state === 'object' ? body.state as Partial<UserState> : undefined
@@ -851,6 +1045,350 @@ export async function POST(req: NextRequest) {
 
     if (!query || !query.trim()) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 })
+    }
+
+    // ===== Streaming branch =====
+    if (streamRequested) {
+      const stream = new ReadableStream<Uint8Array>({
+        start: async (controller) => {
+          const write = (data: unknown) => {
+            try { controller.enqueue(sseLine(data)) } catch {}
+          }
+          // Emit created
+          write({ type: 'response.created', sequence_number: 1, response: { status: 'in_progress' } })
+
+          try {
+            const messages: Message[] = [...conversation.filter(Boolean), { role: 'user', content: query }]
+            // 1) Extract user state and apply heuristics
+            const extracted = await extractStateFromConversation(messages, prevState)
+            const heur = heuristicFromText(query)
+            const merged = mergeState(prevState, extracted)
+            const userState: UserState = mergeState(merged, {
+              service_terms: Array.isArray(heur.service_terms) && heur.service_terms.length ? heur.service_terms : null,
+              free_only: typeof heur.free_only === 'boolean' ? heur.free_only : null,
+              accepts_medicaid: typeof heur.accepts_medicaid === 'boolean' ? heur.accepts_medicaid : null,
+              accepts_uninsured: typeof heur.accepts_uninsured === 'boolean' ? heur.accepts_uninsured : null,
+              insurance_providers: Array.isArray(heur.insurance_providers) && heur.insurance_providers.length ? heur.insurance_providers : null,
+              location_text: heur.location_text || null,
+              accepts_medicare: typeof heur.accepts_medicare === 'boolean' ? heur.accepts_medicare : null,
+              telehealth_available: typeof heur.telehealth_available === 'boolean' ? heur.telehealth_available : null,
+              ssn_required: typeof heur.ssn_required === 'boolean' ? heur.ssn_required : null
+            })
+
+            // 2) Use provided location or geocode if we have a location hint
+            let derivedLocation: { latitude: number; longitude: number } | undefined
+            if (userLocation) {
+              derivedLocation = userLocation
+            } else if (userState?.location_text) {
+              const geo = await execTool('geo_forward', { q: userState.location_text, country: 'us' })
+              if (geo?.ok && typeof geo.latitude === 'number' && typeof geo.longitude === 'number') {
+                derivedLocation = { latitude: geo.latitude, longitude: geo.longitude }
+              }
+            }
+
+            // 3) Build effective query & filters  
+            const effectiveQuery = Array.isArray(userState?.service_terms) && userState.service_terms.length
+              ? userState.service_terms.join(' ')
+              : query
+
+            const filtersFromState: SearchFilters = {
+              acceptsMedicaid: userState.accepts_medicaid || undefined,
+              acceptsUninsured: userState.accepts_uninsured || undefined,
+              acceptsMedicare: userState.accepts_medicare || undefined,
+              telehealthAvailable: userState.telehealth_available || undefined,
+              ssnRequired: typeof userState.ssn_required === 'boolean' ? userState.ssn_required : undefined,
+              freeOnly: userState.free_only || undefined,
+              insuranceProviders: Array.isArray(userState.insurance_providers) && userState.insurance_providers.length ? userState.insurance_providers : undefined
+            }
+
+            // 4) Decide routing
+            let routeDecision = await routeWithLLM(query, userState)
+            if (!routeDecision) routeDecision = decideRouteFallback(query, userState)
+
+            const decidedFilters = { ...filtersFromState, ...(routeDecision?.filters || {}) }
+            const askedCarriers = Array.isArray(userState.insurance_providers) && userState.insurance_providers.length ? userState.insurance_providers : undefined
+            if (decidedFilters.insuranceProviders) {
+              if (!askedCarriers || askedCarriers.length === 0) {
+                delete decidedFilters.insuranceProviders
+              } else {
+                decidedFilters.insuranceProviders = askedCarriers
+              }
+            }
+            if (routeDecision?.route === 'filter_only') {
+              const hasAny = decidedFilters && Object.values(decidedFilters).some(v => v !== undefined && v !== null && !(Array.isArray(v) && v.length === 0))
+              if (!hasAny) {
+                if (typeof userState.ssn_required === 'boolean') decidedFilters.ssnRequired = userState.ssn_required
+                else if (/no\s*ssn|without\s*ssn|ssn\s*(not\s*)?required/i.test(query)) decidedFilters.ssnRequired = false
+                if (typeof userState.accepts_medicaid === 'boolean') decidedFilters.acceptsMedicaid = userState.accepts_medicaid
+                if (typeof userState.accepts_medicare === 'boolean') decidedFilters.acceptsMedicare = userState.accepts_medicare
+                if (typeof userState.accepts_uninsured === 'boolean') decidedFilters.acceptsUninsured = userState.accepts_uninsured
+                if (typeof userState.telehealth_available === 'boolean') decidedFilters.telehealthAvailable = userState.telehealth_available
+              }
+            }
+            const decidedQuery = (routeDecision?.service_query && routeDecision.service_query.trim()) || effectiveQuery
+
+            // Provider profile resolution from context or DB
+            let profileDirectProvider: Provider | null = null
+            if (routeDecision?.route === 'provider_profile') {
+              const providerHint = (routeDecision as { provider_name?: string | null })?.provider_name || null
+              if (Array.isArray(contextProviders) && contextProviders.length) {
+                const foundFromContext = findProviderByName(providerHint || query, contextProviders)
+                if (foundFromContext) profileDirectProvider = foundFromContext
+              }
+              if (!profileDirectProvider) {
+                const fetched = await execTool('provider_by_name', { name: (providerHint || query), location: derivedLocation, limit: 1 }) as unknown as { providers?: Provider[] }
+                if (Array.isArray(fetched?.providers) && fetched.providers.length) profileDirectProvider = fetched.providers[0]!
+              }
+            }
+
+            // 5) Execute retrieval
+            let searchResponse: SearchResponse | FilterResponse | null = null
+            if (routeDecision?.route === 'filter_only') {
+              searchResponse = await execTool('filter_providers', { filters: decidedFilters, location: derivedLocation, limit: 12 })
+            } else if (routeDecision?.route === 'provider_profile') {
+              if (!profileDirectProvider) {
+                searchResponse = await execTool('search_providers', { query: decidedQuery, location: derivedLocation, filters: decidedFilters, limit: 6 })
+              } else {
+                searchResponse = { providers: [profileDirectProvider], provider_count: 1, service_count: Array.isArray(profileDirectProvider.services) ? profileDirectProvider.services.length : 0 }
+              }
+            } else if (routeDecision?.route === 'service_search' || routeDecision?.route === 'hybrid') {
+              searchResponse = await execTool('search_providers', { query: decidedQuery, location: derivedLocation, filters: decidedFilters, limit: RESULT_LIMIT })
+              if (routeDecision?.route === 'hybrid') {
+                const provCount = Array.isArray(searchResponse?.providers) ? searchResponse.providers.length : 0
+                if (provCount < 3) {
+                  const fallback = await execTool('filter_providers', { filters: decidedFilters, location: derivedLocation, limit: 12 })
+                  if (Array.isArray(fallback?.providers) && fallback.providers.length >= provCount) searchResponse = fallback
+                }
+              }
+            } else {
+              searchResponse = await execTool('search_providers', { query: decidedQuery, location: derivedLocation, filters: decidedFilters, limit: RESULT_LIMIT })
+            }
+
+            const providers: Provider[] = Array.isArray(searchResponse?.providers) ? (searchResponse!.providers as Provider[]).slice(0, RESULT_LIMIT) : []
+            let refinedProviders: Provider[] = providers
+            if (/\b(those|them|the\s+ones)\b/i.test(query) && Array.isArray(contextProviders) && contextProviders.length) {
+              refinedProviders = contextProviders.slice(0, 6)
+            }
+
+            if (Array.isArray(userState.insurance_providers) && userState.insurance_providers.length) {
+              const asked = userState.insurance_providers.map((c) => (c || '').toLowerCase())
+              const hasCarrier = (p: Provider) => Array.isArray(p.insurance?.majorProviders) && p.insurance!.majorProviders!.some((x: string) => asked.includes((x || '').toLowerCase()))
+              const carrierMatches = providers.filter(hasCarrier)
+              if (carrierMatches.length === 0) {
+                const filtered = await execTool('filter_providers', { filters: { insuranceProviders: userState.insurance_providers, freeOnly: userState.free_only || undefined, acceptsUninsured: userState.accepts_uninsured || undefined, acceptsMedicaid: userState.accepts_medicaid || undefined }, location: derivedLocation, limit: 12 })
+                refinedProviders = Array.isArray(filtered?.providers) ? filtered.providers : providers
+              } else {
+                refinedProviders = carrierMatches
+              }
+            }
+
+            const intentDetected: Intent = (function detectIntent(q: string): Intent {
+              const s = String(q || '').toLowerCase()
+              if (/(what|which).*services.*(do|does)|\bhours\b|\bcost at\b|\bphone for\b|\baddress of\b/.test(s)) return 'ProviderProfile'
+              if (/accepts?.*\b(cigna|aetna|medicaid|uninsured|medicare|uhc|united|bcbs|blue\s?cross)\b/.test(s)) return 'ProviderProfile'
+              if (/\b(cheapest|lowest|affordable|cost|price|closest|near( me)?|distance|miles|mi\b|km\b|best|top|highest rated|most free|free only)\b/.test(s)) return 'Compare'
+              if (/\b(medicaid|medicare|cigna|aetna|kaiser|uhc|united|bcbs|blue\s?cross)\b.*\b(cover|coverage|copay|network|in[-\s]?network)\b/.test(s)) return 'ExplainCoverage'
+              return 'Summarize'
+            })(query)
+
+            const flavor: ComparatorFlavor | undefined = intentDetected === 'Compare'
+              ? (function comparatorFlavor(q: string): ComparatorFlavor {
+                  const s = String(q || '').toLowerCase()
+                  if (/cheapest|lowest|affordable|cost|price/.test(s)) return 'cheapest'
+                  if (/closest|near( me)?|distance|miles|mi\b|km\b/.test(s)) return 'closest'
+                  if (/most free|free only|no cost|sliding scale/.test(s)) return 'mostFree'
+                  return 'best'
+                })(query)
+              : undefined
+
+            type ProviderWithPrice = Provider & { __price: PriceStat }
+            const withPrice: ProviderWithPrice[] = refinedProviders.map((p) => ({ ...p, __price: collectPriceStats(Array.isArray(p.services) ? (p.services as Service[]) : []) }))
+
+            function hasCarrierMatch(p: Provider, asked: string[]): boolean {
+              return Array.isArray(p.insurance?.majorProviders) && p.insurance!.majorProviders!.some((x: string) => asked.includes((x || '').toLowerCase()))
+            }
+
+            function rankForQuery(intent: Intent, providersIn: ProviderWithPrice[], state: UserState, f?: ComparatorFlavor): ProviderWithPrice[] {
+              const arr = [...providersIn]
+              const asked = (state.insurance_providers || []).map((c) => (c || '').toLowerCase())
+              const distanceAsc = (a: ProviderWithPrice, b: ProviderWithPrice) => (typeof a.distance === 'number' && typeof b.distance === 'number') ? (a.distance - b.distance) : 0
+              const ratingDesc = (a: ProviderWithPrice, b: ProviderWithPrice) => (Number(b.rating || 0) - Number(a.rating || 0))
+              const freeDesc = (a: ProviderWithPrice, b: ProviderWithPrice) => (Number(b.free_services || 0) - Number(a.free_services || 0))
+              const priceMinAsc = (a: ProviderWithPrice, b: ProviderWithPrice) => {
+                const av = typeof a.__price?.min === 'number' ? a.__price.min as number : Number.POSITIVE_INFINITY
+                const bv = typeof b.__price?.min === 'number' ? b.__price.min as number : Number.POSITIVE_INFINITY
+                return av - bv
+              }
+              if (intent === 'Compare') {
+                switch (f) {
+                  case 'cheapest': arr.sort((a, b) => priceMinAsc(a, b) || freeDesc(a, b) || ratingDesc(a, b) || distanceAsc(a, b)); break
+                  case 'closest': arr.sort((a, b) => distanceAsc(a, b) || freeDesc(a, b) || ratingDesc(a, b) || priceMinAsc(a, b)); break
+                  case 'mostFree': arr.sort((a, b) => freeDesc(a, b) || distanceAsc(a, b) || ratingDesc(a, b) || priceMinAsc(a, b)); break
+                  case 'best':
+                  default: arr.sort((a, b) => ratingDesc(a, b) || freeDesc(a, b) || priceMinAsc(a, b) || distanceAsc(a, b)); break
+                }
+                return arr
+              }
+              if (asked.length) {
+                const matched = arr.filter(p => hasCarrierMatch(p, asked))
+                const others = arr.filter(p => !hasCarrierMatch(p, asked))
+                return [...matched, ...others]
+              }
+              return arr
+            }
+
+            const refersToPrevious = /\b(those|them|the\s+ones)\b/i.test(query)
+            const baseForRanking: ProviderWithPrice[] = (refersToPrevious && Array.isArray(contextProviders) && contextProviders.length)
+              ? (withPrice.length ? withPrice.filter((p) => contextProviders.some((c) => String(c._id || c.id) === String(p._id || p.id))) : (contextProviders as unknown as ProviderWithPrice[]))
+              : withPrice
+            const rankedProviders: ProviderWithPrice[] = rankForQuery(intentDetected, baseForRanking, userState, flavor).slice(0, RESULT_LIMIT)
+
+            const directProvider = profileDirectProvider || findProviderByName(query, (Array.isArray(contextProviders) && contextProviders.length ? (contextProviders as Provider[]) : (rankedProviders as Provider[])))
+            const providersForLLM: Provider[] = directProvider ? [directProvider] : (rankedProviders as Provider[]).slice(0, RESULT_LIMIT)
+
+            // 6) Stream summarization unless filter_only
+            let summary: SummarizeResult
+            if (routeDecision?.route === 'filter_only') {
+              summary = { answer: undefined, selected_provider_ids: undefined }
+            } else {
+              summary = await streamSummarizeWithSearchContext(
+                query,
+                effectiveQuery,
+                userState,
+                { ...(searchResponse || {}), providers: providersForLLM, focus_provider_id: directProvider ? String(directProvider._id || directProvider.id) : null },
+                directProvider ? 'ProviderProfile' : intentDetected,
+                flavor,
+                (event) => write(event)
+              )
+            }
+
+            // 7) Provider selection
+            let selectedIds: string[] | undefined = Array.isArray(summary?.selected_provider_ids) ? summary!.selected_provider_ids! : undefined
+            if ((!selectedIds || selectedIds.length === 0) && rankedProviders.length) {
+              if (directProvider) {
+                selectedIds = [String(directProvider._id || directProvider.id)]
+              } else {
+                let filteredProviders = rankedProviders
+                if (userState.service_terms?.some(term => /dental|dentist/.test(term.toLowerCase()))) {
+                  filteredProviders = rankedProviders.filter((p) => /dent|oral/i.test(p.category) || (Array.isArray(p.services) ? p.services : []).some((s: Service) => /dent|teeth|tooth|oral|gum|cavity|filling|crown|cleaning/i.test(s.name)))
+                }
+                const maxProviders = 6
+                const withFree = filteredProviders.filter((p) => (Array.isArray(p.services) ? p.services : []).some((s) => s.isFree))
+                const withPriced = filteredProviders.filter((p) => (Array.isArray(p.services) ? p.services : []).some((s) => !s.isFree && s.price && (s.price.flat || s.price.min)))
+                const selectedSet = new Set<string>()
+                withFree.slice(0, 2).forEach((p) => { selectedSet.add(String(p._id || p.id)) })
+                withPriced.slice(0, 4).forEach((p) => { selectedSet.add(String(p._id || p.id)) })
+                if (selectedSet.size < maxProviders) {
+                  filteredProviders.filter((p) => !selectedSet.has(String(p._id || p.id))).slice(0, maxProviders - selectedSet.size).forEach((p) => { selectedSet.add(String(p._id || p.id)) })
+                }
+                selectedIds = Array.from(selectedSet)
+              }
+            }
+
+            // 8) Build final text
+            let answerText: string
+            if (summary?.answer && typeof summary.answer === 'string' && summary.answer.trim()) {
+              answerText = summary.answer
+            } else if (directProvider) {
+              const p = directProvider
+              const services: Service[] = Array.isArray(p.services) ? p.services : []
+              const freeServices = services.filter((s) => s.isFree)
+              const lines: string[] = []
+              lines.push(`**${p.name}**`)
+              if (p.addressLine) lines.push(`📍 ${p.addressLine}`)
+              else if (p.city && p.state) lines.push(`📍 ${p.city}, ${p.state}`)
+              if (p.insurance?.selfPayOptions) lines.push(`✅ Accepts self-pay patients`)
+              if (p.insurance?.medicaid) lines.push(`✅ Accepts Medicaid`)
+              if (p.insurance?.medicare) lines.push(`✅ Accepts Medicare`)
+              if (services.length > 0) {
+                lines.push('')
+                lines.push(`They offer ${services.length} services${freeServices.length > 0 ? ` including ${freeServices.length} free option${freeServices.length > 1 ? 's' : ''}` : ''}:`)
+                const sortedServices = [...services].sort((a, b) => {
+                  if (a?.isFree && !b?.isFree) return -1
+                  if (!a?.isFree && b?.isFree) return 1
+                  const aPrice = (typeof a?.price?.min === 'number' ? a.price!.min! : (typeof a?.price?.flat === 'number' ? a.price!.flat! : 1000))
+                  const bPrice = (typeof b?.price?.min === 'number' ? b.price!.min! : (typeof b?.price?.flat === 'number' ? b.price!.flat! : 1000))
+                  return aPrice - bPrice
+                })
+                const topServices = sortedServices.slice(0, 5)
+                topServices.forEach((s) => {
+                  let priceStr = ''
+                  if (s.isFree) priceStr = 'FREE'
+                  else if (s.price) {
+                    if (s.price.flat) priceStr = `$${s.price.flat}`
+                    else if (s.price.min && s.price.max) priceStr = `$${s.price.min}-${s.price.max}`
+                    else if (s.price.min) priceStr = `from $${s.price.min}`
+                  }
+                  lines.push(`• ${s.name}${priceStr ? ` - ${priceStr}` : ''}`)
+                })
+                if (services.length > 5) lines.push(`...and ${services.length - 5} more services`)
+              } else {
+                lines.push('No specific service listings available. See provider card for details.')
+              }
+              answerText = lines.join('\n')
+              // Emit as a single delta if no LLM answer streamed
+              write({ type: 'response.output_text.delta', delta: answerText, item_id: 'msg_fallback', output_index: 0, content_index: 0 })
+            } else {
+              answerText = naturalFallback(userState, rankedProviders, selectedIds || [], query)
+              write({ type: 'response.output_text.delta', delta: answerText, item_id: 'msg_fallback', output_index: 0, content_index: 0 })
+            }
+
+            // 9) Reorder providers according to selected ids / direct provider
+            let finalProviders: Provider[] = rankedProviders as Provider[]
+            if (directProvider) finalProviders = [directProvider]
+            else if (Array.isArray(selectedIds) && selectedIds.length) {
+              const byId = new Map<string, Provider>((rankedProviders as Provider[]).map((p) => [String(p._id || p.id), p]))
+              const picked = selectedIds.map((id) => byId.get(String(id))).filter((p): p is Provider => Boolean(p))
+              if (picked.length) finalProviders = picked
+            }
+
+            const updatedConversation: Message[] = [...messages, { role: 'assistant', content: answerText }]
+
+            // Debug counts
+            const sr = searchResponse
+            const debugProviderCount = directProvider ? 1 : (sr && 'provider_count' in (sr as SearchResponse) ? ((sr as SearchResponse).provider_count ?? finalProviders.length) : (sr && 'total_count' in (sr as FilterResponse) ? ((sr as FilterResponse).total_count ?? finalProviders.length) : finalProviders.length))
+            let debugServiceCount: number | undefined = sr && 'service_count' in (sr as SearchResponse) ? (sr as SearchResponse).service_count : undefined
+            if (typeof debugServiceCount !== 'number' || Number.isNaN(debugServiceCount)) {
+              try {
+                debugServiceCount = Array.isArray(finalProviders) ? finalProviders.reduce((sum: number, p: Provider) => sum + (Array.isArray(p?.services) ? p.services.length : 0), 0) : 0
+              } catch { debugServiceCount = 0 }
+            }
+
+            // Emit final payload in a single event tailor-made for our client UI
+            write({
+              type: 'copilot.final',
+              payload: {
+                answer: answerText,
+                follow_up_question: summary?.follow_up_question || null,
+                providers: finalProviders,
+                state: userState,
+                debug: {
+                  effective_query: effectiveQuery,
+                  filters_used: decidedFilters,
+                  location_used: derivedLocation || null,
+                  selected_provider_ids: selectedIds || null,
+                  intent: directProvider ? 'ProviderProfile' : intentDetected,
+                  route_mode: routeDecision?.route || 'service_search',
+                  comparator_flavor: flavor || null,
+                  provider_count: debugProviderCount,
+                  service_count: debugServiceCount
+                },
+                conversation: updatedConversation.map((m: Message) => ({ role: m.role, content: m.content, name: m.name })).slice(-40)
+              }
+            })
+
+            // Completed
+            write({ type: 'response.completed', sequence_number: 2, response: { status: 'completed' } })
+          } catch (e) {
+            console.error('Copilot SSE error', e)
+            write({ type: 'response.failed', response: { status: 'failed', error: { message: (e as Error)?.message || 'Unknown error' } } })
+          } finally {
+            try { controller.close() } catch {}
+          }
+        }
+      })
+
+      return new Response(stream, { headers: sseHeaders() })
     }
 
     const messages: Message[] = [...conversation.filter(Boolean), { role: 'user', content: query }]

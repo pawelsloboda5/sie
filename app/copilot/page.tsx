@@ -19,6 +19,7 @@ type UserLocation = {
 export default function CopilotPage() {
   // Build-time flag exposed via next.config.ts → env.NEXT_PUBLIC_DEBUG_AI_COPILOT
   const showDebugUI = (process.env.NEXT_PUBLIC_DEBUG_AI_COPILOT === 'true' || process.env.NEXT_PUBLIC_DEBUG_AI_COPILOT === '1')
+  const enableStreaming = (process.env.NEXT_PUBLIC_COPILOT_STREAM === 'true' || process.env.NEXT_PUBLIC_COPILOT_STREAM === '1')
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isThinking, setIsThinking] = useState(false)
@@ -180,6 +181,155 @@ export default function CopilotPage() {
     setIsThinking(true)
 
     try {
+      if (enableStreaming) {
+        // Optimistically append an empty assistant message to stream into
+        const assistantIdx = next.length
+        const withAssistantDraft: ChatMessage[] = [...next, { role: 'assistant', content: '' }]
+        setMessages(withAssistantDraft)
+
+        let draft = ''
+        let rawJson = ''
+        const decodeFragment = (s: string) => {
+          return s
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\r/g, '\r')
+            .replace(/\\"/g, '"')
+            .replace(/\\\\/g, '\\')
+        }
+        const extractAnswerIncremental = (buffer: string, previous: string) => {
+          // Try full JSON parse first
+          try {
+            const obj = JSON.parse(buffer)
+            if (obj && typeof obj.answer === 'string') return obj.answer
+          } catch {}
+          // Heuristic: locate "answer":" ... (partial)
+          const startMatch = buffer.match(/\"answer\"\s*:\s*\"/)
+          if (!startMatch || startMatch.index === undefined) return previous
+          let slice = buffer.slice(startMatch.index + startMatch[0].length)
+          // Stop at next unescaped quote followed by ," or "}
+          const boundary = slice.search(/\"\s*,\s*\"|\"\s*\}/)
+          if (boundary !== -1) slice = slice.slice(0, boundary)
+          // Decode common escapes
+          return decodeFragment(slice)
+        }
+        const afterPeriodsToNewlines = (s: string) => s.replace(/\.\s+/g, '.\n')
+        const updateDraft = (delta: string) => {
+          rawJson += delta
+          const extracted = extractAnswerIncremental(rawJson, draft)
+          const formatted = afterPeriodsToNewlines(extracted)
+          draft = formatted
+          setMessages((prev) => {
+            const copy = [...prev]
+            copy[assistantIdx] = { role: 'assistant', content: draft }
+            return copy
+          })
+        }
+
+        // Attach last providers context (same as non-streaming)
+        let contextProviders: Provider[] | undefined
+        try {
+          const lastAssistantIndex = [...messages].reverse().findIndex(m => m.role === 'assistant')
+          const absoluteIdx = lastAssistantIndex === -1 ? -1 : messages.length - 1 - lastAssistantIndex
+          if (absoluteIdx >= 0) {
+            contextProviders = (providersByMessage[absoluteIdx] || []).slice(0, 12)
+          }
+        } catch {}
+
+        const res = await fetch('/api/copilot?stream=1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'x-copilot-stream': '1' },
+          body: JSON.stringify({ 
+            query: text, 
+            conversation: messages, 
+            state,
+            location: userLocation ? { latitude: userLocation.latitude, longitude: userLocation.longitude } : undefined,
+            contextProviders,
+            stream: true
+          }),
+        })
+
+        if (!res.ok || !res.body) throw new Error('Stream failed')
+
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        const STORAGE_KEY = 'sie:copilot:conversation'
+        const STATE_KEY = 'sie:copilot:state'
+        const PROVIDERS_KEY = 'sie:copilot:providers'
+
+        // Event types for SSE
+        type CopilotFinalPayload = {
+          answer: string
+          providers: Provider[]
+          state: CopilotUserState | null
+          debug: CopilotDebugInfo | null
+          conversation: ChatMessage[]
+        }
+        type OutputDeltaEvt = { type: 'response.output_text.delta'; delta: string }
+        type CopilotFinalEvt = { type: 'copilot.final'; payload: CopilotFinalPayload }
+        const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+        const isOutputDeltaEvt = (v: unknown): v is OutputDeltaEvt => {
+          if (!isRecord(v)) return false
+          return (v.type === 'response.output_text.delta') && (typeof (v as { delta?: unknown }).delta === 'string')
+        }
+        const isCopilotFinalEvt = (v: unknown): v is CopilotFinalEvt => {
+          if (!isRecord(v)) return false
+          if (v.type !== 'copilot.final' || !isRecord((v as { payload?: unknown }).payload)) return false
+          const p = (v as { payload: Record<string, unknown> }).payload
+          return typeof p.answer === 'string' && Array.isArray(p.providers)
+        }
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          let idx: number
+          while ((idx = buffer.indexOf('\n\n')) !== -1) {
+            const chunk = buffer.slice(0, idx)
+            buffer = buffer.slice(idx + 2)
+            const lines = chunk.split('\n')
+            for (const line of lines) {
+              const trimmed = line.trim()
+              if (!trimmed.startsWith('data:')) continue
+              const jsonStr = trimmed.slice(5).trim()
+              if (!jsonStr || jsonStr === '[DONE]') continue
+              try {
+                const parsed: unknown = JSON.parse(jsonStr)
+                if (isOutputDeltaEvt(parsed)) {
+                  updateDraft(parsed.delta)
+                } else if (isCopilotFinalEvt(parsed)) {
+                  const payload = parsed.payload
+                  if (payload.answer) {
+                    draft = payload.answer
+                    setMessages((prev) => {
+                      const copy = [...prev]
+                      copy[assistantIdx] = { role: 'assistant', content: draft }
+                      return copy
+                    })
+                  }
+                  setProvidersByMessage((prev) => {
+                    const nextMap = { ...prev, [assistantIdx]: (payload.providers || []) }
+                    try { window.localStorage.setItem(PROVIDERS_KEY, JSON.stringify(nextMap)) } catch {}
+                    return nextMap
+                  })
+                  if (payload.state) setState(payload.state)
+                  if (payload.debug) setDebug(payload.debug)
+                  try {
+                    const finalConversation = Array.isArray(payload.conversation) ? payload.conversation : [...withAssistantDraft.slice(0, assistantIdx), { role: 'assistant', content: draft }]
+                    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(finalConversation))
+                    if (payload.state) window.localStorage.setItem(STATE_KEY, JSON.stringify(payload.state))
+                  } catch {}
+                }
+              } catch {}
+            }
+          }
+        }
+        setIsThinking(false)
+        return
+      }
+
       // Attach last recommended providers (context) so the server can ground follow-ups like
       // "which one of those" without re-searching the entire dataset.
       let contextProviders: Provider[] | undefined

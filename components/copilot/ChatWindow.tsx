@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
 import type { Provider } from '@/lib/types/copilot'
 import { MessageBubble } from './MessageBubble'
 import { ProviderCards } from './ProviderCards'
@@ -86,6 +85,8 @@ export function ChatWindow({
                 .map(s => s?.name)
                 .filter(Boolean))
             )) as string[]
+            const isLast = i === messages.length - 1
+            const isAssistantDraft = m.role === 'assistant' && (!m.content || m.content.trim() === '')
             return (
             <div key={i} className="space-y-2 min-w-0 max-w-full">
               <div className={m.role === 'assistant' ? 'pl-0 sm:pl-0 min-w-0 max-w-full' : 'min-w-0 max-w-full'}>
@@ -93,6 +94,7 @@ export function ChatWindow({
                   role={m.role} 
                   content={m.content}
                   highlights={m.role === 'assistant' ? { providers: providerNames, services: serviceNames, highlightPrices: true } : undefined}
+                  isTyping={isAssistantDraft && isLast}
                 />
               </div>
               {m.role === 'assistant' && providersByMessage?.[i]?.length ? (
@@ -103,20 +105,7 @@ export function ChatWindow({
             </div>
           )})}
 
-          {isThinking && (
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full overflow-hidden ring-2 ring-white/70 dark:ring-black/40">
-                <Image src="/logo_560x560.png" alt="AI" width={32} height={32} className="h-8 w-8 object-cover" />
-              </div>
-              <div className="glass rounded-xl rounded-bl-sm px-4 py-3 border border-white/20 dark:border-white/10">
-                <span className="inline-flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-bounce" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:120ms]" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:240ms]" />
-                </span>
-              </div>
-            </div>
-          )}
+          {/* External typing indicator removed; typing dots now render inside the assistant bubble when streaming */}
         </div>
 
         {/* Desktop input area (inline) */}
