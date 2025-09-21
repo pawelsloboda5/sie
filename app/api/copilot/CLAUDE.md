@@ -1,14 +1,16 @@
 # AI Copilot API Routes
 
 ## Overview
-The copilot API routes are separate from the main search functionality and specifically designed to work with the `prices-only` collection, which contains clean, structured provider data with detailed pricing information.
+The Copilot API routes are separate from the main search functionality and optimized for affordable care discovery against the `prices-only` collection (structured pricing and insurance data).
+
+Key update: Server-side vector search is enabled by default when supported by the database (Cosmos DB `cosmosSearch`). When disabled, the system falls back to geo/text filtering and client-side vector reranking.
 
 ## Key Differences from Main Search
-- Uses `prices-only` collection instead of `businesses/providers`
-- Focuses on finding the cheapest services near users
-- All providers have pricing data (no missing price info)
-- Optimized for cost-conscious healthcare searches
-- Client-side vector reranking using provider/service embeddings (Cosmos vCore lacks vector index)
+- Uses `prices-only` collection instead of `businesses/providers` for clean pricing/insurance fields
+- Focuses on free and low-cost options near the user, with price ranges and cheapest service per provider
+- All providers include pricing data when available
+- Server-side vector search by default (Cosmos `cosmosSearch`) with post-filtering and distance caps
+- Fallback to geo/text pipeline plus client-side vector reranking when server vector is disabled
 
 ## Routes
 
@@ -16,29 +18,35 @@ The copilot API routes are separate from the main search functionality and speci
 - **Purpose**: Search for providers based on services and location
 - **Features**:
   - Service term expansion (e.g., "mammogram" → "mammography", "breast screening")
-  - Server-side geo/text filtering via `$geoNear` + `$match` ($text), capped candidates
-  - Query embedding computed server-side via Azure OpenAI
-  - Client-side vector rerank (cosine) using provider `embedding` and `services[].embedding`
-  - Blended scoring: 60% similarity + boosts (free/low price/near/rating)
-  - Filters for insurance (Medicaid, Medicare, self-pay) and telehealth
-  - Returns cheapest service per provider and price ranges
+  - Server-side vector search (`cosmosSearch`) on provider `embedding` and service embeddings when `COPILOT_SERVER_VECTOR=true`
+  - Merges service-level vector hits from `prices-only-services` back into providers
+  - Post-merge filtering for insurance, telehealth, and free-only
+  - Distance computation and optional max-distance cap via `COPILOT_MAX_DISTANCE_MI`
+  - Fallback to `$geoNear` + filters or filters-only when server vector is disabled
+  - Client-side vector reranking as a fallback when server vector is not used
+  - Returns: ordered providers, cheapest service, price ranges, and `search_params`
 
 ### `/api/copilot/filter`
 - **Purpose**: Filter providers by specific criteria
 - **Features**:
   - Insurance carrier matching
-  - Price range filtering
-  - Distance-based filtering
+  - Price and distance-based filtering
   - State/city filtering
-  - Returns providers ranked by matching services count and price
+  - Returns providers ranked by relevance and affordability
+
+### `/api/copilot/provider`
+- **Purpose**: Look up providers by name (for provider-profile questions)
+- **Features**:
+  - Tokenized case-insensitive name matching with distance bonus
+  - Returns top N most likely matches (embeddings removed from response)
 
 ### `/api/copilot/route.ts` (Main)
-- **Purpose**: Orchestrates the AI conversation and provider selection
-- **Updates**:
-  - Calls copilot-specific search/filter endpoints
-  - Adapted to new data schema (nested insurance, structured pricing)
-  - Focus on affordability and access (Medicaid, self-pay options)
-  - Summarizer prompt improved (style hint, grounding on provided context)
+- **Purpose**: Orchestrates the AI conversation, provider selection, and summarization
+- **Behavior**:
+  - Extracts conversation state (service terms, affordability, insurance, location)
+  - Routes to `/api/copilot/search`, `/api/copilot/filter`, and optionally `/api/copilot/provider`
+  - Builds a rich search context and calls Azure Responses API to generate concise answers
+  - Supports streaming SSE for faster perceived responsiveness
 
 ## Data Schema (prices-only collection)
 
@@ -103,25 +111,34 @@ The copilot API routes are separate from the main search functionality and speci
 
 ## Key Behaviors
 
-1. **Vector Rerank**: Use cosine similarity of query embedding vs provider/service embeddings
+1. **Vector Search or Rerank**: Server-side vector search by default; fallback to client-side rerank when disabled
 2. **Price/Access Boosts**: Favor free, affordable, closer, and higher-rated providers
 3. **Insurance Matching**: Check `insurance.majorProviders` for carrier matches when requested
-4. **Geo/Text Pre-filter**: `$geoNear` (when coordinates provided) and `$text` search to reduce candidates
+4. **Geo/Text Pre-filter**: `$geoNear` (when coordinates provided) and optional `$text` to cap candidates
 
 ## Future Enhancements
 
-1. **Server-side vector index**: Move to `$vectorSearch` when cluster supports it
+1. **Vector index portability**: Support both Cosmos `cosmosSearch` and Atlas `$vectorSearch`
 2. **Cache embeddings**: Cache query embeddings to cut costs and latency
-3. **Price Prediction**: ML model for services without explicit pricing
-4. **Appointment Integration**: Connect with bookingUrl for real-time slots
+3. **Price prediction**: ML for services without explicit pricing
+4. **Appointment integration**: Connect with `bookingUrl` for real-time slots
 
 ## Environment Variables
 - `MONGODB_URI`: MongoDB connection string
-- `MONGODB_DB`: Database name (default: medical_services)
-- Collection used: `prices-only` (hardcoded in routes)
-- `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_EMBEDDING_MODEL`
+- `MONGODB_DB`: Database name (default: `sie-db`)
+- Collections: `prices-only` (providers), `prices-only-services` (optional, for service embeddings)
+- Azure OpenAI: `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_CHAT_MODEL`, `AZURE_OPENAI_API_VERSION`
+- Vector toggles (optional):
+  - `COPILOT_SERVER_VECTOR` (default: `true`)
+  - `COPILOT_VECTOR_PATH` (default: `embedding`)
+  - `COPILOT_SERVICE_COLLECTION` (default: `prices-only-services`)
+  - `COPILOT_SERVICE_VECTOR_FIELD` (default: `embedding`)
+  - `COPILOT_VECTOR_K`, `COPILOT_SERVICE_VECTOR_K`, `COPILOT_VECTOR_NPROBES`
+- Limits and distance:
+  - `COPILOT_RESULT_LIMIT` (default: `4` for `/search`)
+  - `COPILOT_MAX_DISTANCE_MI` (default: `100`)
 
 Operational Notes
-- Cosmos DB vCore does not support `$vectorSearch`; rerank is done in app using embeddings stored in documents.
-- Candidates are capped (500) to keep CPU bounded for reranking.
-- We exclude provenance fields via `$project: { source: 0 }`.
+- Server-side vector search is preferred; when disabled, the system uses geo/text and client-side rerank.
+- Candidates are capped to keep CPU bounded for reranking.
+- Provenance/noisy fields are excluded via `$project: { source: 0 }`.

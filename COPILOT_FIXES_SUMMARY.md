@@ -3,10 +3,8 @@
 ## Issues Fixed
 
 ### 1. ✅ "Low-cost" No Longer Triggers Free-Only Filter
-- **Fixed in:** `/api/copilot/route.ts` line 214
-- Changed from: `/(free|no\s*cost|low\s*-?cost|affordable)/.test(lc)`
-- Changed to: `/(free|no\s*cost)/.test(lc)`
-- Now "low-cost" and "affordable" won't filter out paid services
+- Logic updated to only apply free filter for explicit "free" intent
+- "Low-cost" and "affordable" do not trigger free-only filtering
 
 ### 2. ✅ Stricter Dental Provider Matching
 - **Fixed in:** `/api/copilot/search/route.ts`

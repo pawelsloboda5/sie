@@ -1,7 +1,7 @@
 # Vector Embedding Generation Plan
 
 ## Overview
-This document provides the implementation plan for generating OpenAI embeddings for the `prices-only` MongoDB collection (548 providers).
+This document provides the implementation plan for generating OpenAI embeddings for the `prices-only` MongoDB collection (548 providers). These embeddings are used by server-side vector search (Cosmos `cosmosSearch`) when enabled, with client-side reranking as a fallback.
 
 ## 1. Embedding Strategy
 
@@ -67,6 +67,7 @@ Insurance accepted: {insurance summary}
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/sie-db
 OPENAI_API_KEY=sk-...
 EMBEDDING_MODEL=text-embedding-3-small
+COPILOT_SERVICE_COLLECTION=prices-only-services
 BATCH_SIZE=10
 RATE_LIMIT_DELAY=1000
 ```

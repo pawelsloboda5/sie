@@ -71,6 +71,18 @@ The copilot now:
 ## Testing Location Features
 
 1. **Test Auto-Detect**:
+## Distance Cap
+
+When the user has a location set, Copilot applies an optional maximum distance filter to results.
+
+- Default: 100 miles
+- Configure via environment variable:
+
+```bash
+COPILOT_MAX_DISTANCE_MI=100
+```
+
+If set, results farther than this cap are filtered out after distance is computed.
    - Click "Auto Detect" button
    - Browser will ask for location permission
    - Should show city/state once detected

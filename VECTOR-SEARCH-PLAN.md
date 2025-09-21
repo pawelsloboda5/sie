@@ -1,7 +1,7 @@
 # Vector Search Implementation Plan for AI Copilot
 
 ## Overview
-This document outlines the strategy for implementing vector search using embeddings to improve the AI Copilot's ability to find relevant healthcare providers and services.
+This document outlines the strategy for implementing and operating vector search using embeddings to improve the AI Copilot's ability to find relevant healthcare providers and services. The current system enables server-side vector search by default when supported by the database (Cosmos `cosmosSearch`), with a fallback to geo/text filtering plus client-side reranking.
 
 ## 1. Fields to Index for Vector Search
 
@@ -120,9 +120,9 @@ async function generateEmbeddings() {
 }
 ```
 
-## 3. MongoDB Atlas Vector Search Configuration
+## 3. MongoDB Vector Search Configuration (Atlas or Cosmos)
 
-### 3.1 Index Definition
+### 3.1 Index Definition (Atlas example)
 ```json
 {
   "mappings": {
@@ -148,7 +148,7 @@ async function generateEmbeddings() {
 }
 ```
 
-### 3.2 Search Pipeline
+### 3.2 Search Pipeline (Atlas example)
 ```javascript
 // Vector search aggregation pipeline
 [

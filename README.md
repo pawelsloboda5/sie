@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+SIE Wellness — AI Healthcare Copilot and Search
+
+This repository contains a Next.js application with an AI Copilot that helps users find affordable healthcare (free and low-cost options), alongside search and programmatic pages.
 
 ## Getting Started
 
-First, run the development server:
+First, set environment variables and run the development server:
 
-```bash
+```powershell
+# Minimal env (copy to .env.local)
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DB=sie-db
+AZURE_OPENAI_ENDPOINT=<your-endpoint>
+AZURE_OPENAI_API_KEY=<your-key>
+AZURE_OPENAI_CHAT_MODEL=gpt-4.1
+AZURE_OPENAI_API_VERSION=2025-04-01-preview
+
+# Copilot vector defaults (optional)
+COPILOT_SERVER_VECTOR=true
+COPILOT_MAX_DISTANCE_MI=100
+
+# Run dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` with your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Key routes:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/copilot` – AI Copilot chat UI (with streaming answers)
+- `/app` – Interactive search application (client)
+- Programmatic discovery pages under `/find` and provider details under `/providers`
 
-## Learn More
+## Copilot Architecture (High Level)
 
-To learn more about Next.js, take a look at the following resources:
+- Client: `app/copilot/page.tsx` with components in `components/copilot` (`ChatWindow`, `InputBar`, `ProviderCards`, `StatePanel`)
+- API: `app/api/copilot/route.ts` orchestrates state extraction, retrieval, and summarization (Azure Responses)
+- Search: `app/api/copilot/search/route.ts` (server-side vector search by default; geo/text + client rerank fallback)
+- Filter: `app/api/copilot/filter/route.ts` (filter-only queries)
+- Provider by name: `app/api/copilot/provider/route.ts`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Useful Docs
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `app/api/copilot/AGENTS.md` – System architecture and flow
+- `app/api/copilot/CLAUDE.md` – API endpoints and environment
+- `COPILOT_TROUBLESHOOTING.md` – Common issues and fixes
+- `COPILOT_VERIFICATION.md` – How to verify setup
+- `COPILOT_LOCATION_SETUP.md` – Location UX and distance cap
+- `VECTOR-SEARCH-PLAN.md` and `VECTOR_EMBEDDING_GENERATION_PLAN.md` – Vector strategy
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deploy to your preferred platform (Vercel compatible). Ensure all environment variables above are set in the hosting environment.

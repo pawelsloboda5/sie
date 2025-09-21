@@ -36,11 +36,11 @@
 
 ### 2. "Low-cost" Being Treated as "Free"
 
-**Issue:** Query for "low-cost dental" filters for only free services
+**Issue:** Query for "low-cost dental" was filtering for only free services
 
-**Fixed in Latest Update:**
-- Removed "low-cost" and "affordable" from free-only triggers
-- Only applies free filter when user explicitly says "free"
+**Resolution:**
+- "low-cost" and "affordable" no longer trigger the free-only filter
+- Free filter applies only when user explicitly says "free"
 
 ### 3. Dental Providers Not Matching
 
@@ -70,10 +70,9 @@ Found 5 dental providers:
 ```
 
 ### 2. Test Copilot Search Directly
-```bash
-# Test the search endpoint
-curl -X POST http://localhost:3001/api/copilot/search \
-  -H "Content-Type: application/json" \
+```powershell
+curl -X POST http://localhost:3001/api/copilot/search `
+  -H "Content-Type: application/json" `
   -d '{
     "query": "dental",
     "filters": {},
@@ -97,6 +96,8 @@ Search results: 548 total, 523 skipped, 25 matched, 5 returned
 - [ ] Environment variables are set:
   - `MONGODB_URI` (defaults to `mongodb://localhost:27017`)
   - `MONGODB_DB` (defaults to `sie-db`)
+  - `COPILOT_SERVER_VECTOR=true` (default; set `false` to disable server vector)
+  - `COPILOT_MAX_DISTANCE_MI=100` (optional max distance when user location is present)
 
 ## Query Examples That Should Work
 

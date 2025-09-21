@@ -81,10 +81,9 @@ The copilot now fully aligns with the `prices-only` collection schema:
 }
 ```
 
-### No Vector Search
-- Currently using text-based matching (no embeddings)
-- Service matching via keyword expansion
-- Category matching with special handling for common terms (dental, medical, etc.)
+### Vector Search Defaults
+- Server-side vector search is enabled by default when supported by the database
+- Falls back to geo/text filtering and client-side vector reranking when disabled
 
 ### Database Configuration
 - Database: `sie-db`
@@ -92,9 +91,10 @@ The copilot now fully aligns with the `prices-only` collection schema:
 - Documents: 548 providers with clean pricing data
 
 ### Files Updated
-1. `/api/copilot/search/route.ts` - Aligned types and field access
+1. `/api/copilot/search/route.ts` - Aligned types and field access; server-vector default
 2. `/api/copilot/filter/route.ts` - Aligned field access
-3. `/api/copilot/route.ts` - Fixed field names in LLM context
-4. `/components/copilot/ProviderCards.tsx` - Updated interface
+3. `/api/copilot/provider/route.ts` - Added for provider-by-name lookup
+4. `/api/copilot/route.ts` - Fixed field names in LLM context; streaming support
+5. `/components/copilot/ProviderCards.tsx` - Updated interface
 
 All field references now exactly match the schema in the `prices-only` collection.
