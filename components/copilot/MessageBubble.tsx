@@ -105,6 +105,15 @@ export function MessageBubble({
     }
   }
 
+  // Remove TLDR markers like "TL;DR:" or "TLDR:" at the start of any line
+  function stripTldrPrefixes(input: string): string {
+    try {
+      return (input || '').replace(/(^|\n)\s*TL\s*;?\s*DR\s*[:\-–—]?\s*/gi, (_m, pre: string) => pre)
+    } catch {
+      return input
+    }
+  }
+
   function renderMessageText(text: string): { __html: string } {
     // Normalize spacing, then minimal markdown: **bold** and newlines, then apply highlights on text nodes
     // If the stream accidentally contains a JSON-like wrapper, strip leading/trailing braces and leading "answer":
@@ -118,8 +127,9 @@ export function MessageBubble({
       }
       return t
     })()
-    // Convert sentences to new lines for readability during stream
-    const sentenceBreaks = stripped.replace(/\.\s+/g, '.\n')
+    // Strip TLDR labels and convert sentences to new lines for readability during stream
+    const withoutTldr = stripTldrPrefixes(stripped)
+    const sentenceBreaks = withoutTldr.replace(/\.\s+/g, '.\n')
     const normalized = collapseFeatureGaps(sentenceBreaks)
     const escaped = escapeHtml(normalized)
     const withBold = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')

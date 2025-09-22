@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { NewHeroSection } from '@/components/home-page/NewHeroSection'
 import { SimpleHeroSection } from '@/components/home-page/SimpleHeroSection'
 import { RecentSearches } from '@/components/home-page/RecentSearches'
 import { LastCachedPreview } from '@/components/home-page/LastCachedPreview'
@@ -35,14 +36,8 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-white to-teal-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-teal-950/30 isolate">
       <Header />
 
-      {/* ---------- Hero with Search ---------- */}
-      <div className="relative isolate">
-        {/* subtle light */}
-        <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
-          <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#14b8a6] to-[#14b8a6]/80 opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]" />
-        </div>
-        <SimpleHeroSection />
-      </div>
+      {/* ---------- Hero Section ---------- */}
+      <NewHeroSection isAboveTheFold={true} />
 
       {/* ---------- Recent Searches ---------- */}
       <RecentSearches limit={6} />
@@ -196,6 +191,22 @@ async with NPILookupClient() as client:
           </div>
         </div>
       </Collapsible>
+
+      {/* ---------- AI-Powered Search Section ---------- */}
+      <section id="how-it-works" className="py-24 bg-gradient-to-b from-white to-gray-50 dark:from-slate-900 dark:to-slate-800">
+        <div className="container max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Find Healthcare Providers with AI
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+              Our AI-powered search understands what you need and connects you with the right care.
+              No insurance? No problem. Search by service, location, or specific needs.
+            </p>
+          </div>
+        </div>
+        <SimpleHeroSection showRecentSearches={false} />
+      </section>
 
       {/* ---------- Footer ---------- */}
       <footer className="mt-auto border-t bg-white/20 dark:bg-slate-900/30 backdrop-blur-sm">
