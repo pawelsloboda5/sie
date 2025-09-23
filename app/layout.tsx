@@ -70,10 +70,10 @@ export const metadata: Metadata = {
     description: "Free AI copilot finds affordable healthcare near you. Compare prices at 3,000+ verified providers. No insurance needed. Find free clinics, $20 doctor visits, $50 dental cleanings.",
     images: [
       {
-        url: "https://www.sie2.com/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "SIE Wellness - Affordable Healthcare Finder"
+        url: "https://www.sie2.com/logo_560x560.png",
+        width: 560,
+        height: 560,
+        alt: "SIE Wellness Logo - AI Healthcare Navigator"
       }
     ],
   },
@@ -83,7 +83,7 @@ export const metadata: Metadata = {
     creator: "@siewellness",
     title: "Find Affordable Healthcare with AI | SIE Wellness",
     description: "Save 80% on medical costs. Free AI copilot compares prices at 3,000+ providers. Find free clinics, cheap dental care, sliding scale therapy near you.",
-    images: ["https://www.sie2.com/twitter-card.png"],
+    images: ["https://www.sie2.com/logo_560x560.png"],
   },
   category: "health",
   classification: "Healthcare Technology",
@@ -97,6 +97,17 @@ export const metadata: Metadata = {
     google: "google-verification-code",
     yandex: "yandex-verification-code",
     yahoo: "yahoo-verification-code",
+  },
+  icons: {
+    icon: [
+      { url: '/logo_560x560.png', sizes: '560x560', type: 'image/png' },
+      { url: '/50x50-green-logo.png', sizes: '50x50', type: 'image/png' },
+      { url: '/favicon.ico', sizes: '32x32' }
+    ],
+    apple: [
+      { url: '/logo_560x560.png', sizes: '560x560', type: 'image/png' }
+    ],
+    shortcut: '/favicon.ico'
   },
   other: {
     "apple-mobile-web-app-capable": "yes",
