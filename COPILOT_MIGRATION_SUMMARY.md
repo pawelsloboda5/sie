@@ -10,13 +10,15 @@ Successfully migrated the AI Copilot feature from the old `businesses/providers`
   - Price-based ranking (free → cheapest → nearest)
   - Service term expansion (e.g., mammogram → mammography, breast screening)
   - Distance calculation using Haversine formula
-  - No vector embeddings (text matching for now)
+  - Server-side vector search preferred; falls back to geo/text + client rerank
   
 - **`/api/copilot/filter/route.ts`**: Filtering endpoint for prices-only collection
   - Insurance carrier matching
   - Price range filtering
   - Location-based filtering
   - State/city filtering
+
+- **`/api/copilot/provider/route.ts`**: Provider lookup by name for provider-profile questions
 
 ### 2. Updated Main Copilot Route
 - **`/api/copilot/route.ts`**:
@@ -70,9 +72,8 @@ Successfully migrated the AI Copilot feature from the old `businesses/providers`
 ## Key Features
 
 ### Price-Focused Search
-- Always prioritizes FREE services first
-- Then sorts by lowest minimum price
-- Considers distance as secondary factor
+- Balances free and affordable paid services
+- Considers distance and ratings as secondary factors
 - Shows price ranges on provider cards
 
 ### Insurance Matching

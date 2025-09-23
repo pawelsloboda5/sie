@@ -91,17 +91,17 @@ Expected results:
 - ✅ Natural language response with price variety
 - ✅ Better user experience with actionable pricing info
 
-## Key Files Modified
+## Key Areas Modified
 
 1. **`app/api/copilot/search/route.ts`**
-   - Lines 374-425: New balanced scoring algorithm
-   - Added variety bonuses for mixed service offerings
+   - Balanced scoring for free and reasonably priced services
+   - Variety bonuses for mixed service offerings
 
 2. **`app/api/copilot/route.ts`**
-   - Lines 290-368: Enhanced natural fallback function
-   - Lines 567-622: Improved service context building
-   - Lines 661-714: Comprehensive LLM prompt improvements
-   - Lines 1046-1081: Smart provider selection with variety
+   - Enhanced natural fallback to include concrete prices and variety
+   - Richer service context building (mix of free and paid)
+   - Prompt improvements for concise, actionable output
+   - Provider selection tuned for 3–6 diverse options
 
 ## User Benefits
 

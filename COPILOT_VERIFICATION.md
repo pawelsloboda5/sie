@@ -135,6 +135,8 @@ If your setup differs from defaults:
 ```bash
 MONGODB_URI=mongodb://localhost:27017  # Your MongoDB URI
 MONGODB_DB=sie-db  # Your database name
+COPILOT_SERVER_VECTOR=true           # Default; set false to disable server-side vector
+COPILOT_MAX_DISTANCE_MI=100          # Optional distance cap when user location is present
 ```
 
 ## 📝 Summary of Changes

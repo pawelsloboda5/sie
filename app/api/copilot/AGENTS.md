@@ -23,20 +23,20 @@ Step‑by‑step flow
    - Filters: `{ acceptsUninsured, acceptsMedicaid, freeOnly }` pulled from state
 
 5) Retrieve providers and services
-   - Endpoint: `/api/search` (vector search over providers/services, distance, services aggregation, scoring)
-   - Returns: providers array (with `services` and `freeServicePreview`) and flattened services array for UI
+   - Endpoints: `/api/copilot/search` (providers by service intent) and `/api/copilot/filter` (filter-only queries)
+   - Optional: `/api/copilot/provider` for provider-profile questions by name
+   - Server vector search default; falls back to geo/text + client-side rerank
 
 6) Summarize with full search JSON (always)
-   - Function: `summarizeWithSearchContext(question, effective_query, state, searchJson)`
-   - Model prompt produces: `{ answer, follow_up_question, selected_provider_ids[] }`
+   - Function: `summarizeWithSearchContext` and streaming variant `streamSummarizeWithSearchContext`
+   - Model output: `{ answer, selected_provider_ids[] }` (follow-up question is optional and implied via style)
    - Deterministic fallback if model returns no text or IDs:
      - Rank using state preferences (Medicaid, Uninsured, free services, rating, featured service)
      - Generate a concise answer naming top 2–3 providers and counts (e.g., "3 accept uninsured")
 
 7) Finalize response
    - Order/filter providers by `selected_provider_ids`
-   - Return `{ answer, follow_up_question, providers, state, debug, conversation }`
-   - `debug` contains: `effective_query`, `filters_used`, `location_used`, `selected_provider_ids`, counts
+   - Return `{ answer, providers, state, conversation }` and lightweight search metadata
 
 8) Client renders
    - `ChatWindow` shows the assistant message, `ProviderCards` render for that message
@@ -77,14 +77,14 @@ flowchart TD
   M -->|location_text| G[Geocode]
   M -->|no location_text| B[Build effective query]
   G --> B[Build effective query]
-  B --> R[Vector search /api/search]
+  B --> R[Vector search /api/copilot/search]
   R --> SUM[Summarize with SEARCH_JSON]
   SUM -->|has text & IDs| RESP[Return]
   SUM -->|missing text or IDs| FB[Fallback rank + summary]
   FB --> RESP
 ```
 
-Data contracts
+Data contracts (abridged)
 ```ts
 type UserState = {
   service_terms: string[] | null
@@ -106,10 +106,8 @@ type DebugInfo = {
 // Response shape (abridged)
 {
   answer: string
-  follow_up_question: string | null
   providers: any[]      // ordered by selected ids
   state: UserState
-  debug: DebugInfo
   conversation: { role: 'user' | 'assistant', content: string }[]
 }
 ```

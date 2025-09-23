@@ -5,27 +5,28 @@ Problem
 - The model sometimes returns provider cards without a crisp textual answer.
 
 Goals
-- Maintain conversation state: service_terms, affordability (free_only), insurance (accepts_medicaid / accepts_uninsured), and location.
-- Always answer concisely (1–2 sentences) and, when ambiguous, append one follow-up question.
-- Provider retrieval should target the latest service_terms, not literal follow-up wording.
+- Maintain conversation state: service_terms, affordability (free_only), insurance (accepts_medicaid / accepts_uninsured / accepts_medicare / insurance_providers), and location.
+- Answer concisely with a scannable structure; append a clarifying question only when key info is missing (e.g., location).
+- Provider retrieval targets the latest service_terms, not literal follow-up wording.
 
 Agent Strategy
 1) State Extractor (Responses API, JSON schema)
    - Input: full conversation (user + assistant turns)
-   - Output: { service_terms[], free_only, accepts_medicaid, accepts_uninsured, location_text }
+   - Output: { service_terms[], free_only, accepts_medicaid, accepts_uninsured, accepts_medicare, insurance_providers[], location_text }
    - Carries forward previous service_terms unless user changes topic.
 
 2) Retrieval Caller
    - Builds `queryFromState = [free_only? 'free'] + service_terms`.
    - Optional geocode using location_text (via /api/geo/forward).
-   - Calls /api/search with filters from state: acceptsMedicaid, acceptsUninsured, freeOnly.
+   - Calls `/api/copilot/search` with filters from state.
 
 3) Summarizer
-   - If the primary tool loop returns no textual answer, call a small Responses prompt with top providers JSON to produce a concise answer + follow-up.
+   - The server calls Azure Responses with rich search context to produce a concise, scannable answer and selected provider ids.
 
 UX Rules
 - Display provider cards for each AI answer.
 - Persist conversation (localStorage) and keep sending it with each request.
+- Stream partial text when available for better responsiveness.
 
 Future Enhancements
 - Confidence-aware clarifications (ask for location if missing, insurance if affordability implied).
