@@ -27,19 +27,19 @@ export function NewHeroSection({ isAboveTheFold = false }: NewHeroSectionProps) 
               </h1>
 
               <p className="mt-5 text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-xl">
-                Managing healthcare is hard, but you don't have to do it alone. SIE
+                Managing healthcare is hard, but you don&apos;t have to do it alone. SIE
                 Copilot helps you find affordable providers, see real prices,
                 and take back control of your health.
               </p>
 
               <div className="mt-8">
                 <Link
-                  href="/app"
+                  href="/copilot"
                   className="inline-flex items-center justify-center rounded-full bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-6 sm:px-7 py-3 text-base font-semibold shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gray-400/30"
                   // Alternative with brand colors:
                   // className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white hover:from-teal-700 hover:to-emerald-700 px-6 sm:px-7 py-3 text-base font-semibold shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-400/30"
                 >
-                  Sign up
+                  Try for free
                 </Link>
               </div>
             </div>

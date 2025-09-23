@@ -1,0 +1,45 @@
+# SIE Wellness Robots.txt - Optimized for Maximum Crawling
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+Allow: /api/sitemap
+
+# Specific crawler instructions
+User-agent: Googlebot
+Crawl-delay: 0
+Allow: /
+
+User-agent: Bingbot
+Crawl-delay: 0
+Allow: /
+
+User-agent: Slurp
+Crawl-delay: 0
+Allow: /
+
+User-agent: DuckDuckBot
+Crawl-delay: 0
+Allow: /
+
+# Social Media Crawlers
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+# Sitemaps
+Sitemap: https://www.sie2.com/sitemap.xml
+Sitemap: https://www.sie2.com/sitemap-locations.xml
+Sitemap: https://www.sie2.com/sitemap-services.xml
+Sitemap: https://www.sie2.com/sitemap-providers.xml
+Sitemap: https://www.sie2.com/sitemap-blog.xml
+
+# Host
+Host: https://www.sie2.com
