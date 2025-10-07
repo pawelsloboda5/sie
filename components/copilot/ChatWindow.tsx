@@ -2,8 +2,10 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import type { Provider } from '@/lib/types/copilot'
+import type { HospitalDataRecord } from '@/lib/hospitalDataApi'
 import { MessageBubble } from './MessageBubble'
 import { ProviderCards } from './ProviderCards'
+import { HospitalResults } from './HospitalResults'
 import Image from 'next/image'
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string }
@@ -11,6 +13,7 @@ export type ChatMessage = { role: 'user' | 'assistant'; content: string }
 export function ChatWindow({
   messages,
   providersByMessage,
+  hospitalsByMessage,
   isThinking,
   onPromptClick,
   inputSlot,
@@ -18,6 +21,7 @@ export function ChatWindow({
 }: {
   messages: ChatMessage[]
   providersByMessage?: Record<number, Provider[]>
+  hospitalsByMessage?: Record<number, HospitalDataRecord[]>
   isThinking?: boolean
   onPromptClick: (prompt: string) => void
   inputSlot?: React.ReactNode
@@ -32,7 +36,7 @@ export function ChatWindow({
   useEffect(() => {
     if (!scrollerRef.current) return
     scrollerRef.current.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages, isThinking, providersByMessage])
+  }, [messages, isThinking, providersByMessage, hospitalsByMessage])
 
   void Image
 
@@ -41,6 +45,7 @@ export function ChatWindow({
     'Low-cost dental care near me',
     'Cheap physical exams',
     'Mental health clinics that accept Medicaid',
+    'Who has the cheapest hip replacement NY?',
   ]
 
   const greeting = (() => {
@@ -118,6 +123,11 @@ export function ChatWindow({
               {m.role === 'assistant' && providersByMessage?.[i]?.length ? (
                 <div className="ml-0 sm:ml-12 max-w-full overflow-x-hidden">
                   <ProviderCards providers={providersByMessage[i]} max={6} onNavigateStart={(name) => setNavigatingTo(name)} />
+                </div>
+              ) : null}
+              {m.role === 'assistant' && hospitalsByMessage?.[i]?.length ? (
+                <div className="ml-0 sm:ml-12 max-w-full overflow-x-hidden">
+                  <HospitalResults records={hospitalsByMessage[i] as HospitalDataRecord[]} max={10} />
                 </div>
               ) : null}
             </div>

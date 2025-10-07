@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { Settings, X, MapPin, RotateCcw, Menu, Home, Search, HelpCircle, Bot } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { clearAllCachedResults } from '@/lib/db'
 
 export function CopilotHeader() {
   const [open, setOpen] = useState(false)
@@ -149,7 +150,9 @@ export function CopilotHeader() {
                           localStorage.removeItem('sie:copilot:conversation')
                           localStorage.removeItem('sie:copilot:state')
                           localStorage.removeItem('sie:copilot:providers')
+                          localStorage.removeItem('sie:copilot:hospitals')
                         } catch {}
+                        try { void clearAllCachedResults() } catch {}
                         window.location.href = '/copilot'
                       }}
                       className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 inline-flex items-center justify-center gap-1 transition-all"

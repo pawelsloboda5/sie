@@ -6,6 +6,8 @@ import { ChatWindow, type ChatMessage } from '@/components/copilot/ChatWindow'
 import { InputBar } from '@/components/copilot/InputBar'
 import { ProviderCards } from '@/components/copilot/ProviderCards'
 import { StatePanel, type CopilotUserState, type CopilotDebugInfo } from '@/components/copilot/StatePanel'
+import type { HospitalDataRecord } from '@/lib/hospitalDataApi'
+import { clearAllCachedResults } from '@/lib/db'
 import type { Provider } from '@/lib/types/copilot'
 
 type UserLocation = {
@@ -27,6 +29,7 @@ export default function CopilotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isThinking, setIsThinking] = useState(false)
   const [providersByMessage, setProvidersByMessage] = useState<Record<number, Provider[]>>({})
+  const [hospitalsByMessage, setHospitalsByMessage] = useState<Record<number, HospitalDataRecord[]>>({})
   const [state, setState] = useState<CopilotUserState | null>(null)
   const [debug, setDebug] = useState<CopilotDebugInfo | null>(null)
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
@@ -40,6 +43,7 @@ export default function CopilotPage() {
   const STATE_KEY = 'sie:copilot:state'
   const LOCATION_KEY = 'sie:copilot:location'
   const PROVIDERS_KEY = 'sie:copilot:providers'
+  const HOSPITALS_KEY = 'sie:copilot:hospitals'
 
   useEffect(() => {
     try {
@@ -69,6 +73,16 @@ export default function CopilotPage() {
           if (!Number.isNaN(idx)) normalized[idx] = v as Provider[]
         }
         setProvidersByMessage(normalized)
+      }
+      const hospitalsRaw = typeof window !== 'undefined' ? window.localStorage.getItem(HOSPITALS_KEY) : null
+      if (hospitalsRaw) {
+        const parsedHospitals = JSON.parse(hospitalsRaw) as Record<string, HospitalDataRecord[]>
+        const normalizedHos: Record<number, HospitalDataRecord[]> = {}
+        for (const [k, v] of Object.entries(parsedHospitals || {})) {
+          const idx = Number(k)
+          if (!Number.isNaN(idx)) normalizedHos[idx] = v as HospitalDataRecord[]
+        }
+        setHospitalsByMessage(normalizedHos)
       }
     } catch {}
   }, [])
@@ -275,6 +289,7 @@ export default function CopilotPage() {
           state: CopilotUserState | null
           debug: CopilotDebugInfo | null
           conversation: ChatMessage[]
+          hospital?: { data?: HospitalDataRecord[] } | null
         }
         type OutputDeltaEvt = { type: 'response.output_text.delta'; delta: string }
         type CopilotFinalEvt = { type: 'copilot.final'; payload: CopilotFinalPayload }
@@ -311,7 +326,7 @@ export default function CopilotPage() {
                 } else if (isCopilotFinalEvt(parsed)) {
                   const payload = parsed.payload
                   if (payload.answer) {
-                    draft = payload.answer
+                    draft = decodeFragment(payload.answer)
                     setMessages((prev) => {
                       const copy = [...prev]
                       copy[assistantIdx] = { role: 'assistant', content: draft }
@@ -323,6 +338,13 @@ export default function CopilotPage() {
                     try { window.localStorage.setItem(PROVIDERS_KEY, JSON.stringify(nextMap)) } catch {}
                     return nextMap
                   })
+                  if (payload.hospital && Array.isArray(payload.hospital.data)) {
+                    setHospitalsByMessage((prev) => {
+                      const nextMap = { ...prev, [assistantIdx]: payload.hospital!.data as HospitalDataRecord[] }
+                      try { window.localStorage.setItem(HOSPITALS_KEY, JSON.stringify(nextMap)) } catch {}
+                      return nextMap
+                    })
+                  }
                   if (payload.state) setState(payload.state)
                   if (payload.debug) setDebug(payload.debug)
                   try {
@@ -383,6 +405,13 @@ export default function CopilotPage() {
         try { window.localStorage.setItem(PROVIDERS_KEY, JSON.stringify(nextMap)) } catch {}
         return nextMap
       })
+      if (data?.hospital && Array.isArray(data.hospital.data)) {
+        setHospitalsByMessage((prev) => {
+          const nextMap = { ...prev, [assistantIdx]: (data.hospital.data as HospitalDataRecord[]) }
+          try { window.localStorage.setItem(HOSPITALS_KEY, JSON.stringify(nextMap)) } catch {}
+          return nextMap
+        })
+      }
       if (nextState) setState(nextState)
       if (nextDebug) setDebug(nextDebug)
 
@@ -404,6 +433,7 @@ export default function CopilotPage() {
   const handleReset = () => {
     setMessages([])
     setProvidersByMessage({})
+    setHospitalsByMessage({})
     setState(null)
     setDebug(null)
     try {
@@ -411,8 +441,11 @@ export default function CopilotPage() {
         window.localStorage.removeItem(STORAGE_KEY)
         window.localStorage.removeItem(STATE_KEY)
         window.localStorage.removeItem(PROVIDERS_KEY)
+        window.localStorage.removeItem(HOSPITALS_KEY)
       }
     } catch {}
+    // Best-effort: also clear any cached search results in IndexedDB so a reset fully clears UI state
+    try { void clearAllCachedResults() } catch {}
   }
 
   return (
@@ -518,6 +551,7 @@ export default function CopilotPage() {
             <ChatWindow
               messages={messages}
               providersByMessage={providersByMessage}
+              hospitalsByMessage={hospitalsByMessage}
               isThinking={isThinking}
               onPromptClick={handleSend}
               onReset={handleReset}

@@ -2,6 +2,7 @@ export const runtime = 'edge'
 export const preferredRegion = ['iad1']
 import { NextRequest, NextResponse } from 'next/server'
 import type { Provider, Service, SearchFilters, Coordinates, SearchResponse, FilterResponse, GeoForwardResult, GeoReverseResult, SummarizeResult } from '@/lib/types/copilot'
+import { queryHospitalData, formatHospitalSummary, type HospitalDataResponse, queryHospitalDataRaw } from '@/lib/hospitalDataApi'
 
 type Message = { role: 'user' | 'assistant' | 'system' | 'tool'; content: string; name?: string }
 
@@ -141,11 +142,13 @@ const ROUTER_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    route: { type: 'string', enum: ['filter_only', 'service_search', 'hybrid', 'provider_profile'] },
+    route: { type: 'string', enum: ['filter_only', 'service_search', 'hybrid', 'provider_profile', 'hospital_query'] },
     // optional normalized query for service search
     service_query: { type: ['string', 'null'] },
     // optional provider name when the user asks about a specific provider
     provider_name: { type: ['string', 'null'] },
+    // optional hospital question when user asks about hospital costs/procedures
+    hospital_question: { type: ['string', 'null'] },
     // filters extracted from the prompt
     filters: {
       type: 'object',
@@ -166,9 +169,10 @@ const ROUTER_SCHEMA = {
 } as const
 
 async function routeWithLLM(question: string, state: UserState): Promise<{
-  route: 'filter_only' | 'service_search' | 'hybrid' | 'provider_profile'
+  route: 'filter_only' | 'service_search' | 'hybrid' | 'provider_profile' | 'hospital_query'
   service_query?: string | null
   provider_name?: string | null
+  hospital_question?: string | null
   filters?: SearchFilters
 } | null> {
   try {
@@ -179,12 +183,30 @@ async function routeWithLLM(question: string, state: UserState): Promise<{
     ]
     const instructions = `Decide the retrieval route for a healthcare search system. Return only JSON per schema.
 
-Rules:
-- If the question is filter-only (e.g., mentions SSN/no SSN; Medicaid/Medicare; uninsured/self-pay; specific carriers like Cigna, Aetna, UHC, BCBS) and does not clearly ask for a service, choose route = "filter_only" and set filters accordingly.
-- If the question clearly asks for a service (e.g., dental, mammogram, STI testing, therapy, primary care, vision, pharmacy) choose route = "service_search" and set service_query to the normalized service phrase. Include any affordability/insurance filters.
-- If both service intent and filter constraints are present, choose route = "hybrid" and set service_query plus filters.
-- If the question is clearly about a specific provider by name (e.g., "Tell me more about Hopeful Core Therapy"), choose route = "provider_profile" and set provider_name to the provider’s name string. Do not invent insuranceProviders here.
-- Keep JSON concise. Do NOT explain.`
+Rules (in priority order):
+1. HOSPITAL QUERIES (highest priority):
+   - If the question mentions "hospital" OR "hospitals" AND asks about costs/prices/surgeries/procedures → route = "hospital_query"
+   - Major surgical procedures (knee replacement, hip replacement, heart surgery, bypass, transplant, cesarean, etc.) with cost questions → route = "hospital_query"
+   - Examples: "hospital costs for knee surgery", "cheapest hospitals for heart surgery in Texas", "hip replacement hospital prices"
+   - Set hospital_question to the full question text
+
+2. PROVIDER PROFILE:
+   - If asking about a specific provider by name (e.g., "Tell me more about Hopeful Core Therapy") → route = "provider_profile"
+   - Set provider_name to the provider's name
+
+3. FILTER-ONLY:
+   - If the question only asks about filters (SSN, Medicaid, Medicare, insurance carriers) without a specific service → route = "filter_only"
+   - Set appropriate filters
+
+4. SERVICE SEARCH:
+   - Outpatient services (dental, therapy, primary care, vision, STI testing, mammogram, pharmacy, counseling) → route = "service_search"
+   - Set service_query to the normalized service phrase
+
+5. HYBRID:
+   - Both service intent AND filter constraints → route = "hybrid"
+
+IMPORTANT: If the word "hospital" or "hospitals" appears with surgery/procedure AND cost/price terms, ALWAYS choose "hospital_query".
+Keep JSON concise. Do NOT explain.`
 
     const body = {
       model: AZURE_DEPLOYMENT,
@@ -221,13 +243,31 @@ function decideRouteFallback(
   state: UserState,
   contextProviders?: Provider[]
 ): {
-  route: 'filter_only' | 'service_search' | 'hybrid' | 'provider_profile'
+  route: 'filter_only' | 'service_search' | 'hybrid' | 'provider_profile' | 'hospital_query'
   service_query?: string | null
   provider_name?: string | null
+  hospital_question?: string | null
 } {
   const s = String(question || '').toLowerCase()
   const hasService = Array.isArray(state.service_terms) && state.service_terms.length > 0
   const mentionsFilterOnly = /(\bssn\b|no\s*ssn|medicaid|medicare|uninsured|self\s*pay|self-pay|insurance|cigna|aetna|uhc|united|kaiser|anthem|bcbs|blue\s*(cross|shield))/i.test(s)
+  
+  // PRIORITY: Check for hospital cost queries first (explicit "hospital" mentions take precedence)
+  // If the word "hospital" or "hospitals" appears with surgery/procedure AND cost terms, it's definitely a hospital query
+  const explicitHospital = /\b(hospital|hospitals)\b/i.test(s)
+  const surgeryOrProcedure = /\b(surgery|surgeries|surgical|procedure|operation|knee\s*replacement|hip\s*replacement|heart\s*surgery|cardiac|bypass|transplant|cancer\s*treatment|chemotherapy|radiation|maternity|birth|delivery|emergency\s*room|ER\s*visit|inpatient|discharge|major\s*procedure)\b/i.test(s)
+  const costOrComparison = /\b(cost|costs|price|prices|charge|charges|payment|payments|medicare\s*rate|rate|rates|expensive|cheap|cheapest|affordable|compare|comparison|how\s*much)\b/i.test(s)
+  
+  // Strong signal: explicit "hospital" mention + surgery/procedure + cost terms
+  if (explicitHospital && surgeryOrProcedure && costOrComparison) {
+    return { route: 'hospital_query', hospital_question: question }
+  }
+  
+  // Medium signal: surgery + cost terms (even without "hospital" word, if it's a major procedure)
+  const majorProcedures = /\b(knee\s*replacement|hip\s*replacement|heart\s*surgery|cardiac\s*surgery|bypass|transplant|cancer\s*surgery|mastectomy|hysterectomy|gallbladder\s*surgery|appendectomy|cesarean|c-section)\b/i.test(s)
+  if (majorProcedures && costOrComparison) {
+    return { route: 'hospital_query', hospital_question: question }
+  }
 
   // Heuristic: if the query seems to reference a specific provider from prior context, treat as provider_profile
   try {
@@ -992,12 +1032,13 @@ Return JSON:
   }
 }
 
-type ExecReturn = GeoForwardResult | GeoReverseResult | SearchResponse | FilterResponse | { providers: Provider[] } | { error: string }
+type ExecReturn = GeoForwardResult | GeoReverseResult | SearchResponse | FilterResponse | { providers: Provider[] } | HospitalDataResponse | { error: string }
 async function execTool(name: 'geo_forward', args: { q: string; country?: string }): Promise<GeoForwardResult>
 async function execTool(name: 'geo_reverse', args: { lat: number; lon: number }): Promise<GeoReverseResult>
 async function execTool(name: 'search_providers', args: { query: string; location?: Coordinates; filters?: SearchFilters; limit?: number }): Promise<SearchResponse>
 async function execTool(name: 'filter_providers', args: { filters?: SearchFilters; location?: Coordinates; limit?: number }): Promise<FilterResponse>
 async function execTool(name: 'provider_by_name', args: { name: string; location?: Coordinates; limit?: number }): Promise<{ providers: Provider[] }>
+async function execTool(name: 'query_hospital_costs', args: { question: string; limit?: number }): Promise<HospitalDataResponse>
 async function execTool(name: string, args: unknown): Promise<ExecReturn> {
   try {
     if (name === 'geo_forward') {
@@ -1056,6 +1097,10 @@ async function execTool(name: string, args: unknown): Promise<ExecReturn> {
       const data = await r.json() as { providers: Provider[] }
       return data
     }
+    if (name === 'query_hospital_costs') {
+      const a = args as { question: string; limit?: number }
+      return await queryHospitalData(a.question, a.limit)
+    }
   } catch (e: unknown) {
     return { error: (e as Error).message }
   }
@@ -1072,6 +1117,11 @@ export async function POST(req: NextRequest) {
       (req.headers.get('accept') || '').includes('text/event-stream') ||
       req.headers.get('x-copilot-stream') === '1'
     )
+    const hospitalRawRequested = Boolean(
+      body?.hospital_raw === true ||
+      url.searchParams.get('hospital_raw') === '1' ||
+      req.headers.get('x-hospital-raw') === '1'
+    )
     const query: string = (body?.query || '').toString()
     const conversation: Message[] = Array.isArray(body?.conversation) ? body.conversation as Message[] : []
     const prevState: Partial<UserState> | undefined = body?.state && typeof body.state === 'object' ? body.state as Partial<UserState> : undefined
@@ -1080,6 +1130,20 @@ export async function POST(req: NextRequest) {
 
     if (!query || !query.trim()) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 })
+    }
+
+    // If raw hospital JSON is requested, bypass streaming and return raw payload directly
+    if (streamRequested && hospitalRawRequested) {
+      const queryLower = String(query || '').toLowerCase()
+      const hasHospitalWord = /\b(hospital|hospitals)\b/i.test(queryLower)
+      const hasSurgeryWord = /\b(surgery|surgeries|surgical|procedure|operation|replacement)\b/i.test(queryLower)
+      const hasCostWord = /\b(cost|costs|price|prices|charge|charges|cheap|cheapest|expensive|affordable|how\s*much)\b/i.test(queryLower)
+      const isObviousHospitalQuery = hasHospitalWord && hasSurgeryWord && hasCostWord
+      if (isObviousHospitalQuery) {
+        const raw = await queryHospitalDataRaw(query)
+        return NextResponse.json(raw)
+      }
+      // Fallthrough to standard streaming behavior otherwise
     }
 
     // ===== Streaming branch =====
@@ -1094,6 +1158,50 @@ export async function POST(req: NextRequest) {
 
           try {
             const messages: Message[] = [...conversation.filter(Boolean), { role: 'user', content: query }]
+            
+            // EARLY CHECK: Detect obvious hospital queries before expensive LLM routing
+            const queryLower = String(query || '').toLowerCase()
+            const hasHospitalWord = /\b(hospital|hospitals)\b/i.test(queryLower)
+            const hasSurgeryWord = /\b(surgery|surgeries|surgical|procedure|operation|replacement)\b/i.test(queryLower)
+            const hasCostWord = /\b(cost|costs|price|prices|charge|charges|cheap|cheapest|expensive|affordable|how\s*much)\b/i.test(queryLower)
+            const isObviousHospitalQuery = hasHospitalWord && hasSurgeryWord && hasCostWord
+            
+            if (isObviousHospitalQuery) {
+              const hospitalResponse = await execTool('query_hospital_costs', { question: query, limit: 10 })
+              const answerText = formatHospitalSummary(hospitalResponse)
+              write({ type: 'response.output_text.delta', delta: answerText, item_id: 'msg_hospital', output_index: 0, content_index: 0 })
+              
+              const updatedConversation: Message[] = [...messages, { role: 'assistant', content: answerText }]
+              
+              write({
+                type: 'copilot.final',
+                payload: {
+                  answer: answerText,
+                  follow_up_question: null,
+                  providers: [],
+                  // Expose full hospital JSON so the client can render tables or debug
+                  hospital: hospitalResponse,
+                  state: prevState || { service_terms: null, free_only: null, accepts_medicaid: null, accepts_uninsured: null, insurance_providers: null, location_text: null, accepts_medicare: null, telehealth_available: null, ssn_required: null },
+                  debug: {
+                    effective_query: query,
+                    filters_used: {},
+                    location_used: userLocation || null,
+                    selected_provider_ids: null,
+                    intent: 'hospital_query',
+                    route_mode: 'hospital_query_early_exit',
+                    comparator_flavor: null,
+                    provider_count: hospitalResponse.count || 0,
+                    service_count: 0,
+                    hospital_raw: hospitalResponse
+                  },
+                  conversation: updatedConversation.map((m: Message) => ({ role: m.role, content: m.content, name: m.name })).slice(-40)
+                }
+              })
+
+              write({ type: 'response.completed', sequence_number: 2, response: { status: 'completed' } })
+              return
+            }
+            
             // 1) Extract user state and apply heuristics
             const extracted = await extractStateFromConversation(messages, prevState)
             const heur = heuristicFromText(query)
@@ -1178,7 +1286,12 @@ export async function POST(req: NextRequest) {
 
             // 5) Execute retrieval
             let searchResponse: SearchResponse | FilterResponse | null = null
-            if (routeDecision?.route === 'filter_only') {
+            let hospitalResponse: HospitalDataResponse | null = null
+            if (routeDecision?.route === 'hospital_query') {
+              const hospitalQuestion = (routeDecision as { hospital_question?: string })?.hospital_question || query
+              hospitalResponse = await execTool('query_hospital_costs', { question: hospitalQuestion, limit: 10 })
+              // For hospital queries, we skip the provider search and return hospital data directly
+            } else if (routeDecision?.route === 'filter_only') {
               searchResponse = await execTool('filter_providers', { filters: decidedFilters, location: derivedLocation, limit: 12 })
             } else if (routeDecision?.route === 'provider_profile') {
               if (!profileDirectProvider) {
@@ -1197,6 +1310,41 @@ export async function POST(req: NextRequest) {
               }
             } else {
               searchResponse = await execTool('search_providers', { query: decidedQuery, location: derivedLocation, filters: decidedFilters, limit: RESULT_LIMIT })
+            }
+
+            // Handle hospital query responses separately
+            if (hospitalResponse) {
+              const answerText = formatHospitalSummary(hospitalResponse)
+              write({ type: 'response.output_text.delta', delta: answerText, item_id: 'msg_hospital', output_index: 0, content_index: 0 })
+              
+              const updatedConversation: Message[] = [...messages, { role: 'assistant', content: answerText }]
+              
+              write({
+                type: 'copilot.final',
+                payload: {
+                  answer: answerText,
+                  follow_up_question: null,
+                  providers: [],
+                  hospital: hospitalResponse,
+                  state: userState,
+                  debug: {
+                    effective_query: effectiveQuery,
+                    filters_used: decidedFilters,
+                    location_used: derivedLocation || null,
+                    selected_provider_ids: null,
+                    intent: 'hospital_query',
+                    route_mode: 'hospital_query',
+                    comparator_flavor: null,
+                    provider_count: hospitalResponse.count || 0,
+                    service_count: 0,
+                    hospital_raw: hospitalResponse
+                  },
+                  conversation: updatedConversation.map((m: Message) => ({ role: m.role, content: m.content, name: m.name })).slice(-40)
+                }
+              })
+
+              write({ type: 'response.completed', sequence_number: 2, response: { status: 'completed' } })
+              return
             }
 
             const providers: Provider[] = Array.isArray(searchResponse?.providers) ? (searchResponse!.providers as Provider[]).slice(0, RESULT_LIMIT) : []
@@ -1431,6 +1579,45 @@ export async function POST(req: NextRequest) {
 
     const messages: Message[] = [...conversation.filter(Boolean), { role: 'user', content: query }]
 
+    // EARLY CHECK: Detect obvious hospital queries before expensive LLM routing
+    const queryLower = String(query || '').toLowerCase()
+    const hasHospitalWord = /\b(hospital|hospitals)\b/i.test(queryLower)
+    const hasSurgeryWord = /\b(surgery|surgeries|surgical|procedure|operation|replacement)\b/i.test(queryLower)
+    const hasCostWord = /\b(cost|costs|price|prices|charge|charges|cheap|cheapest|expensive|affordable|how\s*much)\b/i.test(queryLower)
+    const isObviousHospitalQuery = hasHospitalWord && hasSurgeryWord && hasCostWord
+    
+    if (isObviousHospitalQuery) {
+      if (hospitalRawRequested) {
+        const raw = await queryHospitalDataRaw(query)
+        return NextResponse.json(raw)
+      } else {
+        const hospitalResponse = await execTool('query_hospital_costs', { question: query, limit: 10 })
+        const answerText = formatHospitalSummary(hospitalResponse)
+        const updatedConversation: Message[] = [...messages, { role: 'assistant', content: answerText }]
+        
+        return NextResponse.json({
+          answer: answerText,
+          follow_up_question: null,
+          providers: [],
+          hospital: hospitalResponse,
+          state: prevState || { service_terms: null, free_only: null, accepts_medicaid: null, accepts_uninsured: null, insurance_providers: null, location_text: null, accepts_medicare: null, telehealth_available: null, ssn_required: null },
+          debug: {
+            effective_query: query,
+            filters_used: {},
+            location_used: userLocation || null,
+            selected_provider_ids: null,
+            intent: 'hospital_query',
+            route_mode: 'hospital_query_early_exit',
+            comparator_flavor: null,
+            provider_count: hospitalResponse.count || 0,
+            service_count: 0,
+            hospital_raw: hospitalResponse
+          },
+          conversation: updatedConversation.map((m: Message) => ({ role: m.role, content: m.content, name: m.name })).slice(-40)
+        })
+      }
+    }
+
     // 1) Extract user state and apply heuristics
     const extracted = await extractStateFromConversation(messages, prevState)
     const heur = heuristicFromText(query)
@@ -1548,7 +1735,16 @@ export async function POST(req: NextRequest) {
 
     // 5) Execute retrieval according to route
     let searchResponse: SearchResponse | FilterResponse | null = null
-    if (routeDecision?.route === 'filter_only') {
+    let hospitalResponse: HospitalDataResponse | null = null
+    if (routeDecision?.route === 'hospital_query') {
+      const hospitalQuestion = (routeDecision as { hospital_question?: string })?.hospital_question || query
+      if (hospitalRawRequested) {
+        const raw = await queryHospitalDataRaw(hospitalQuestion)
+        return NextResponse.json(raw)
+      }
+      hospitalResponse = await execTool('query_hospital_costs', { question: hospitalQuestion, limit: 10 })
+      // For hospital queries, we skip the provider search and return hospital data directly
+    } else if (routeDecision?.route === 'filter_only') {
       // Pure filter pass
       searchResponse = await execTool('filter_providers', {
         filters: decidedFilters,
@@ -1596,6 +1792,33 @@ export async function POST(req: NextRequest) {
         location: derivedLocation,
         filters: decidedFilters,
         limit: RESULT_LIMIT
+      })
+    }
+
+    // Handle hospital query responses separately
+    if (hospitalResponse) {
+      const answerText = formatHospitalSummary(hospitalResponse)
+      const updatedConversation: Message[] = [...messages, { role: 'assistant', content: answerText }]
+      
+      return NextResponse.json({
+        answer: answerText,
+        follow_up_question: null,
+        providers: [],
+        hospital: hospitalResponse,
+        state: userState,
+        debug: {
+          effective_query: effectiveQuery,
+          filters_used: decidedFilters,
+          location_used: derivedLocation || null,
+          selected_provider_ids: null,
+          intent: 'hospital_query',
+          route_mode: 'hospital_query',
+          comparator_flavor: null,
+          provider_count: hospitalResponse.count || 0,
+          service_count: 0,
+          hospital_raw: hospitalResponse
+        },
+        conversation: updatedConversation.map((m: Message) => ({ role: m.role, content: m.content, name: m.name })).slice(-40)
       })
     }
 
